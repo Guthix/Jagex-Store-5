@@ -7,14 +7,14 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
-enum class Compression(val opcode: Int) {
-    NONE(opcode = 0) {
+enum class Compression(val opcode: Int, val headerSize: Int) {
+    NONE(opcode = 0, headerSize = 0) {
         override fun compress(input: ByteArray) = input
         override fun decompress(input: ByteArray) = input
     },
 
 
-    BZIP2(opcode = 1) {
+    BZIP2(opcode = 1, headerSize = Int.SIZE_BYTES) {
         val BLOCK_SIZE = 1
 
         val HEADER_SIZE = 2
@@ -55,7 +55,7 @@ enum class Compression(val opcode: Int) {
         }
     },
 
-    GZIP(opcode = 2) {
+    GZIP(opcode = 2, headerSize = Int.SIZE_BYTES) {
         override fun compress(input: ByteArray): ByteArray {
             val inputStream = ByteArrayInputStream(input)
             inputStream.use { inStream ->
@@ -96,5 +96,7 @@ enum class Compression(val opcode: Int) {
 
     companion object {
         const val BUFFER_SIZE = 4096
+
+        fun getByOpcode(opcode: Int) = Compression.values().first{ opcode == it.opcode }
     }
 }
