@@ -1,6 +1,8 @@
 package io.github.bartvhelvert.jagex.filesystem.store
 
 import io.github.bartvhelvert.jagex.filesystem.getMedium
+import io.github.bartvhelvert.jagex.filesystem.getUByte
+import io.github.bartvhelvert.jagex.filesystem.getUShort
 import io.github.bartvhelvert.jagex.filesystem.putMedium
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -41,7 +43,7 @@ internal class DataChannel(val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
     private fun Segment.validate(indexId: Int, archiveId: Int, segmentNumber: Int) {
         if (this.indexId.toInt() != indexId) throw IOException("Index id mismatch")
-        if (this.archiveId != archiveId) throw IOException("Archive id mismatch")
+        if (this.archiveId != archiveId) throw IOException("Dictionary id mismatch")
         if (this.segmentPos.toInt() != segmentNumber) throw IOException("Chunk id mismatch")
     }
 }
@@ -117,10 +119,10 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
 
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer): Segment {
-            val archiveId = buffer.short.toInt()
-            val chunkNumber = buffer.short.toUShort()
+            val archiveId = buffer.getUShort().toInt()
+            val chunkNumber = buffer.getUShort()
             val nextSector = buffer.getMedium()
-            val indexId = buffer.get().toUByte()
+            val indexId = buffer.getUByte()
             val data = ByteArray(DATA_SIZE)
             buffer.get(data)
             return Segment(indexId, archiveId, chunkNumber, nextSector, data)
@@ -129,9 +131,9 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
         @ExperimentalUnsignedTypes
         fun decodeExtended(buffer: ByteBuffer): Segment {
             val archiveId = buffer.int
-            val chunkNumber = buffer.short.toUShort()
+            val chunkNumber = buffer.getUShort()
             val nextSector = buffer.getMedium()
-            val indexId = buffer.get().toUByte()
+            val indexId = buffer.getUByte()
             val data = ByteArray(EXTENDED_DATA_SIZE)
             buffer.get(data)
             return Segment(indexId, archiveId, chunkNumber, nextSector, data)
