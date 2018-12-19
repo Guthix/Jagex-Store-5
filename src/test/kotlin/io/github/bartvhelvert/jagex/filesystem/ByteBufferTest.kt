@@ -13,7 +13,7 @@ class MediumTest {
     @MethodSource("mediumTestArgs")
     fun mediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
-        val mediumNumber = buffer.getMedium()
+        val mediumNumber = buffer.medium
         assertEquals(expected, mediumNumber)
     }
 
@@ -21,7 +21,7 @@ class MediumTest {
     @MethodSource("unsignedMediumTestArgs")
     fun unsignedMediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
-        val mediumNumber = buffer.getUMedium()
+        val mediumNumber = buffer.medium
         assertEquals(expected, mediumNumber)
     }
 
