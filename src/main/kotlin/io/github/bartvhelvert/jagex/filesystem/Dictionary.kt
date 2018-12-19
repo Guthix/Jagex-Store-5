@@ -6,34 +6,34 @@ import java.nio.ByteBuffer
 class Dictionary(val version: Int, val entries: Array<ByteBuffer>) {
     companion object {
         @ExperimentalUnsignedTypes
-        internal fun decode(encodedDictionary: EncodedDictionary, amountOfEntries: Int): Dictionary {
+        internal fun decode(encodedDictionary: EncodedDictionary, fileCount: Int): Dictionary {
             val buffer = encodedDictionary.data
-            val entrySizes = IntArray(amountOfEntries)
-            val amountOfChunks = buffer.getUByte(buffer.limit() - 1).toInt()
-            val chunkSizes = Array(amountOfChunks) { IntArray(amountOfEntries) }
-            buffer.position(buffer.limit() - 1 - amountOfChunks * amountOfEntries * 4)
-            for (chunk in 0 until amountOfChunks) {
+            val fileSizes = IntArray(fileCount)
+            val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
+            val chunkSizes = Array(chunkCount) { IntArray(fileCount) }
+            buffer.position(buffer.limit() - 1 - chunkCount * fileCount * 4)
+            for (chunkId in 0 until chunkCount) {
                 var chunkSize = 0
-                for (id in 0 until amountOfEntries) {
+                for (fileId in 0 until fileCount) {
                     val delta = buffer.int // difference in chunk size compared to the previous chunk
                     chunkSize += delta
-                    chunkSizes[chunk][id] = chunkSize
-                    entrySizes[id] += chunkSize
+                    chunkSizes[chunkId][fileId] = chunkSize
+                    fileSizes[fileId] += chunkSize
                 }
             }
-            val entries = Array<ByteBuffer>(amountOfEntries) {
-                ByteBuffer.allocate(entrySizes[it])
+            val fileData = Array<ByteBuffer>(fileCount) {
+                ByteBuffer.allocate(fileSizes[it])
             }
             buffer.position(0)
-            for (chunk in 0 until amountOfChunks) {
-                for (id in 0 until amountOfEntries) {
-                    val chunkSize = chunkSizes[chunk][id]
+            for (chunkId in 0 until chunkCount) {
+                for (fileId in 0 until fileCount) {
+                    val chunkSize = chunkSizes[chunkId][fileId]
                     val temp = ByteArray(chunkSize)
                     buffer.get(temp)
-                    entries[id].put(temp)
+                    fileData[fileId].put(temp)
                 }
             }
-            return Dictionary(encodedDictionary.version, entries)
+            return Dictionary(encodedDictionary.version, fileData)
         }
 
         @ExperimentalUnsignedTypes
