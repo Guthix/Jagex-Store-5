@@ -20,6 +20,7 @@ import java.nio.ByteBuffer
 @ExperimentalUnsignedTypes
 fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
 
+@ExperimentalUnsignedTypes
 val ByteBuffer.uByte get() = get().toUByte()
 
 @ExperimentalUnsignedTypes
@@ -36,4 +37,14 @@ fun ByteBuffer.putMedium(value: Int): ByteBuffer {
     putShort((value shr 8).toShort())
     put(value.toByte())
     return this
+}
+
+@ExperimentalUnsignedTypes
+val ByteBuffer.uInt get() = int and Int.MAX_VALUE
+
+@ExperimentalUnsignedTypes
+val ByteBuffer.smart get() = if (get(position()) < 0) {
+    uInt
+} else {
+    uShort.toInt()
 }
