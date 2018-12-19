@@ -1,9 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem.store
 
-import io.github.bartvhelvert.jagex.filesystem.getMedium
-import io.github.bartvhelvert.jagex.filesystem.getUByte
-import io.github.bartvhelvert.jagex.filesystem.getUShort
-import io.github.bartvhelvert.jagex.filesystem.putMedium
+import io.github.bartvhelvert.jagex.filesystem.*
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -119,24 +116,24 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
 
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer): Segment {
-            val archiveId = buffer.getUShort().toInt()
-            val chunkNumber = buffer.getUShort()
-            val nextSector = buffer.getMedium()
-            val indexId = buffer.getUByte()
+            val archiveId = buffer.uShort.toInt()
+            val segmentPos = buffer.uShort
+            val nextSegmentPos = buffer.uMedium
+            val indexId = buffer.uByte
             val data = ByteArray(DATA_SIZE)
             buffer.get(data)
-            return Segment(indexId, archiveId, chunkNumber, nextSector, data)
+            return Segment(indexId, archiveId, segmentPos, nextSegmentPos, data)
         }
 
         @ExperimentalUnsignedTypes
         fun decodeExtended(buffer: ByteBuffer): Segment {
             val archiveId = buffer.int
-            val chunkNumber = buffer.getUShort()
-            val nextSector = buffer.getMedium()
-            val indexId = buffer.getUByte()
+            val segmentPos = buffer.uShort
+            val nextSegmentPos = buffer.uMedium
+            val indexId = buffer.uByte
             val data = ByteArray(EXTENDED_DATA_SIZE)
             buffer.get(data)
-            return Segment(indexId, archiveId, chunkNumber, nextSector, data)
+            return Segment(indexId, archiveId, segmentPos, nextSegmentPos, data)
         }
     }
 }

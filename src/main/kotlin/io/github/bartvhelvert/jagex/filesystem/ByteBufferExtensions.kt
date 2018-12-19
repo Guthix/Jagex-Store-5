@@ -18,16 +18,18 @@ package io.github.bartvhelvert.jagex.filesystem
 import java.nio.ByteBuffer
 
 @ExperimentalUnsignedTypes
-fun ByteBuffer.getUByte() = get().toUByte()
+fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
+
+val ByteBuffer.uByte get() = get().toUByte()
 
 @ExperimentalUnsignedTypes
-fun ByteBuffer.getUShort() = short.toUShort()
+val ByteBuffer.uShort get() = short.toUShort()
 
 @ExperimentalUnsignedTypes
-fun ByteBuffer.getUMedium() = (short.toUShort().toInt() shl 8) or get().toUByte().toInt()
+val ByteBuffer.uMedium get() = (short.toUShort().toInt() shl 8) or get().toUByte().toInt()
 
 @ExperimentalUnsignedTypes
-fun ByteBuffer.getMedium() = (short.toInt() shl 8) or get().toUByte().toInt()
+val ByteBuffer.medium get() = (short.toInt() shl 8) or get().toUByte().toInt()
 
 fun ByteBuffer.putMedium(value: Int): ByteBuffer {
     require(value <= 16777215)

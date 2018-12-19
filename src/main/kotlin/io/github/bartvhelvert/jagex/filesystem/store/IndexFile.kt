@@ -1,7 +1,7 @@
 package io.github.bartvhelvert.jagex.filesystem.store
 
-import io.github.bartvhelvert.jagex.filesystem.getUMedium
 import io.github.bartvhelvert.jagex.filesystem.putMedium
+import io.github.bartvhelvert.jagex.filesystem.uMedium
 import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -30,8 +30,8 @@ internal data class Index(val dataSize: Int, val segmentPos: Int) {
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer): Index {
             require(buffer.remaining() >= SIZE)
-            val size = buffer.getUMedium()
-            val sector = buffer.getUMedium()
+            val size = buffer.uMedium
+            val sector = buffer.uMedium
             return Index(size, sector)
         }
     }
