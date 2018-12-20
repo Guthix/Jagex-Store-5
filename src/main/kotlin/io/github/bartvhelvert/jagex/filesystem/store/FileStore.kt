@@ -9,7 +9,7 @@ class FileStore(directory: File) {
 
     private val indexChannels = mutableMapOf<Int, IndexChannel>()
 
-    private val metaDataChannel: IndexChannel
+    private val attributeIndexChannel: IndexChannel
 
     init {
         require(directory.isDirectory)
@@ -23,7 +23,7 @@ class FileStore(directory: File) {
         }
         val metaDataFile = directory.resolve("$FILE_NAME$META_DATA_INDEX.$INDEX_FILE_EXTENSION")
         require(metaDataFile.isFile)
-        metaDataChannel = IndexChannel(RandomAccessFile(dataFile, accessMode).channel)
+        attributeIndexChannel = IndexChannel(RandomAccessFile(dataFile, accessMode).channel)
     }
 
     @ExperimentalUnsignedTypes
