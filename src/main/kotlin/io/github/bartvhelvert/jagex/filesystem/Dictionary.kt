@@ -3,11 +3,13 @@ package io.github.bartvhelvert.jagex.filesystem
 import java.io.IOException
 import java.nio.ByteBuffer
 
-class Dictionary(val version: Int, val entries: Array<ByteBuffer>) {
+class Dictionary(val attributes: DictionaryAttributes, val entries: Array<ByteBuffer>) {
     companion object {
         @ExperimentalUnsignedTypes
-        internal fun decode(encodedDictionary: EncodedDictionary, fileCount: Int): Dictionary {
+        internal fun decode(encodedDictionary: EncodedDictionary, attributes: DictionaryAttributes): Dictionary {
+            require(encodedDictionary.version == attributes.version)
             val buffer = encodedDictionary.data
+            val fileCount = attributes.fileAttributes.size
             val fileSizes = IntArray(fileCount)
             val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
             val chunkSizes = Array(chunkCount) { IntArray(fileCount) }
@@ -33,7 +35,7 @@ class Dictionary(val version: Int, val entries: Array<ByteBuffer>) {
                     fileData[fileId].put(temp)
                 }
             }
-            return Dictionary(encodedDictionary.version, fileData)
+            return Dictionary(attributes, fileData)
         }
 
         @ExperimentalUnsignedTypes
