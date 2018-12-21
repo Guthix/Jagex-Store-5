@@ -22,12 +22,12 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: Array<Dic
     }
 
     companion object {
-        const val whirlPoolHashByteCount = 64
+        private const val whirlPoolHashByteCount = 64
 
-        const val MASK_NAME_HASH = 0x01
-        const val MASK_WHIRLPOOL_HASH = 0x02
-        const val MASK_SIZES = 0x04
-        const val MASK_UNKNOWN_HASH = 0x08
+        private const val MASK_NAME_HASH = 0x01
+        private const val MASK_WHIRLPOOL_HASH = 0x02
+        private const val MASK_SIZES = 0x04
+        private const val MASK_UNKNOWN_HASH = 0x08
 
         @ExperimentalUnsignedTypes
         internal fun decode(buffer: ByteBuffer): IndexAttributes {
