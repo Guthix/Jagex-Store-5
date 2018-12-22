@@ -22,7 +22,6 @@ data class Dictionary(val attributes: DictionaryAttributes, val entries: Array<B
     companion object {
         @ExperimentalUnsignedTypes
         internal fun decode(container: Container, attributes: DictionaryAttributes): Dictionary {
-            require(container.version == attributes.version)
             val buffer = container.data
             val fileCount = attributes.fileAttributes.size
             val fileSizes = IntArray(fileCount)

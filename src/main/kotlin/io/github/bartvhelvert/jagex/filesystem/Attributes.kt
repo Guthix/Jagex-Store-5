@@ -1,5 +1,7 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import java.io.IOException
+
 data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMap<Int, DictionaryAttributes>) {
     companion object {
         private const val whirlPoolHashByteCount = 64
@@ -15,7 +17,6 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMa
             val format = buffer.uByte.toInt()
             require(format in 5..7)
             val version = if (format == 5) 0 else buffer.int
-            require(container.version == version)
             val flags = buffer.uByte.toInt()
             val dictCount = if (format == 7) buffer.smart else buffer.uShort.toInt()
             val dictIds = IntArray(dictCount)
@@ -78,7 +79,6 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMa
                     fileAttributes
                 )
             }
-
             return IndexAttributes(version, dictionaryAttributes)
         }
     }
