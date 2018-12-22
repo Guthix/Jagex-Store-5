@@ -1,24 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem
 
-import java.nio.ByteBuffer
-
-data class IndexAttributes(val version: Int, val dictionaryAttributes: Array<DictionaryAttributes>) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as IndexAttributes
-        if (version != other.version) return false
-        if (!dictionaryAttributes.contentEquals(other.dictionaryAttributes)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = version
-        result = 31 * result + dictionaryAttributes.contentHashCode()
-        return result
-    }
-
+data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMap<Int, DictionaryAttributes>) {
     companion object {
         private const val whirlPoolHashByteCount = 64
 
@@ -28,10 +10,12 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: Array<Dic
         private const val MASK_UNKNOWN_HASH = 0x08
 
         @ExperimentalUnsignedTypes
-        internal fun decode(buffer: ByteBuffer): IndexAttributes {
+        internal fun decode(container: Container): IndexAttributes {
+            val buffer = container.data
             val format = buffer.uByte.toInt()
             require(format in 5..7)
             val version = if (format == 5) 0 else buffer.int
+            require(container.version == version)
             val flags = buffer.uByte.toInt()
             val dictCount = if (format == 7) buffer.smart else buffer.uShort.toInt()
             val dictIds = IntArray(dictCount)
@@ -73,26 +57,29 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: Array<Dic
                     }
                 }
             } else null
-            return IndexAttributes(
-                version,
-                Array(dictCount) { dictIndex ->
-                    DictionaryAttributes(
-                        dictIds[dictIndex],
-                        dictNameHashes?.get(dictIndex),
-                        dictCRCs[dictIndex],
-                        dictUnkownHashes?.get(dictIndex),
-                        dictWhirlpoolHashes?.get(dictIndex),
-                        dictSizes?.get(dictIndex),
-                        dictVersions[dictIndex],
-                        Array(dictFileIds[dictIndex].size) { fileIndex ->
-                            FileAttributes(
-                                dictFileIds[dictIndex][fileIndex],
-                                dictFileNameHashes?.get(dictIndex)?.get(fileIndex)
-                            )
-                        }
+
+            val dictionaryAttributes = mutableMapOf<Int, DictionaryAttributes>()
+            for(dictIndex in dictIds.indices) {
+                val fileAttributes = mutableMapOf<Int, FileAttributes>()
+                for(fileIndex in dictFileIds[dictIndex].indices) {
+                    fileAttributes[dictFileIds[dictIndex][fileIndex]] = FileAttributes(
+                        dictFileIds[dictIndex][fileIndex],
+                        dictFileNameHashes?.get(dictIndex)?.get(fileIndex)
                     )
                 }
-            )
+                dictionaryAttributes[dictIds[dictIndex]] = DictionaryAttributes(
+                    dictIds[dictIndex],
+                    dictNameHashes?.get(dictIndex),
+                    dictCRCs[dictIndex],
+                    dictUnkownHashes?.get(dictIndex),
+                    dictWhirlpoolHashes?.get(dictIndex),
+                    dictSizes?.get(dictIndex),
+                    dictVersions[dictIndex],
+                    fileAttributes
+                )
+            }
+
+            return IndexAttributes(version, dictionaryAttributes)
         }
     }
 }
@@ -105,7 +92,7 @@ data class DictionaryAttributes(
     val whirlpoolHash: ByteArray?,
     val sizes: Size?,
     val version: Int,
-    val fileAttributes: Array<FileAttributes>
+    val fileAttributes: MutableMap<Int, FileAttributes>
 
 ) {
     class Size(compressed: Int, uncompressed: Int)
@@ -124,7 +111,7 @@ data class DictionaryAttributes(
         } else if (other.whirlpoolHash != null) return false
         if (sizes != other.sizes) return false
         if (version != other.version) return false
-        if (!fileAttributes.contentEquals(other.fileAttributes)) return false
+        if (fileAttributes != other.fileAttributes) return false
 
         return true
     }
@@ -137,7 +124,7 @@ data class DictionaryAttributes(
         result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
         result = 31 * result + (sizes?.hashCode() ?: 0)
         result = 31 * result + version
-        result = 31 * result + fileAttributes.contentHashCode()
+        result = 31 * result + fileAttributes.hashCode()
         return result
     }
 }
