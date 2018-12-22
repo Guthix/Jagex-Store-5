@@ -1,14 +1,29 @@
 package io.github.bartvhelvert.jagex.filesystem
 
-import java.io.IOException
 import java.nio.ByteBuffer
 
-class Dictionary(val attributes: DictionaryAttributes, val entries: Array<ByteBuffer>) {
+data class Dictionary(val attributes: DictionaryAttributes, val entries: Array<ByteBuffer>) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as Dictionary
+        if (attributes != other.attributes) return false
+        if (!entries.contentEquals(other.entries)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = attributes.hashCode()
+        result = 31 * result + entries.contentHashCode()
+        return result
+    }
+
     companion object {
         @ExperimentalUnsignedTypes
-        internal fun decode(encodedDictionary: EncodedDictionary, attributes: DictionaryAttributes): Dictionary {
-            require(encodedDictionary.version == attributes.version)
-            val buffer = encodedDictionary.data
+        internal fun decode(container: Container, attributes: DictionaryAttributes): Dictionary {
+            require(container.version == attributes.version)
+            val buffer = container.data
             val fileCount = attributes.fileAttributes.size
             val fileSizes = IntArray(fileCount)
             val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
@@ -37,41 +52,5 @@ class Dictionary(val attributes: DictionaryAttributes, val entries: Array<ByteBu
             }
             return Dictionary(attributes, fileData)
         }
-
-        @ExperimentalUnsignedTypes
-        internal fun decipherAndDecompress(
-            buffer: ByteBuffer,
-            xteaKey: IntArray = XTEA.ZERO_KEY
-        ): EncodedDictionary {
-            val compression = Compression.getByOpcode(buffer.uByte.toInt())
-            val compressedSize = buffer.int
-            val compressionBuffer = buffer.slice().decipher(compression, compressedSize, xteaKey)
-            val dataBuffer = compressionBuffer.decompress(compression, compressedSize)
-            val version = compressionBuffer.decodeVersion()
-            return EncodedDictionary(version, dataBuffer)
-        }
-
-        private fun ByteBuffer.decipher(compression: Compression, compressedSize: Int, xteaKey: IntArray) =
-            if(xteaKey.all { it != 0 }) {
-                this
-            } else {
-                xteaDecrypt(xteaKey, end = compression.headerSize + compressedSize)
-            }
-
-        private fun ByteBuffer.decompress(compression: Compression, compressedSize: Int): ByteBuffer {
-            if(compression == Compression.NONE) return this
-            val uncompressedSize = int
-            val uncompressed = compression.decompress(array().sliceArray(0..compressedSize))
-            if (uncompressed.size != uncompressedSize) throw IOException("Compression size mismatch")
-            return ByteBuffer.wrap(uncompressed)
-        }
-
-        private fun ByteBuffer.decodeVersion() = if (remaining() >= 2) {
-            short.toInt()
-        } else {
-            -1
-        }
     }
 }
-
-internal class EncodedDictionary(val version: Int, val data: ByteBuffer)

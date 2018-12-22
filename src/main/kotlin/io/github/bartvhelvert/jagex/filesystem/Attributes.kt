@@ -6,9 +6,7 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: Array<Dic
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as IndexAttributes
-
         if (version != other.version) return false
         if (!dictionaryAttributes.contentEquals(other.dictionaryAttributes)) return false
 
@@ -115,9 +113,7 @@ data class DictionaryAttributes(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as DictionaryAttributes
-
         if (id != other.id) return false
         if (nameHash != other.nameHash) return false
         if (crc != other.crc) return false
