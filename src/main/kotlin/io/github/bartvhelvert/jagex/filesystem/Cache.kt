@@ -9,13 +9,17 @@ class Cache(directory: File) {
 
     private val indexAttributesCache = mutableMapOf<Int, IndexAttributes>()
 
+    private val dictionaryCache = mutableMapOf<Int, MutableMap<Int, Dictionary>>()
+
     @ExperimentalUnsignedTypes
-    fun readDictionary(indexFileId: Int, dictionaryId: Int): Dictionary {
+    fun readDictionary(indexFileId: Int, dictionaryId: Int, shouldCache: Boolean = false): Dictionary {
         val indexAttributes = readAndCacheIndexAttributes(indexFileId)
         val dataContainer: Container = Container.decode(fileStore.read(indexFileId, dictionaryId))
         val dictionaryAttributes = indexAttributes.dictionaryAttributes[indexFileId]
-            ?: throw IOException("Dictionary attributes to not exist in the cache")
-        return Dictionary.decode(dataContainer, dictionaryAttributes)
+            ?: throw IOException("Dictionary attributes to not exist in the shouldCache")
+        val dictionary = Dictionary.decode(dataContainer, dictionaryAttributes)
+        if(shouldCache) dictionaryCache.computeIfAbsent(indexFileId) { mutableMapOf() }[dictionaryId] = dictionary
+        return dictionary
     }
 
     @ExperimentalUnsignedTypes
