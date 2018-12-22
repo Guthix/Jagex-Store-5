@@ -24,9 +24,9 @@ class FileStore(directory: File) {
             if(!indexFile.isFile) continue
             indexChannels[indexFileId] = IndexChannel(RandomAccessFile(dataFile, accessMode).channel)
         }
-        val metaDataFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
-        if(!metaDataFile.isFile) throw IOException("$metaDataFile is not a file or doesn't exist")
-        attributeIndexChannel = IndexChannel(RandomAccessFile(dataFile, accessMode).channel)
+        val attributeFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
+        if(!attributeFile.isFile) throw IOException("$attributeFile is not a file or doesn't exist")
+        attributeIndexChannel = IndexChannel(RandomAccessFile(attributeFile, accessMode).channel)
     }
 
     @ExperimentalUnsignedTypes
