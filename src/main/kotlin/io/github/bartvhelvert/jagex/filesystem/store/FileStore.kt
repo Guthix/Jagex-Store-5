@@ -22,7 +22,7 @@ class FileStore(directory: File) {
         for (indexFileId in 0 until ATTRIBUTE_INDEX) {
             val indexFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$indexFileId")
             if(!indexFile.isFile) continue
-            indexChannels[indexFileId] = IndexChannel(RandomAccessFile(dataFile, accessMode).channel)
+            indexChannels[indexFileId] = IndexChannel(RandomAccessFile(indexFile, accessMode).channel)
         }
         val attributeFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
         if(!attributeFile.isFile) throw IOException("$attributeFile is not a file or doesn't exist")
