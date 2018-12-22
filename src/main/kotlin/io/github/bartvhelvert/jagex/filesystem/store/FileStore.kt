@@ -11,6 +11,8 @@ class FileStore(directory: File) {
 
     private val attributeIndexChannel: IndexChannel
 
+    val indexFileCount get() = indexChannels.size
+
     init {
         require(directory.isDirectory)
         val dataFile = directory.resolve("$FILE_NAME.$DATA_FILE_EXTENSION")
@@ -27,10 +29,10 @@ class FileStore(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    fun read(indexFileId: Int, archiveId: Int): ByteBuffer {
-        val index = indexChannels[indexFileId]?.read(archiveId)
+    fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+        val index = indexChannels[indexFileId]?.read(containerId)
         require(index != null)
-        return dataChannel.read(indexFileId, index, archiveId)
+        return dataChannel.read(indexFileId, index, containerId)
     }
 
     companion object {
@@ -38,6 +40,6 @@ class FileStore(directory: File) {
         private const val DATA_FILE_EXTENSION = "dat2"
         private const val INDEX_FILE_EXTENSION = "idx"
         private const val FILE_NAME = "main_file_cache"
-        private const val META_DATA_INDEX = 255
+        const val META_DATA_INDEX = 255
     }
 }
