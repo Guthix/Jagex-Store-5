@@ -28,10 +28,8 @@ class Cache(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    private fun readIndexAttributes(indexFileId: Int): IndexAttributes {
+    private fun readIndexAttributes(indexFileId: Int) = indexAttributesCache.computeIfAbsent(indexFileId) {
         val indexAttributesContainer = Container.decode(fileStore.read(FileStore.ATTRIBUTE_INDEX, indexFileId))
-        val indexAttributes = IndexAttributes.decode(indexAttributesContainer)
-        indexAttributesCache[indexFileId] = indexAttributes
-        return indexAttributes
+        IndexAttributes.decode(indexAttributesContainer)
     }
 }

@@ -12,7 +12,7 @@ class FileStore(directory: File) {
 
     private val attributeIndexChannel: IndexChannel
 
-    val indexFileCount get() = indexChannels.size
+    internal val indexFileNumbers get() = indexChannels.keys
 
     init {
         if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist")
