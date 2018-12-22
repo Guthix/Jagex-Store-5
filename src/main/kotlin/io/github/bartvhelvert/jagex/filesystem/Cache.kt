@@ -4,7 +4,7 @@ import java.io.File
 import io.github.bartvhelvert.jagex.filesystem.store.FileStore
 import java.io.IOException
 
-class Cache(directory: File, xteas: MutableMap<Int, IntArray> = mutableMapOf()) {
+class Cache(directory: File) {
     private val fileStore = FileStore(directory)
 
     private val indexAttributesCache = mutableMapOf<Int, IndexAttributes>()
@@ -15,7 +15,7 @@ class Cache(directory: File, xteas: MutableMap<Int, IntArray> = mutableMapOf()) 
     fun readDictionary(
         indexFileId: Int,
         dictionaryId: Int,
-        xteaKey: IntArray = XTEA.ZERO_KEY, //TODO implement using stored xteas
+        xteaKey: IntArray = XTEA.ZERO_KEY,
         shouldCache: Boolean = false
     ): Dictionary {
         val indexAttributes = readIndexAttributes(indexFileId)
