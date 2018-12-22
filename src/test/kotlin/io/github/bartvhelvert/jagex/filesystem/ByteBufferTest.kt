@@ -9,6 +9,7 @@ import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MediumTest {
+    @ExperimentalUnsignedTypes
     @ParameterizedTest
     @MethodSource("mediumTestArgs")
     fun mediumPutGetTest(input: Int, expected: Int) {
@@ -17,6 +18,7 @@ class MediumTest {
         assertEquals(expected, mediumNumber)
     }
 
+    @ExperimentalUnsignedTypes
     @ParameterizedTest
     @MethodSource("unsignedMediumTestArgs")
     fun unsignedMediumPutGetTest(input: Int, expected: Int) {

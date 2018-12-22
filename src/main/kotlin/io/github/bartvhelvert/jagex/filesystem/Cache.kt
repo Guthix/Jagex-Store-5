@@ -13,7 +13,7 @@ class Cache(directory: File) {
 
     @ExperimentalUnsignedTypes
     fun readDictionary(indexFileId: Int, dictionaryId: Int, shouldCache: Boolean = false): Dictionary {
-        val indexAttributes = readAndCacheIndexAttributes(indexFileId)
+        val indexAttributes = readIndexAttributes(indexFileId)
         val dataContainer: Container = Container.decode(fileStore.read(indexFileId, dictionaryId))
         val dictionaryAttributes = indexAttributes.dictionaryAttributes[indexFileId]
             ?: throw IOException("Dictionary attributes to not exist in the shouldCache")
@@ -23,7 +23,7 @@ class Cache(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    private fun readAndCacheIndexAttributes(indexFileId: Int): IndexAttributes {
+    private fun readIndexAttributes(indexFileId: Int): IndexAttributes {
         val indexAttributesContainer = Container.decode(fileStore.read(FileStore.META_DATA_INDEX, indexFileId))
         val indexAttributes = IndexAttributes.decode(indexAttributesContainer)
         indexAttributesCache[indexFileId] = indexAttributes

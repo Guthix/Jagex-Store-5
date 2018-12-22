@@ -7,6 +7,7 @@ internal data class Container(val version: Int, val data: ByteBuffer) {
     companion object {
         @ExperimentalUnsignedTypes
         internal fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA.ZERO_KEY): Container {
+            require(xteaKey.size == XTEA.KEY_SIZE)
             val compression = Compression.getByOpcode(buffer.uByte.toInt())
             val compressedSize = buffer.int
             val compressionBuffer = buffer.slice().decipher(compression, compressedSize, xteaKey)
