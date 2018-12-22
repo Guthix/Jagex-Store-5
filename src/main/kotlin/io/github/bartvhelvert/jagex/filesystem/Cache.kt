@@ -15,12 +15,12 @@ class Cache(directory: File, xteas: MutableMap<Int, IntArray> = mutableMapOf()) 
     fun readDictionary(
         indexFileId: Int,
         dictionaryId: Int,
-        xteaKey: IntArray = XTEA.ZERO_KEY,
+        xteaKey: IntArray = XTEA.ZERO_KEY, //TODO implement using stored xteas
         shouldCache: Boolean = false
     ): Dictionary {
         val indexAttributes = readIndexAttributes(indexFileId)
         val dataContainer: Container = Container.decode(fileStore.read(indexFileId, dictionaryId), xteaKey)
-        val dictionaryAttributes = indexAttributes.dictionaryAttributes[indexFileId]
+        val dictionaryAttributes = indexAttributes.dictionaryAttributes[dictionaryId]
             ?: throw IOException("Dictionary attributes to not exist in the shouldCache")
         val dictionary = Dictionary.decode(dataContainer, dictionaryAttributes)
         if(shouldCache) dictionaryCache.computeIfAbsent(indexFileId) { mutableMapOf() }[dictionaryId] = dictionary
@@ -29,7 +29,7 @@ class Cache(directory: File, xteas: MutableMap<Int, IntArray> = mutableMapOf()) 
 
     @ExperimentalUnsignedTypes
     private fun readIndexAttributes(indexFileId: Int): IndexAttributes {
-        val indexAttributesContainer = Container.decode(fileStore.read(FileStore.META_DATA_INDEX, indexFileId))
+        val indexAttributesContainer = Container.decode(fileStore.read(FileStore.ATTRIBUTE_INDEX, indexFileId))
         val indexAttributes = IndexAttributes.decode(indexAttributesContainer)
         indexAttributesCache[indexFileId] = indexAttributes
         return indexAttributes
