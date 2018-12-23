@@ -1,5 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import java.math.BigInteger
 import java.nio.ByteBuffer
 
 object XTEA {
@@ -45,4 +46,7 @@ fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): B
     }
     return this
 }
+
+fun rsaCrypt(buffer: ByteBuffer, mod: BigInteger, key: BigInteger): ByteBuffer =
+    ByteBuffer.wrap(BigInteger(buffer.array()).modPow(key, mod).toByteArray())
 
