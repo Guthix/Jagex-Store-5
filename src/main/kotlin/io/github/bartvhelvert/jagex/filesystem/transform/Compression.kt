@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
-enum class Compression(val opcode: Int, val headerSize: Int) {
+enum class Compression(val opcode: Byte, val headerSize: Int) {
     NONE(opcode = 0, headerSize = 0) {
         override fun compress(input: ByteArray) = input
         override fun decompress(input: ByteArray, decompressedSize: Int) = input
@@ -66,6 +66,6 @@ enum class Compression(val opcode: Int, val headerSize: Int) {
     abstract fun decompress(input: ByteArray, decompressedSize: Int): ByteArray
 
     companion object {
-        fun getByOpcode(opcode: Int) = Compression.values().first{ opcode == it.opcode }
+        fun getByOpcode(opcode: Int) = Compression.values().first{ opcode == it.opcode.toInt() }
     }
 }
