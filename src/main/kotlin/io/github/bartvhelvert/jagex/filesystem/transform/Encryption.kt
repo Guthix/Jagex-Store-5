@@ -47,6 +47,5 @@ fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): B
     return this
 }
 
-fun rsaCrypt(buffer: ByteBuffer, mod: BigInteger, key: BigInteger): ByteBuffer =
-    ByteBuffer.wrap(BigInteger(buffer.array()).modPow(key, mod).toByteArray())
+fun rsaCrypt(data: ByteArray, mod: BigInteger, key: BigInteger) = BigInteger(data).modPow(key, mod).toByteArray()
 

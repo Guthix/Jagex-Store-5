@@ -6,7 +6,34 @@ import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
 
-data class CacheChecksum(val indexFileChecksums: Array<IndexFileCheckSum>) {
+data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
+    fun encode(whirlpool: Boolean, mod: BigInteger?, pubKey: BigInteger?): ByteBuffer {
+        val buffer = ByteBuffer.allocate(if(whirlpool)
+            WP_ENCODED_SIZE + IndexFileChecksum.WP_ENCODED_SIZE * indexFileChecksums.size
+        else
+            IndexFileChecksum.ENCODED_SIZE * indexFileChecksums.size
+        )
+        if(whirlpool) buffer.put(indexFileChecksums.size.toByte())
+        for(indexFileChecksum in indexFileChecksums) {
+            buffer.putInt(indexFileChecksum.crc)
+            buffer.putInt(indexFileChecksum.version)
+            if(whirlpool) {
+                buffer.putInt(indexFileChecksum.fileCount)
+                buffer.putInt(indexFileChecksum.size)
+                buffer.put(indexFileChecksum.whirlpoolDigest)
+            }
+        }
+        if(whirlpool) {
+            val encryptedData = if(mod != null && pubKey != null) {
+                rsaCrypt(buffer.array().sliceArray(0..buffer.position()), mod, pubKey)
+            } else {
+                buffer.array().sliceArray(0..buffer.position())
+            }
+            buffer.put(encryptedData)
+        }
+        return buffer
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -20,12 +47,13 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileCheckSum>) {
     }
 
     companion object {
+        const val WP_ENCODED_SIZE = 66
+
         @ExperimentalUnsignedTypes
-        fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, pubKey: BigInteger?): CacheChecksum {
+        fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, privateKey: BigInteger?): CacheChecksum {
             val indexFileCount = if (whirlpool) buffer.uByte.toInt() else buffer.limit() / 8
-            val masterDigest =
-                whirlPoolHash(buffer.array().sliceArray(0..indexFileCount * 80 + 1))
-            buffer.position(if (whirlpool) 1 else 0)
+            val calculatedDigest = whirlPoolHash(buffer.array()
+                .sliceArray(0..indexFileCount * IndexFileChecksum.WP_ENCODED_SIZE + 1))
             val indexFileChecksums = Array(indexFileCount) {
                 val crc = buffer.int
                 val version = buffer.int
@@ -36,18 +64,23 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileCheckSum>) {
                     buffer.get(digest)
                     digest
                 } else null
-                IndexFileCheckSum(crc, version, fileCount, size, whirlPoolDigest)
+                IndexFileChecksum(crc, version, fileCount, size, whirlPoolDigest)
             }
             if (whirlpool) {
-                val bytes = ByteArray(buffer.remaining())
-                buffer.get(bytes)
-                var temp = ByteBuffer.wrap(bytes)
-                if (mod != null && pubKey != null) {
-                    temp = rsaCrypt(buffer, mod, pubKey)
-                }
-                if (temp.limit() != 65) throw IOException("Decrypted data size mismatch")
+                val decodedDigest = ByteBuffer.wrap(
+                    if (mod != null && privateKey != null) {
+                        rsaCrypt(
+                            buffer.array().sliceArray(buffer.position()..buffer.position() + buffer.remaining()),
+                            mod,
+                            privateKey
+                        )
+                    } else {
+                        buffer.array().sliceArray(buffer.position()..buffer.position() + buffer.remaining())
+                    }
+                )
+                if (decodedDigest.limit() != 65) throw IOException("Decrypted data size mismatch")
                 for (i in 0..63) {
-                    if (temp.get(i + 1) != masterDigest[i]) throw IOException("Whirlpool digest mismatch")
+                    if (decodedDigest.get(i + 1) != calculatedDigest[i]) throw IOException("Whirlpool digest mismatch")
                 }
             }
             return CacheChecksum(indexFileChecksums)
@@ -55,7 +88,7 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileCheckSum>) {
     }
 }
 
-data class IndexFileCheckSum(
+data class IndexFileChecksum(
     val crc: Int,
     val version: Int,
     val fileCount: Int,
@@ -65,7 +98,7 @@ data class IndexFileCheckSum(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as IndexFileCheckSum
+        other as IndexFileChecksum
         if (crc != other.crc) return false
         if (version != other.version) return false
         if (fileCount != other.fileCount) return false
@@ -85,5 +118,10 @@ data class IndexFileCheckSum(
         result = 31 * result + size
         result = 31 * result + (whirlpoolDigest?.contentHashCode() ?: 0)
         return result
+    }
+
+    companion object {
+        internal const val ENCODED_SIZE = 8
+        internal const val WP_ENCODED_SIZE = ENCODED_SIZE + 72
     }
 }
