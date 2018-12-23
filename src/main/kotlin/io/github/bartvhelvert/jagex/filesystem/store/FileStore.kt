@@ -8,22 +8,24 @@ import java.nio.ByteBuffer
 class FileStore(directory: File) {
     private val dataChannel: DataChannel
 
-    private val indexChannels = mutableMapOf<Int, IndexChannel>()
+    private val indexChannels: Array<IndexChannel>
 
     private val attributeIndexChannel: IndexChannel
 
-    internal val indexFileNumbers get() = indexChannels.keys
+    internal val indexFileCount get() = indexChannels.size
 
     init {
         if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist")
         val dataFile = directory.resolve("$FILE_NAME.$DATA_FILE_EXTENSION")
         if(!dataFile.isFile) throw IOException("$dataFile is not a file or doesn't exist")
         dataChannel = DataChannel(RandomAccessFile(dataFile, accessMode).channel)
+        val indexChannelList = mutableListOf<IndexChannel>()
         for (indexFileId in 0 until ATTRIBUTE_INDEX) {
             val indexFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$indexFileId")
-            if(!indexFile.isFile) continue
-            indexChannels[indexFileId] = IndexChannel(RandomAccessFile(indexFile, accessMode).channel)
+            if(!indexFile.isFile) break
+            indexChannelList.add(IndexChannel(RandomAccessFile(indexFile, accessMode).channel))
         }
+        indexChannels = indexChannelList.toTypedArray()
         val attributeFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
         if(!attributeFile.isFile) throw IOException("$attributeFile is not a file or doesn't exist")
         attributeIndexChannel = IndexChannel(RandomAccessFile(attributeFile, accessMode).channel)
@@ -34,9 +36,8 @@ class FileStore(directory: File) {
         val index = if(indexFileId == ATTRIBUTE_INDEX) {
             attributeIndexChannel.read(containerId)
         } else {
-            indexChannels[indexFileId]?.read(containerId)
+            indexChannels[indexFileId].read(containerId)
         }
-        require(index != null)
         return dataChannel.read(indexFileId, index, containerId)
     }
 

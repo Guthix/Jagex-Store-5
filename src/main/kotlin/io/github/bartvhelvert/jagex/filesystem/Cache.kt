@@ -8,7 +8,8 @@ import java.io.IOException
 class Cache(directory: File) {
     private val fileStore = FileStore(directory)
 
-    private val indexAttributesCache = mutableMapOf<Int, IndexAttributes>()
+    @ExperimentalUnsignedTypes
+    private val indexAttributesCache = arrayOfNulls<IndexAttributes?>(fileStore.indexFileCount)
 
     private val dictionaryCache = mutableMapOf<Int, MutableMap<Int, Dictionary>>()
 
@@ -29,8 +30,18 @@ class Cache(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    private fun readIndexAttributes(indexFileId: Int) = indexAttributesCache.computeIfAbsent(indexFileId) {
-        val indexAttributesContainer = Container.decode(fileStore.read(FileStore.ATTRIBUTE_INDEX, indexFileId))
-        IndexAttributes.decode(indexAttributesContainer)
+    private fun readIndexAttributes(indexFileId: Int): IndexAttributes {
+        val cachedAttributes = indexAttributesCache[indexFileId]
+        return if(cachedAttributes != null) {
+            cachedAttributes
+        } else {
+            val readAttributes = IndexAttributes.decode(
+                Container.decode(
+                    fileStore.read(FileStore.ATTRIBUTE_INDEX, indexFileId)
+                )
+            )
+            indexAttributesCache[indexFileId] = readAttributes
+            readAttributes
+        }
     }
 }
