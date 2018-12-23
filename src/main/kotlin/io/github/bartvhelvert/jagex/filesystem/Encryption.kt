@@ -30,7 +30,7 @@ fun ByteBuffer.xteaEncrypt(keys: IntArray, start: Int, end: Int): ByteBuffer {
 
 @Suppress("INTEGER_OVERFLOW")
 fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): ByteBuffer {
-    require(key.size == 4)
+    require(key.size == XTEA.KEY_SIZE)
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
         var sum = XTEA.GOLDEN_RATIO * XTEA.ROUNDS
