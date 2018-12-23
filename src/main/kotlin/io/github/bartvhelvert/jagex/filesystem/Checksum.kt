@@ -1,5 +1,7 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import io.github.bartvhelvert.jagex.filesystem.transform.rsaCrypt
+import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHash
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
@@ -21,7 +23,8 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileCheckSum>) {
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, pubKey: BigInteger?): CacheChecksum {
             val indexFileCount = if (whirlpool) buffer.uByte.toInt() else buffer.limit() / 8
-            val masterDigest = whirlPoolHash(buffer.array().sliceArray(0..indexFileCount * 80 + 1))
+            val masterDigest =
+                whirlPoolHash(buffer.array().sliceArray(0..indexFileCount * 80 + 1))
             buffer.position(if (whirlpool) 1 else 0)
             val indexFileChecksums = Array(indexFileCount) {
                 val crc = buffer.int

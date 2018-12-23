@@ -1,11 +1,10 @@
-package io.github.bartvhelvert.jagex.filesystem
+package io.github.bartvhelvert.jagex.filesystem.transform
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.SequenceInputStream
-import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream

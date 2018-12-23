@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.filesystem
+package io.github.bartvhelvert.jagex.filesystem.transform
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.MessageDigest

@@ -2,6 +2,7 @@ package io.github.bartvhelvert.jagex.filesystem
 
 import java.io.File
 import io.github.bartvhelvert.jagex.filesystem.store.FileStore
+import io.github.bartvhelvert.jagex.filesystem.transform.XTEA
 import java.io.IOException
 
 class Cache(directory: File) {

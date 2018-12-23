@@ -1,5 +1,8 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import io.github.bartvhelvert.jagex.filesystem.transform.Compression
+import io.github.bartvhelvert.jagex.filesystem.transform.XTEA
+import io.github.bartvhelvert.jagex.filesystem.transform.xteaDecrypt
 import java.io.IOException
 import java.nio.ByteBuffer
 
