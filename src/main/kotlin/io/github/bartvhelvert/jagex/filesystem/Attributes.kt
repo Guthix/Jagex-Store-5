@@ -1,11 +1,9 @@
 package io.github.bartvhelvert.jagex.filesystem
 
-import java.io.IOException
+import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHashByteCount
 
 data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMap<Int, DictionaryAttributes>) {
     companion object {
-        private const val whirlPoolHashByteCount = 64
-
         private const val MASK_NAME_HASH = 0x01
         private const val MASK_WHIRLPOOL_HASH = 0x02
         private const val MASK_SIZES = 0x04

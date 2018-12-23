@@ -2,6 +2,7 @@ package io.github.bartvhelvert.jagex.filesystem
 
 import io.github.bartvhelvert.jagex.filesystem.transform.rsaCrypt
 import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHash
+import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHashByteCount
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
@@ -47,7 +48,7 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
     }
 
     companion object {
-        const val WP_ENCODED_SIZE = 66
+        const val WP_ENCODED_SIZE = whirlPoolHashByteCount + 2
 
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, privateKey: BigInteger?): CacheChecksum {
@@ -60,7 +61,7 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
                 val fileCount = if (whirlpool) buffer.int else 0
                 val size = if (whirlpool) buffer.int else 0
                 val whirlPoolDigest = if (whirlpool) {
-                    val digest = ByteArray(64)
+                    val digest = ByteArray(whirlPoolHashByteCount)
                     buffer.get(digest)
                     digest
                 } else null
@@ -78,8 +79,8 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
                         buffer.array().sliceArray(buffer.position()..buffer.position() + buffer.remaining())
                     }
                 )
-                if (decodedDigest.limit() != 65) throw IOException("Decrypted data size mismatch")
-                for (i in 0..63) {
+                if (decodedDigest.limit() != whirlPoolHashByteCount + 1) throw IOException("Decrypted data size mismatch")
+                for (i in 0 until whirlPoolHashByteCount) {
                     if (decodedDigest.get(i + 1) != calculatedDigest[i]) throw IOException("Whirlpool digest mismatch")
                 }
             }
