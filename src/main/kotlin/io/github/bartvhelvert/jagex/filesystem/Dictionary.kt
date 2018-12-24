@@ -2,20 +2,46 @@ package io.github.bartvhelvert.jagex.filesystem
 
 import java.nio.ByteBuffer
 
-data class Dictionary(val attributes: DictionaryAttributes, val entries: Array<ByteBuffer>) {
+data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<ByteBuffer>) {
+    internal fun encode(groupCount: Int = 1, containerVersion: Int = -1): Container {
+        val buffer = ByteBuffer.allocate(fileData.sumBy { it.limit() } + fileData.size * Int.SIZE_BYTES + 1)
+        val groups = divideIntoGroups(groupCount)
+        for(group in groups) {
+            for(fileGroup in group) {
+                buffer.put(fileGroup)
+            }
+        }
+        for(group in groups) {
+            for(fileGroup in group) {
+                buffer.putInt(fileGroup.limit())
+            }
+        }
+        buffer.put(groupCount.toByte())
+        return Container(containerVersion, buffer)
+    }
+
+    private fun divideIntoGroups(groupCount: Int): Array<Array<ByteBuffer>> = Array(fileData.size) { file ->
+        fileData[file]
+            .array()
+            .toList()
+            .chunked(Math.ceil(fileData[file].limit().toDouble() / groupCount.toDouble()).toInt()).map {
+                ByteBuffer.wrap(it.toByteArray())
+            }.toTypedArray()
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
         other as Dictionary
         if (attributes != other.attributes) return false
-        if (!entries.contentEquals(other.entries)) return false
+        if (!fileData.contentEquals(other.fileData)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = attributes.hashCode()
-        result = 31 * result + entries.contentHashCode()
+        result = 31 * result + fileData.contentHashCode()
         return result
     }
 
@@ -25,26 +51,26 @@ data class Dictionary(val attributes: DictionaryAttributes, val entries: Array<B
             val buffer = container.data
             val fileCount = attributes.fileAttributes.size
             val fileSizes = IntArray(fileCount)
-            val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
-            val chunkSizes = Array(chunkCount) { IntArray(fileCount) }
-            buffer.position(buffer.limit() - 1 - chunkCount * fileCount * 4)
-            for (chunkId in 0 until chunkCount) {
-                var chunkSize = 0
+            val groupCount = buffer.getUByte(buffer.limit() - 1).toInt()
+            val groupFileSizes = Array(groupCount) { IntArray(fileCount) }
+            buffer.position(buffer.limit() - 1 - groupCount * fileCount * 4)
+            for (groupId in 0 until groupCount) {
+                var groupSize = 0
                 for (fileId in 0 until fileCount) {
                     val delta = buffer.int // difference in chunk size compared to the previous chunk
-                    chunkSize += delta
-                    chunkSizes[chunkId][fileId] = chunkSize
-                    fileSizes[fileId] += chunkSize
+                    groupSize += delta
+                    groupFileSizes[groupId][fileId] = groupSize
+                    fileSizes[fileId] += groupSize
                 }
             }
             val fileData = Array<ByteBuffer>(fileCount) {
                 ByteBuffer.allocate(fileSizes[it])
             }
             buffer.position(0)
-            for (chunkId in 0 until chunkCount) {
+            for (groupId in 0 until groupCount) {
                 for (fileId in 0 until fileCount) {
-                    val chunkSize = chunkSizes[chunkId][fileId]
-                    val temp = ByteArray(chunkSize)
+                    val groupSize = groupFileSizes[groupId][fileId]
+                    val temp = ByteArray(groupSize)
                     buffer.get(temp)
                     fileData[fileId].put(temp)
                 }
