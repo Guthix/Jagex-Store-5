@@ -48,3 +48,10 @@ val ByteBuffer.smart get() = if (get(position()) < 0) {
 } else {
     uShort.toInt()
 }
+
+fun ByteBuffer.splitOf(index: Int, splits: Int): ByteBuffer {
+    val start = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * (index - 1)
+    var end = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * index
+    if(end > limit()) end = limit()
+    return ByteBuffer.wrap(array().sliceArray(start..end))
+}

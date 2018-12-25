@@ -20,13 +20,10 @@ data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<
         return Container(containerVersion, buffer)
     }
 
-    private fun divideIntoGroups(groupCount: Int): Array<Array<ByteBuffer>> = Array(fileData.size) { file ->
-        fileData[file]
-            .array()
-            .toList()
-            .chunked(Math.ceil(fileData[file].limit().toDouble() / groupCount.toDouble()).toInt()).map {
-                ByteBuffer.wrap(it.toByteArray())
-            }.toTypedArray()
+    private fun divideIntoGroups(groupCount: Int): Array<Array<ByteBuffer>> = Array(groupCount) { group ->
+        Array(fileData.size) { file ->
+            fileData[file].splitOf(group + 1, groupCount)
+        }
     }
 
     override fun equals(other: Any?): Boolean {
