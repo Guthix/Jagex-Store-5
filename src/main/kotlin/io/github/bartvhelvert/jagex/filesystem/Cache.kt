@@ -9,38 +9,36 @@ class Cache(directory: File) {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
-    private val indexAttributesCache = arrayOfNulls<IndexAttributes?>(fileStore.indexFileCount)
+    private val dictionaryAttributesCache = arrayOfNulls<DictionaryAttributes?>(fileStore.indexFileCount)
 
-    private val dictionaryCache = mutableMapOf<Int, MutableMap<Int, Dictionary>>()
+    private val archiveCache = mutableMapOf<Int, MutableMap<Int, Archive>>()
 
     @ExperimentalUnsignedTypes
-    fun readDictionary(
-        indexFileId: Int,
+    fun readArchive(
         dictionaryId: Int,
+        archiveId: Int,
         xteaKey: IntArray = XTEA.ZERO_KEY,
         shouldCache: Boolean = false
-    ): Dictionary {
-        val indexAttributes = readIndexAttributes(indexFileId)
-        val dataContainer: Container = Container.decode(fileStore.read(indexFileId, dictionaryId), xteaKey)
-        val dictionaryAttributes = indexAttributes.dictionaryAttributes[dictionaryId]
-            ?: throw IOException("Dictionary attributes to not exist in the shouldCache")
-        val dictionary = Dictionary.decode(dataContainer, dictionaryAttributes)
-        if(shouldCache) dictionaryCache.computeIfAbsent(indexFileId) { mutableMapOf() }[dictionaryId] = dictionary
-        return dictionary
+    ): Archive {
+        val indexAttributes = readIndexAttributes(dictionaryId)
+        val dataContainer: Container = Container.decode(fileStore.read(dictionaryId, archiveId), xteaKey)
+        val archiveAttributes = indexAttributes.archiveAttributes[archiveId]
+            ?: throw IOException("Archie attributes do not exist")
+        val archive = Archive.decode(dataContainer, archiveAttributes)
+        if(shouldCache) archiveCache.computeIfAbsent(dictionaryId) { mutableMapOf() }[archiveId] = archive
+        return archive
     }
 
     @ExperimentalUnsignedTypes
-    private fun readIndexAttributes(indexFileId: Int): IndexAttributes {
-        val cachedAttributes = indexAttributesCache[indexFileId]
+    private fun readIndexAttributes(dictionaryId: Int): DictionaryAttributes {
+        val cachedAttributes = dictionaryAttributesCache[dictionaryId]
         return if(cachedAttributes != null) {
             cachedAttributes
         } else {
-            val readAttributes = IndexAttributes.decode(
-                Container.decode(
-                    fileStore.read(FileStore.ATTRIBUTE_INDEX, indexFileId)
-                )
+            val readAttributes = DictionaryAttributes.decode(
+                Container.decode(fileStore.read(FileStore.ATTRIBUTE_INDEX, dictionaryId))
             )
-            indexAttributesCache[indexFileId] = readAttributes
+            dictionaryAttributesCache[dictionaryId] = readAttributes
             readAttributes
         }
     }

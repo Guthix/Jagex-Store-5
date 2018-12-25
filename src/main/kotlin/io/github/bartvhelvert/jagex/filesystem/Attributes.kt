@@ -9,55 +9,55 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer
 
-data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMap<Int, DictionaryAttributes>) {
+data class DictionaryAttributes(val version: Int, val archiveAttributes: MutableMap<Int, ArchiveAttributes>) {
     internal fun encode(format: Int): ByteBuffer {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use {
             it.writeByte(format)
             if(format != 5) it.writeInt(version)
             var flags = 0
-            val hasNameHashes = dictionaryAttributes.values.any {
+            val hasNameHashes = archiveAttributes.values.any {
                 it.nameHash != null || it.fileAttributes.values.any { it.nameHash != null }
             }
-            val hasUnknownHashes = dictionaryAttributes.values.any { it.unknownHash != null }
-            val hasWhirlPoolHashes = dictionaryAttributes.values.any { it.whirlpoolHash != null }
-            val hasSizes = dictionaryAttributes.values.any { it.sizes != null }
+            val hasUnknownHashes = archiveAttributes.values.any { it.unknownHash != null }
+            val hasWhirlPoolHashes = archiveAttributes.values.any { it.whirlpoolHash != null }
+            val hasSizes = archiveAttributes.values.any { it.sizes != null }
             if(hasNameHashes) flags = flags or MASK_NAME_HASH
             if(hasUnknownHashes) flags = flags or MASK_UNKNOWN_HASH
             if(hasWhirlPoolHashes) flags = flags or MASK_WHIRLPOOL_HASH
             if(hasSizes) flags = flags or MASK_SIZES
             it.writeByte(flags)
-            if(format == 7) it.writeSmart(dictionaryAttributes.size) else it.writeShort(dictionaryAttributes.size)
+            if(format == 7) it.writeSmart(archiveAttributes.size) else it.writeShort(archiveAttributes.size)
             var attriDelta = 0
-            for(id in dictionaryAttributes.keys) {
+            for(id in archiveAttributes.keys) {
                 attriDelta += id
                 if(format == 7) it.writeSmart(attriDelta) else it.writeShort(attriDelta)
             }
             if(hasNameHashes) {
-                for(attr in dictionaryAttributes.values) it.writeInt(attr.nameHash ?: 0)
+                for(attr in archiveAttributes.values) it.writeInt(attr.nameHash ?: 0)
             }
-            for(attr in dictionaryAttributes.values) it.writeInt(attr.crc)
+            for(attr in archiveAttributes.values) it.writeInt(attr.crc)
             if(hasUnknownHashes) {
-                for(attr in dictionaryAttributes.values) it.writeInt(attr.unknownHash ?: 0)
+                for(attr in archiveAttributes.values) it.writeInt(attr.unknownHash ?: 0)
             }
             if(hasWhirlPoolHashes) {
-                for(attr in dictionaryAttributes.values) {
+                for(attr in archiveAttributes.values) {
                     it.write(attr.whirlpoolHash ?: ByteArray(whirlPoolHashByteCount))
                 }
             }
             if(hasSizes) {
-                for(attr in dictionaryAttributes.values) {
+                for(attr in archiveAttributes.values) {
                     it.writeInt(attr.sizes?.compressed ?: 0)
                     it.writeInt(attr.sizes?.uncompressed ?: 0)
                 }
             }
-            for(attr in dictionaryAttributes.values) {
+            for(attr in archiveAttributes.values) {
                 it.writeInt(version)
             }
-            for(attr in dictionaryAttributes.values) {
+            for(attr in archiveAttributes.values) {
                 if(format == 7) it.writeSmart(attr.fileAttributes.size) else it.writeShort(attr.fileAttributes.size)
             }
-            for(attr in dictionaryAttributes.values) {
+            for(attr in archiveAttributes.values) {
                 var fileDelta = 0
                 for(file in attr.fileAttributes.values) {
                     fileDelta += file.id
@@ -65,7 +65,7 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMa
                 }
             }
             if(hasNameHashes) {
-                for(attr in dictionaryAttributes.values) {
+                for(attr in archiveAttributes.values) {
                     for(file in attr.fileAttributes.values) {
                         it.writeInt(file.nameHash ?: 0)
                     }
@@ -82,79 +82,79 @@ data class IndexAttributes(val version: Int, val dictionaryAttributes: MutableMa
         private const val MASK_UNKNOWN_HASH = 0x08
 
         @ExperimentalUnsignedTypes
-        internal fun decode(container: Container): IndexAttributes {
+        internal fun decode(container: Container): DictionaryAttributes {
             val buffer = container.data
             val format = buffer.uByte.toInt()
             require(format in 5..7)
             val version = if (format == 5) 0 else buffer.int
             val flags = buffer.uByte.toInt()
-            val dictCount = if (format == 7) buffer.smart else buffer.uShort.toInt()
-            val dictIds = IntArray(dictCount)
-            var dictIdAccumulator = 0
-            for(dictIndex in dictIds.indices) {
+            val archiveCount = if (format == 7) buffer.smart else buffer.uShort.toInt()
+            val archiveIds = IntArray(archiveCount)
+            var archiveIdAccumulator = 0
+            for(archiveIndex in archiveIds.indices) {
                 val delta = if (format == 7) buffer.smart else buffer.uShort.toInt() // difference with previous id
-                dictIdAccumulator += delta
-                dictIds[dictIndex] = dictIdAccumulator
+                archiveIdAccumulator += delta
+                archiveIds[archiveIndex] = archiveIdAccumulator
             }
-            val dictNameHashes = if (flags and MASK_NAME_HASH != 0) IntArray(dictCount) {
+            val archiveNameHashes = if (flags and MASK_NAME_HASH != 0) IntArray(archiveCount) {
                 buffer.int
             } else null
-            val dictCRCs = IntArray(dictCount) { buffer.int }
-            val dictUnkownHashes = if (flags and MASK_UNKNOWN_HASH != 0) IntArray(dictCount) {
+            val archiveCRCs = IntArray(archiveCount) { buffer.int }
+            val archiveUnkownHashes = if (flags and MASK_UNKNOWN_HASH != 0) IntArray(archiveCount) {
                 buffer.int
             } else null
-            val dictWhirlpoolHashes = if (flags and MASK_WHIRLPOOL_HASH != 0) Array(dictCount) {
+            val archiveWhirlpoolHashes = if (flags and MASK_WHIRLPOOL_HASH != 0) Array(archiveCount) {
                 ByteArray(whirlPoolHashByteCount) { buffer.get() }
             } else null
-            val dictSizes = if(flags and MASK_SIZES != 0) Array(dictCount) {
-                DictionaryAttributes.Size(compressed = buffer.int, uncompressed = buffer.int)
+            val archiveSizes = if(flags and MASK_SIZES != 0) Array(archiveCount) {
+                ArchiveAttributes.Size(compressed = buffer.int, uncompressed = buffer.int)
             } else null
-            val dictVersions = Array(dictCount) { buffer.int }
-            val dictFileIds = Array(dictCount) {
+            val archiveVersions = Array(archiveCount) { buffer.int }
+            val archiveFileIds = Array(archiveCount) {
                 IntArray(if (format == 7) buffer.smart else buffer.uShort.toInt()) // decode file count
             }
-            for(dictionary in dictFileIds) {
+            for(archive in archiveFileIds) {
                 var fileIdAccumulator = 0
-                for(fileIndex in dictionary.indices) {
+                for(fileIndex in archive.indices) {
                     val delta = if (format == 7) buffer.smart else buffer.uShort.toInt() // difference with previous id
                     fileIdAccumulator += delta
-                    dictionary[fileIndex] = fileIdAccumulator
+                    archive[fileIndex] = fileIdAccumulator
                 }
             }
-            val dictFileNameHashes = if (flags and MASK_NAME_HASH != 0) {
-                Array(dictCount) {
-                    IntArray(dictFileIds[it].size) {
+            val archiveFileNameHashes = if (flags and MASK_NAME_HASH != 0) {
+                Array(archiveCount) {
+                    IntArray(archiveFileIds[it].size) {
                         buffer.int
                     }
                 }
             } else null
 
-            val dictionaryAttributes = mutableMapOf<Int, DictionaryAttributes>()
-            for(dictIndex in dictIds.indices) {
+            val archiveAttributes = mutableMapOf<Int, ArchiveAttributes>()
+            for(archiveIndex in archiveIds.indices) {
                 val fileAttributes = mutableMapOf<Int, FileAttributes>()
-                for(fileIndex in dictFileIds[dictIndex].indices) {
-                    fileAttributes[dictFileIds[dictIndex][fileIndex]] = FileAttributes(
-                        dictFileIds[dictIndex][fileIndex],
-                        dictFileNameHashes?.get(dictIndex)?.get(fileIndex)
+                for(fileIndex in archiveFileIds[archiveIndex].indices) {
+                    fileAttributes[archiveFileIds[archiveIndex][fileIndex]] = FileAttributes(
+                        archiveFileIds[archiveIndex][fileIndex],
+                        archiveFileNameHashes?.get(archiveIndex)?.get(fileIndex)
                     )
                 }
-                dictionaryAttributes[dictIds[dictIndex]] = DictionaryAttributes(
-                    dictIds[dictIndex],
-                    dictNameHashes?.get(dictIndex),
-                    dictCRCs[dictIndex],
-                    dictUnkownHashes?.get(dictIndex),
-                    dictWhirlpoolHashes?.get(dictIndex),
-                    dictSizes?.get(dictIndex),
-                    dictVersions[dictIndex],
+                archiveAttributes[archiveIds[archiveIndex]] = ArchiveAttributes(
+                    archiveIds[archiveIndex],
+                    archiveNameHashes?.get(archiveIndex),
+                    archiveCRCs[archiveIndex],
+                    archiveUnkownHashes?.get(archiveIndex),
+                    archiveWhirlpoolHashes?.get(archiveIndex),
+                    archiveSizes?.get(archiveIndex),
+                    archiveVersions[archiveIndex],
                     fileAttributes
                 )
             }
-            return IndexAttributes(version, dictionaryAttributes)
+            return DictionaryAttributes(version, archiveAttributes)
         }
     }
 }
 
-data class DictionaryAttributes(
+data class ArchiveAttributes(
     val id: Int,
     val nameHash: Int?,
     val crc: Int,
@@ -168,7 +168,7 @@ data class DictionaryAttributes(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as DictionaryAttributes
+        other as ArchiveAttributes
         if (id != other.id) return false
         if (nameHash != other.nameHash) return false
         if (crc != other.crc) return false

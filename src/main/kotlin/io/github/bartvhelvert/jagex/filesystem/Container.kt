@@ -17,7 +17,7 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
         buffer.putInt(compressedData.size)
         if(compression != Compression.NONE) buffer.putInt(data.limit())
         buffer.put(compressedData)
-        if(isVersioned()) buffer.putShort(version.toShort())
+        if(isVersioned) buffer.putShort(version.toShort())
         return if(xteaKey.all { it != 0 }) {
             buffer.xteaEncrypt(
                 key = xteaKey,
@@ -27,7 +27,7 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
         } else buffer
     }
 
-    fun isVersioned() = version != -1
+    val isVersioned get() = version != -1
 
     fun removeVersion() {
         version = -1

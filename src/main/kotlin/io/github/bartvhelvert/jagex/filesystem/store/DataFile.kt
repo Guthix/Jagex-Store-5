@@ -43,7 +43,7 @@ internal class DataChannel(val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
     private fun Segment.validate(indexId: Int, archiveId: Int, segmentNumber: Int) {
         if (this.indexId.toInt() != indexId) throw IOException("Index id mismatch")
-        if (this.archiveId != archiveId) throw IOException("Dictionary id mismatch")
+        if (this.archiveId != archiveId) throw IOException("Archive id mismatch")
         if (this.segmentPos.toInt() != segmentNumber) throw IOException("Chunk id mismatch")
     }
 }

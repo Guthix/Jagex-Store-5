@@ -8,10 +8,10 @@ import java.nio.channels.FileChannel
 
 internal class IndexChannel(private val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
-    fun read(dictionaryId: Int): Index {
-        val ptr = dictionaryId.toLong() * Index.SIZE.toLong()
+    fun read(archiveId: Int): Index {
+        val ptr = archiveId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size())
-            throw FileNotFoundException("Could not find index for dictionary $dictionaryId")
+            throw FileNotFoundException("Could not find index for archive $archiveId")
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
         return Index.decode(buffer.flip())

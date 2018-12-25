@@ -8,11 +8,11 @@ import java.nio.ByteBuffer
 class FileStore(directory: File) {
     private val dataChannel: DataChannel
 
-    private val indexChannels: Array<IndexChannel>
+    private val dictionaryChannels: Array<IndexChannel>
 
     private val attributeIndexChannel: IndexChannel
 
-    internal val indexFileCount get() = indexChannels.size
+    internal val indexFileCount get() = dictionaryChannels.size
 
     init {
         if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist")
@@ -25,7 +25,7 @@ class FileStore(directory: File) {
             if(!indexFile.isFile) break
             indexChannelList.add(IndexChannel(RandomAccessFile(indexFile, accessMode).channel))
         }
-        indexChannels = indexChannelList.toTypedArray()
+        dictionaryChannels = indexChannelList.toTypedArray()
         val attributeFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
         if(!attributeFile.isFile) throw IOException("$attributeFile is not a file or doesn't exist")
         attributeIndexChannel = IndexChannel(RandomAccessFile(attributeFile, accessMode).channel)
@@ -36,7 +36,7 @@ class FileStore(directory: File) {
         val index = if(indexFileId == ATTRIBUTE_INDEX) {
             attributeIndexChannel.read(containerId)
         } else {
-            indexChannels[indexFileId].read(containerId)
+            dictionaryChannels[indexFileId].read(containerId)
         }
         return dataChannel.read(indexFileId, index, containerId)
     }

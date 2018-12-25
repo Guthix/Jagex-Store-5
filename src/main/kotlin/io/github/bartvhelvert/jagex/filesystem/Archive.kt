@@ -4,7 +4,7 @@ import io.github.bartvhelvert.jagex.filesystem.io.getUByte
 import io.github.bartvhelvert.jagex.filesystem.io.splitOf
 import java.nio.ByteBuffer
 
-data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<ByteBuffer>) {
+data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBuffer>) {
     internal fun encode(groupCount: Int = 1, containerVersion: Int = -1): Container {
         val buffer = ByteBuffer.allocate(fileData.sumBy { it.limit() } + fileData.size * Int.SIZE_BYTES + 1)
         val groups = divideIntoGroups(groupCount)
@@ -31,7 +31,7 @@ data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as Dictionary
+        other as Archive
         if (attributes != other.attributes) return false
         if (!fileData.contentEquals(other.fileData)) return false
 
@@ -46,7 +46,7 @@ data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<
 
     companion object {
         @ExperimentalUnsignedTypes
-        internal fun decode(container: Container, attributes: DictionaryAttributes): Dictionary {
+        internal fun decode(container: Container, attributes: ArchiveAttributes): Archive {
             val buffer = container.data
             val fileCount = attributes.fileAttributes.size
             val fileSizes = IntArray(fileCount)
@@ -74,7 +74,7 @@ data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<
                     fileData[fileId].put(temp)
                 }
             }
-            return Dictionary(attributes, fileData)
+            return Archive(attributes, fileData)
         }
     }
 }
