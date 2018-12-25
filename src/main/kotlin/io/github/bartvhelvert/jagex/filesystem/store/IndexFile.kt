@@ -1,7 +1,7 @@
 package io.github.bartvhelvert.jagex.filesystem.store
 
-import io.github.bartvhelvert.jagex.filesystem.putMedium
-import io.github.bartvhelvert.jagex.filesystem.uMedium
+import io.github.bartvhelvert.jagex.filesystem.io.putMedium
+import io.github.bartvhelvert.jagex.filesystem.io.uMedium
 import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel

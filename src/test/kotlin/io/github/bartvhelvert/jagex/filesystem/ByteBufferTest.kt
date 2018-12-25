@@ -1,5 +1,7 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import io.github.bartvhelvert.jagex.filesystem.io.medium
+import io.github.bartvhelvert.jagex.filesystem.io.putMedium
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest

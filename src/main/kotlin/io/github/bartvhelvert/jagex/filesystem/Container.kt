@@ -1,5 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import io.github.bartvhelvert.jagex.filesystem.io.uByte
 import io.github.bartvhelvert.jagex.filesystem.transform.Compression
 import io.github.bartvhelvert.jagex.filesystem.transform.XTEA
 import io.github.bartvhelvert.jagex.filesystem.transform.xteaDecrypt

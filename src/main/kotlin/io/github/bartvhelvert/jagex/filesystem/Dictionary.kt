@@ -1,5 +1,7 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import io.github.bartvhelvert.jagex.filesystem.io.getUByte
+import io.github.bartvhelvert.jagex.filesystem.io.splitOf
 import java.nio.ByteBuffer
 
 data class Dictionary(val attributes: DictionaryAttributes, val fileData: Array<ByteBuffer>) {

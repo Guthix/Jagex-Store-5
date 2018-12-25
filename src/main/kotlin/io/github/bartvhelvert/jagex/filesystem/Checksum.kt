@@ -1,5 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem
 
+import io.github.bartvhelvert.jagex.filesystem.io.uByte
 import io.github.bartvhelvert.jagex.filesystem.transform.rsaCrypt
 import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHash
 import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHashByteCount
