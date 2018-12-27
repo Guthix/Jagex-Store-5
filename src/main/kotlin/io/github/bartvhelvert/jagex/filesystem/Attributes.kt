@@ -12,12 +12,12 @@ import java.nio.ByteBuffer
 data class DictionaryAttributes(val version: Int, val archiveAttributes: MutableMap<Int, ArchiveAttributes>) {
     internal fun encode(format: Int): ByteBuffer {
         val byteStr = ByteArrayOutputStream()
-        DataOutputStream(byteStr).use {
-            it.writeByte(format)
-            if(format != 5) it.writeInt(version)
+        DataOutputStream(byteStr).use { os ->
+            os.writeByte(format)
+            if(format != 5) os.writeInt(version)
             var flags = 0
-            val hasNameHashes = archiveAttributes.values.any {
-                it.nameHash != null || it.fileAttributes.values.any { it.nameHash != null }
+            val hasNameHashes = archiveAttributes.values.any { attr ->
+                attr.nameHash != null || attr.fileAttributes.values.any { file -> file.nameHash != null }
             }
             val hasUnknownHashes = archiveAttributes.values.any { it.unknownHash != null }
             val hasWhirlPoolHashes = archiveAttributes.values.any { it.whirlpoolHash != null }
@@ -26,48 +26,48 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             if(hasUnknownHashes) flags = flags or MASK_UNKNOWN_HASH
             if(hasWhirlPoolHashes) flags = flags or MASK_WHIRLPOOL_HASH
             if(hasSizes) flags = flags or MASK_SIZES
-            it.writeByte(flags)
-            if(format == 7) it.writeSmart(archiveAttributes.size) else it.writeShort(archiveAttributes.size)
-            var attriDelta = 0
+            os.writeByte(flags)
+            if(format == 7) os.writeSmart(archiveAttributes.size) else os.writeShort(archiveAttributes.size)
+            var attrDelta = 0
             for(id in archiveAttributes.keys) {
-                attriDelta += id
-                if(format == 7) it.writeSmart(attriDelta) else it.writeShort(attriDelta)
+                attrDelta += id
+                if(format == 7) os.writeSmart(attrDelta) else os.writeShort(attrDelta)
             }
             if(hasNameHashes) {
-                for(attr in archiveAttributes.values) it.writeInt(attr.nameHash ?: 0)
+                for(attr in archiveAttributes.values) os.writeInt(attr.nameHash ?: 0)
             }
-            for(attr in archiveAttributes.values) it.writeInt(attr.crc)
+            for(attr in archiveAttributes.values) os.writeInt(attr.crc)
             if(hasUnknownHashes) {
-                for(attr in archiveAttributes.values) it.writeInt(attr.unknownHash ?: 0)
+                for(attr in archiveAttributes.values) os.writeInt(attr.unknownHash ?: 0)
             }
             if(hasWhirlPoolHashes) {
                 for(attr in archiveAttributes.values) {
-                    it.write(attr.whirlpoolHash ?: ByteArray(whirlPoolHashByteCount))
+                    os.write(attr.whirlpoolHash ?: ByteArray(whirlPoolHashByteCount))
                 }
             }
             if(hasSizes) {
                 for(attr in archiveAttributes.values) {
-                    it.writeInt(attr.sizes?.compressed ?: 0)
-                    it.writeInt(attr.sizes?.uncompressed ?: 0)
+                    os.writeInt(attr.sizes?.compressed ?: 0)
+                    os.writeInt(attr.sizes?.uncompressed ?: 0)
                 }
             }
             for(attr in archiveAttributes.values) {
-                it.writeInt(version)
+                os.writeInt(version)
             }
             for(attr in archiveAttributes.values) {
-                if(format == 7) it.writeSmart(attr.fileAttributes.size) else it.writeShort(attr.fileAttributes.size)
+                if(format == 7) os.writeSmart(attr.fileAttributes.size) else os.writeShort(attr.fileAttributes.size)
             }
             for(attr in archiveAttributes.values) {
                 var fileDelta = 0
                 for(file in attr.fileAttributes.values) {
                     fileDelta += file.id
-                    if(format == 7) it.writeSmart(fileDelta) else it.writeShort(fileDelta)
+                    if(format == 7) os.writeSmart(fileDelta) else os.writeShort(fileDelta)
                 }
             }
             if(hasNameHashes) {
                 for(attr in archiveAttributes.values) {
                     for(file in attr.fileAttributes.values) {
-                        it.writeInt(file.nameHash ?: 0)
+                        os.writeInt(file.nameHash ?: 0)
                     }
                 }
             }
