@@ -26,7 +26,7 @@ class SegmentTest {
         fun encodeDecodeNormalTestArgs() = listOf(
             Arguments.of(Segment(
                 indexId = 1.toUByte(),
-                archiveId = 1 ,
+                containerId = 1 ,
                 segmentPos = 1.toUShort(),
                 nextSegmentPos = 2,
                 data = ByteArray(Segment.DATA_SIZE))
@@ -38,7 +38,7 @@ class SegmentTest {
         fun encodeDecodeExtendedTestArgs() = listOf(
             Arguments.of(Segment(
                 indexId = 1.toUByte(),
-                archiveId = UShort.MAX_VALUE.toInt() + 1,
+                containerId = UShort.MAX_VALUE.toInt() + 1,
                 segmentPos = 1.toUShort(),
                 nextSegmentPos = 2,
                 data = ByteArray(Segment.EXTENDED_DATA_SIZE))

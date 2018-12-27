@@ -7,19 +7,31 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
 internal class IndexChannel(private val fileChannel: FileChannel) {
+    val dataSize get() = fileChannel.size()
+
     @ExperimentalUnsignedTypes
-    fun read(archiveId: Int): Index {
-        val ptr = archiveId.toLong() * Index.SIZE.toLong()
+    internal fun read(containerId: Int): Index {
+        val ptr = containerId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size())
-            throw FileNotFoundException("Could not find index for archive $archiveId")
+            throw FileNotFoundException("Could not find index for archive $containerId")
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
         return Index.decode(buffer.flip())
     }
+
+    internal fun containsIndex(containerId: Int): Boolean {
+        val ptr = containerId.toLong() * Index.SIZE.toLong()
+        return ptr < 0 || ptr >= fileChannel.size()
+    }
+
+    internal fun write(containerId: Int, index: Index) {
+        val ptr = containerId.toLong() * Index.SIZE.toLong()
+        fileChannel.write(index.encode(), ptr)
+    }
 }
 
 internal data class Index(val dataSize: Int, val segmentPos: Int) {
-    fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
+    internal fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
         buffer.putMedium(dataSize)
         buffer.putMedium(segmentPos)
         return buffer.flip() as ByteBuffer
@@ -29,7 +41,7 @@ internal data class Index(val dataSize: Int, val segmentPos: Int) {
         const val SIZE = 6
 
         @ExperimentalUnsignedTypes
-        fun decode(buffer: ByteBuffer): Index {
+        internal fun decode(buffer: ByteBuffer): Index {
             require(buffer.remaining() >= SIZE)
             val size = buffer.uMedium
             val sector = buffer.uMedium

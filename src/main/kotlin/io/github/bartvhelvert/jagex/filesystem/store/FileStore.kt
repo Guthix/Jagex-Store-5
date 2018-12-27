@@ -1,5 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem.store
 
+import io.github.bartvhelvert.jagex.filesystem.Container
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
@@ -32,13 +33,30 @@ class FileStore(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+    internal fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+        if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX)
+            throw IOException("Index file does not exist")
         val index = if(indexFileId == ATTRIBUTE_INDEX) {
             attributeIndexChannel.read(containerId)
         } else {
             dictionaryChannels[indexFileId].read(containerId)
         }
         return dataChannel.read(indexFileId, index, containerId)
+    }
+
+    @ExperimentalUnsignedTypes
+    internal fun write(indexFileId: Int, containerId: Int, container: Container) {
+        if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX)
+            throw IOException("Index file does not exist")
+        val channel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
+        val overwrite = channel.containsIndex(containerId)
+        val segmentPos = if(overwrite) {
+            channel.read(containerId).segmentPos
+        } else {
+            ((channel.dataSize + Segment.SIZE - 1) / Segment.SIZE).toInt()
+        }
+        val index = Index(container.data.limit(), segmentPos)
+        channel.write(containerId, index)
     }
 
     companion object {

@@ -1,5 +1,6 @@
 package io.github.bartvhelvert.jagex.filesystem.store
 
+import io.github.bartvhelvert.jagex.filesystem.Container
 import io.github.bartvhelvert.jagex.filesystem.io.putMedium
 import io.github.bartvhelvert.jagex.filesystem.io.uByte
 import io.github.bartvhelvert.jagex.filesystem.io.uMedium
@@ -8,9 +9,9 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
-internal class DataChannel(val fileChannel: FileChannel) {
+internal class DataChannel(private val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
-    fun read(indexFileId: Int, index: Index, archiveId: Int): ByteBuffer {
+    internal fun read(indexFileId: Int, index: Index, containerId: Int): ByteBuffer {
         val data = ByteBuffer.allocate(index.dataSize)
         var segmentNumber = 0
         var dataToRead = index.dataSize
@@ -18,7 +19,7 @@ internal class DataChannel(val fileChannel: FileChannel) {
         do {
             val dataSegment = readSegment(readPointer)
             if (dataToRead > dataSegment.data.size) {
-                dataSegment.validate(indexFileId, archiveId, segmentNumber)
+                dataSegment.validate(indexFileId, containerId, segmentNumber)
                 data.put(dataSegment.data, 0, dataSegment.data.size)
                 readPointer = dataSegment.nextSegmentPos.toLong() * Segment.SIZE.toLong()
                 dataToRead -= dataSegment.data.size
@@ -32,38 +33,43 @@ internal class DataChannel(val fileChannel: FileChannel) {
         return data.flip() as ByteBuffer
     }
 
+    internal fun write(index: Index, buffer: ByteBuffer, overwrite: Boolean) {
+        var segmentNumber = 0
+        var dataToWrite = index.dataSize
+    }
+
     @ExperimentalUnsignedTypes
-    private fun readSegment(startPosition: Long): Segment {
+    private fun readSegment(readPointer: Long): Segment {
         val buffer = ByteBuffer.allocate(Segment.SIZE)
-        fileChannel.position(startPosition)
+        fileChannel.position(readPointer)
         fileChannel.read(buffer)
         return Segment.decode(buffer.flip() as ByteBuffer)
     }
 
     @ExperimentalUnsignedTypes
-    private fun Segment.validate(indexId: Int, archiveId: Int, segmentNumber: Int) {
+    private fun Segment.validate(indexId: Int, containerId: Int, segmentNumber: Int) {
         if (this.indexId.toInt() != indexId) throw IOException("Index id mismatch")
-        if (this.archiveId != archiveId) throw IOException("Archive id mismatch")
+        if (this.containerId != containerId) throw IOException("Archive id mismatch")
         if (this.segmentPos.toInt() != segmentNumber) throw IOException("Chunk id mismatch")
     }
 }
 
 internal data class Segment @ExperimentalUnsignedTypes constructor(
     val indexId: UByte,
-    val archiveId: Int,
+    val containerId: Int,
     val segmentPos: UShort,
     val nextSegmentPos: Int,
     val data: ByteArray
 ) {
     @ExperimentalUnsignedTypes
-    val isExtended get() = isExtended(archiveId)
+    val isExtended get() = isExtended(containerId)
 
     @ExperimentalUnsignedTypes
-    fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
+    internal fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
         if (isExtended) {
-            buffer.putInt(archiveId)
+            buffer.putInt(containerId)
         } else {
-            buffer.putShort(archiveId.toShort())
+            buffer.putShort(containerId.toShort())
         }
         buffer.putShort(segmentPos.toShort())
         buffer.putMedium(nextSegmentPos)
@@ -78,7 +84,7 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
         if (other !is Segment) return false
 
         if (indexId != other.indexId) return false
-        if (archiveId != other.archiveId) return false
+        if (containerId != other.containerId) return false
         if (segmentPos != other.segmentPos) return false
         if (nextSegmentPos != other.nextSegmentPos) return false
         if (!data.contentEquals(other.data)) return false
@@ -89,7 +95,7 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
     @ExperimentalUnsignedTypes
     override fun hashCode(): Int {
         var result = indexId.hashCode()
-        result = 31 * result + archiveId
+        result = 31 * result + containerId
         result = 31 * result + segmentPos.hashCode()
         result = 31 * result + nextSegmentPos
         result = 31 * result + data.contentHashCode()
