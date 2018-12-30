@@ -12,7 +12,9 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
     internal fun encode(compression: Compression, xteaKey: IntArray = XTEA.ZERO_KEY): ByteBuffer {
         require(xteaKey.size == XTEA.KEY_SIZE)
         val compressedData = compression.compress(data.array())
-        val buffer = ByteBuffer.allocate(ENC_HEADER_SIZE + compression.headerSize + compressedData.size)
+        val buffer = ByteBuffer.allocate(
+            ENC_HEADER_SIZE + compression.headerSize + compressedData.size + if(isVersioned) 2 else 0
+        )
         buffer.put(compression.opcode)
         buffer.putInt(compressedData.size)
         if(compression != Compression.NONE) buffer.putInt(data.limit())
@@ -23,8 +25,8 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
                 key = xteaKey,
                 start = ENC_HEADER_SIZE,
                 end = ENC_HEADER_SIZE + compression.headerSize + compressedData.size
-            )
-        } else buffer
+            ).flip()
+        } else buffer.flip()
     }
 
     val isVersioned get() = version != -1
@@ -56,7 +58,9 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
                 )
                 if (uncompressed.size != uncompressedSize) throw IOException("Compression size mismatch")
                 ByteBuffer.wrap(uncompressed)
-            } else buffer
+            } else ByteBuffer.wrap(buffer.array().sliceArray(
+                ENC_HEADER_SIZE until ENC_HEADER_SIZE + compressedSize
+            ))
             buffer.position(ENC_HEADER_SIZE + compression.headerSize + compressedSize)
             val version = if(buffer.remaining() >= 2) buffer.short.toInt() else -1
             return Container(version, dataBuffer)
