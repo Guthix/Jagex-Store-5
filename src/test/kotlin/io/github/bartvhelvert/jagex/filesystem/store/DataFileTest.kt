@@ -25,9 +25,9 @@ class SegmentTest {
         @ExperimentalUnsignedTypes
         fun encodeDecodeNormalTestArgs() = listOf(
             Arguments.of(Segment(
-                indexId = 1.toUByte(),
+                indexFileId = 1.toUByte(),
                 containerId = 1 ,
-                segmentPos = 1.toUShort(),
+                segmentPart = 1.toUShort(),
                 nextSegmentPos = 2,
                 data = ByteArray(Segment.DATA_SIZE))
             )
@@ -37,9 +37,9 @@ class SegmentTest {
         @ExperimentalUnsignedTypes
         fun encodeDecodeExtendedTestArgs() = listOf(
             Arguments.of(Segment(
-                indexId = 1.toUByte(),
+                indexFileId = 1.toUByte(),
                 containerId = UShort.MAX_VALUE.toInt() + 1,
-                segmentPos = 1.toUShort(),
+                segmentPart = 1.toUShort(),
                 nextSegmentPos = 2,
                 data = ByteArray(Segment.EXTENDED_DATA_SIZE))
             )

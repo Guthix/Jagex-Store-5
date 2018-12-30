@@ -16,17 +16,17 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
             throw FileNotFoundException("Could not find index for archive $containerId")
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
-        return Index.decode(buffer.flip())
-    }
-
-    internal fun containsIndex(containerId: Int): Boolean {
-        val ptr = containerId.toLong() * Index.SIZE.toLong()
-        return ptr < 0 || ptr >= fileChannel.size()
+        return Index.decode(buffer.flip() as ByteBuffer)
     }
 
     internal fun write(containerId: Int, index: Index) {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         fileChannel.write(index.encode(), ptr)
+    }
+
+    internal fun containsIndex(containerId: Int): Boolean {
+        val ptr = containerId.toLong() * Index.SIZE.toLong()
+        return ptr < 0 || ptr >= fileChannel.size()
     }
 }
 

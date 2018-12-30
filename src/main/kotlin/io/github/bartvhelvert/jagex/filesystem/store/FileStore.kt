@@ -48,15 +48,16 @@ class FileStore(directory: File) {
     internal fun write(indexFileId: Int, containerId: Int, container: Container) {
         if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX)
             throw IOException("Index file does not exist")
-        val channel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
-        val overwrite = channel.containsIndex(containerId)
-        val segmentPos = if(overwrite) {
-            channel.read(containerId).segmentPos
+        val indexChannel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
+        val overwriteIndex= indexChannel.containsIndex(containerId)
+        val firstSegmentPos = if(overwriteIndex) {
+            indexChannel.read(containerId).segmentPos
         } else {
-            ((channel.dataSize + Segment.SIZE - 1) / Segment.SIZE).toInt()
+            (indexChannel.dataSize / Segment.SIZE).toInt()
         }
-        val index = Index(container.data.limit(), segmentPos)
-        channel.write(containerId, index)
+        val index = Index(container.data.limit(), firstSegmentPos)
+        indexChannel.write(containerId, index)
+        dataChannel.write(indexFileId, containerId, index, container.data)
     }
 
     companion object {
