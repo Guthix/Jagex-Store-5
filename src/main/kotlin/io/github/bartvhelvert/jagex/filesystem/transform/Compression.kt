@@ -27,7 +27,7 @@ enum class Compression(val opcode: Byte, val headerSize: Int) {
                 BZip2CompressorOutputStream(bout, BLOCK_SIZE).use { outStream ->
                     inStream.transferTo(outStream)
                 }
-                return bout.toByteArray()
+                return bout.toByteArray().sliceArray(HEADER.size until bout.size())
             }
         }
 
