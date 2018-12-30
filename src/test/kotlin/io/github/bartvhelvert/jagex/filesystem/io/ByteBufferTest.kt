@@ -1,7 +1,5 @@
-package io.github.bartvhelvert.jagex.filesystem
+package io.github.bartvhelvert.jagex.filesystem.io
 
-import io.github.bartvhelvert.jagex.filesystem.io.medium
-import io.github.bartvhelvert.jagex.filesystem.io.putMedium
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
@@ -11,18 +9,18 @@ import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MediumTest {
-    @ExperimentalUnsignedTypes
     @ParameterizedTest
     @MethodSource("mediumTestArgs")
+    @ExperimentalUnsignedTypes
     fun mediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.medium
         assertEquals(expected, mediumNumber)
     }
 
-    @ExperimentalUnsignedTypes
     @ParameterizedTest
     @MethodSource("unsignedMediumTestArgs")
+    @ExperimentalUnsignedTypes
     fun unsignedMediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.medium
