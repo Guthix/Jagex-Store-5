@@ -14,8 +14,10 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
             }
         }
         for(group in groups) {
+            var lastFileGroupSize = 0
             for(fileGroup in group) {
-                buffer.putInt(fileGroup.limit())
+                buffer.putInt(Math.abs(lastFileGroupSize - fileGroup.limit()))
+                lastFileGroupSize = fileGroup.limit()
             }
         }
         buffer.put(groupCount.toByte())
@@ -74,6 +76,7 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
                     fileData[fileId].put(temp)
                 }
             }
+            fileData.forEach { it.flip() }
             return Archive(attributes, fileData)
         }
     }
