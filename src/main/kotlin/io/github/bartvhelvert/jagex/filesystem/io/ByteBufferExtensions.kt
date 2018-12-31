@@ -53,5 +53,5 @@ fun ByteBuffer.splitOf(index: Int, splits: Int): ByteBuffer {
     val start = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * (index - 1)
     var end = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * index
     if(end > limit()) end = limit()
-    return ByteBuffer.wrap(array().sliceArray(start..end))
+    return ByteBuffer.wrap(array().sliceArray(start until end))
 }
