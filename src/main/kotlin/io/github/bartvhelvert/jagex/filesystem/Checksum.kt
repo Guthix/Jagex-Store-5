@@ -8,16 +8,16 @@ import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
 
-data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
+data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
     fun encode(mod: BigInteger?, pubKey: BigInteger?): ByteBuffer {
-        val whirlpool = indexFileChecksums.all { it.whirlpoolDigest != null }
+        val whirlpool = dictionaryChecksums.all { it.whirlpoolDigest != null }
         val buffer = ByteBuffer.allocate(if(whirlpool)
-            WP_ENCODED_SIZE + IndexFileChecksum.WP_ENCODED_SIZE * indexFileChecksums.size
+            WP_ENCODED_SIZE + DictionaryChecksum.WP_ENCODED_SIZE * dictionaryChecksums.size
         else
-            IndexFileChecksum.ENCODED_SIZE * indexFileChecksums.size
+            DictionaryChecksum.ENCODED_SIZE * dictionaryChecksums.size
         )
-        if(whirlpool) buffer.put(indexFileChecksums.size.toByte())
-        for(indexFileChecksum in indexFileChecksums) {
+        if(whirlpool) buffer.put(dictionaryChecksums.size.toByte())
+        for(indexFileChecksum in dictionaryChecksums) {
             buffer.putInt(indexFileChecksum.crc)
             buffer.putInt(indexFileChecksum.version)
             if(whirlpool) {
@@ -41,12 +41,12 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
         other as CacheChecksum
-        if (!indexFileChecksums.contentEquals(other.indexFileChecksums)) return false
+        if (!dictionaryChecksums.contentEquals(other.dictionaryChecksums)) return false
         return true
     }
 
     override fun hashCode(): Int {
-        return indexFileChecksums.contentHashCode()
+        return dictionaryChecksums.contentHashCode()
     }
 
     companion object {
@@ -54,11 +54,11 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
 
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, privateKey: BigInteger?): CacheChecksum {
-            val indexFileCount = if (whirlpool) buffer.uByte.toInt() else buffer.limit() / IndexFileChecksum.ENCODED_SIZE
+            val indexFileCount = if (whirlpool) buffer.uByte.toInt() else buffer.limit() / DictionaryChecksum.ENCODED_SIZE
             val indexFileEncodedSize = if(whirlpool) {
-                IndexFileChecksum.WP_ENCODED_SIZE * indexFileCount
+                DictionaryChecksum.WP_ENCODED_SIZE * indexFileCount
             } else {
-                IndexFileChecksum.ENCODED_SIZE * indexFileCount
+                DictionaryChecksum.ENCODED_SIZE * indexFileCount
             }
             val indexFileEncodedStart = if (whirlpool) 1 else 0
             val calculatedDigest = whirlPoolHash(
@@ -74,7 +74,7 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
                     buffer.get(digest)
                     digest
                 } else null
-                IndexFileChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
+                DictionaryChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
             }
             if (whirlpool) {
                 val hash= if (mod != null && privateKey != null) {
@@ -93,7 +93,7 @@ data class CacheChecksum(val indexFileChecksums: Array<IndexFileChecksum>) {
     }
 }
 
-data class IndexFileChecksum(
+data class DictionaryChecksum(
     val crc: Int,
     val version: Int,
     val fileCount: Int,
@@ -103,7 +103,7 @@ data class IndexFileChecksum(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as IndexFileChecksum
+        other as DictionaryChecksum
         if (crc != other.crc) return false
         if (version != other.version) return false
         if (fileCount != other.fileCount) return false

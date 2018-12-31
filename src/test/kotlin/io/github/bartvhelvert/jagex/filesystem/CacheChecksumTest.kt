@@ -35,14 +35,14 @@ class CacheChecksumTest {
                 true,
                 CacheChecksum(
                     arrayOf(
-                        IndexFileChecksum(
+                        DictionaryChecksum(
                             crc = 87585,
                             version = 1,
                             fileCount = 0,
                             size = 12,
                             whirlpoolDigest = ByteArray(whirlPoolHashByteCount)
                         ),
-                        IndexFileChecksum(
+                        DictionaryChecksum(
                             crc = 3331,
                             version = 3,
                             fileCount = 3,
@@ -61,14 +61,14 @@ class CacheChecksumTest {
                 false,
                 CacheChecksum(
                     arrayOf(
-                        IndexFileChecksum(
+                        DictionaryChecksum(
                             crc = 87585,
                             version = 1,
                             fileCount = 0,
                             size = 0,
                             whirlpoolDigest = null
                         ),
-                        IndexFileChecksum(
+                        DictionaryChecksum(
                             crc = 3331,
                             version = 3,
                             fileCount = 0,
@@ -85,14 +85,14 @@ class CacheChecksumTest {
                 false,
                 CacheChecksum(
                     arrayOf(
-                        IndexFileChecksum(
+                        DictionaryChecksum(
                             crc = 87585,
                             version = 1,
                             fileCount = 0,
                             size = 0,
                             whirlpoolDigest = null
                         ),
-                        IndexFileChecksum(
+                        DictionaryChecksum(
                             crc = 3331,
                             version = 3,
                             fileCount = 0,
