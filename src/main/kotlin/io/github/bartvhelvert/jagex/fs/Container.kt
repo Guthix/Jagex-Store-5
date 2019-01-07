@@ -1,10 +1,10 @@
-package io.github.bartvhelvert.jagex.filesystem
+package io.github.bartvhelvert.jagex.fs
 
-import io.github.bartvhelvert.jagex.filesystem.io.uByte
-import io.github.bartvhelvert.jagex.filesystem.transform.Compression
-import io.github.bartvhelvert.jagex.filesystem.transform.XTEA
-import io.github.bartvhelvert.jagex.filesystem.transform.xteaDecrypt
-import io.github.bartvhelvert.jagex.filesystem.transform.xteaEncrypt
+import io.github.bartvhelvert.jagex.fs.io.uByte
+import io.github.bartvhelvert.jagex.fs.transform.Compression
+import io.github.bartvhelvert.jagex.fs.transform.XTEA
+import io.github.bartvhelvert.jagex.fs.transform.xteaDecrypt
+import io.github.bartvhelvert.jagex.fs.transform.xteaEncrypt
 import java.io.IOException
 import java.nio.ByteBuffer
 

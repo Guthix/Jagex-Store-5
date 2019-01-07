@@ -1,7 +1,7 @@
-package io.github.bartvhelvert.jagex.filesystem
+package io.github.bartvhelvert.jagex.fs
 
-import io.github.bartvhelvert.jagex.filesystem.io.getUByte
-import io.github.bartvhelvert.jagex.filesystem.io.splitOf
+import io.github.bartvhelvert.jagex.fs.io.getUByte
+import io.github.bartvhelvert.jagex.fs.io.splitOf
 import java.nio.ByteBuffer
 
 data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBuffer>) {

@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.filesystem.transform
+package io.github.bartvhelvert.jagex.fs.transform
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest

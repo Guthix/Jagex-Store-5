@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.filesystem.store
+package io.github.bartvhelvert.jagex.fs.store
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest

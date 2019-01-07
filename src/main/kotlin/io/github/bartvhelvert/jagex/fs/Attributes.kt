@@ -1,10 +1,10 @@
-package io.github.bartvhelvert.jagex.filesystem
+package io.github.bartvhelvert.jagex.fs
 
-import io.github.bartvhelvert.jagex.filesystem.io.smart
-import io.github.bartvhelvert.jagex.filesystem.io.uByte
-import io.github.bartvhelvert.jagex.filesystem.io.uShort
-import io.github.bartvhelvert.jagex.filesystem.io.writeSmart
-import io.github.bartvhelvert.jagex.filesystem.transform.whirlPoolHashByteCount
+import io.github.bartvhelvert.jagex.fs.io.smart
+import io.github.bartvhelvert.jagex.fs.io.uByte
+import io.github.bartvhelvert.jagex.fs.io.uShort
+import io.github.bartvhelvert.jagex.fs.io.writeSmart
+import io.github.bartvhelvert.jagex.fs.transform.whirlPoolHashByteCount
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer

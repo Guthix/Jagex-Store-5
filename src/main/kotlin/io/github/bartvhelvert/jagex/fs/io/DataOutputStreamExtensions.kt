@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.filesystem.io
+package io.github.bartvhelvert.jagex.fs.io
 
 import java.io.DataOutputStream
 

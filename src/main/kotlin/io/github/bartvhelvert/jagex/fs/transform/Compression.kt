@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.filesystem.transform
+package io.github.bartvhelvert.jagex.fs.transform
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream

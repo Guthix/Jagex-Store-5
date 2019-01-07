@@ -1,6 +1,6 @@
-package io.github.bartvhelvert.jagex.filesystem.store
+package io.github.bartvhelvert.jagex.fs.store
 
-import io.github.bartvhelvert.jagex.filesystem.Container
+import io.github.bartvhelvert.jagex.fs.Container
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
