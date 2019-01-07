@@ -6,7 +6,9 @@ import java.nio.ByteBuffer
 
 data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBuffer>) {
     internal fun encode(groupCount: Int = 1, containerVersion: Int = -1): Container {
-        val buffer = ByteBuffer.allocate(fileData.sumBy { it.limit() } + fileData.size * Int.SIZE_BYTES + 1)
+        val buffer = ByteBuffer.allocate(
+            fileData.sumBy { it.limit() } + groupCount * fileData.size * Int.SIZE_BYTES + 1
+        )
         val groups = divideIntoGroups(groupCount)
         for(group in groups) {
             for(fileGroup in group) {
@@ -14,10 +16,11 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
             }
         }
         for(group in groups) {
-            var lastFileGroupSize = 0
-            for(fileGroup in group) {
-                buffer.putInt(Math.abs(lastFileGroupSize - fileGroup.limit()))
-                lastFileGroupSize = fileGroup.limit()
+            var delta = group[0].limit()
+            buffer.putInt(delta)
+            for(i in 1 until group.size) {
+                buffer.putInt(delta - group[i].limit())
+                delta = group[i].limit()
             }
         }
         buffer.put(groupCount.toByte())
@@ -36,7 +39,6 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
         other as Archive
         if (attributes != other.attributes) return false
         if (!fileData.contentEquals(other.fileData)) return false
-
         return true
     }
 
@@ -56,12 +58,12 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
             val groupFileSizes = Array(groupCount) { IntArray(fileCount) }
             buffer.position(buffer.limit() - 1 - groupCount * fileCount * 4)
             for (groupId in 0 until groupCount) {
-                var groupSize = 0
+                var groupFileSize = 0
                 for (fileId in 0 until fileCount) {
                     val delta = buffer.int // difference in chunk size compared to the previous chunk
-                    groupSize += delta
-                    groupFileSizes[groupId][fileId] = groupSize
-                    fileSizes[fileId] += groupSize
+                    groupFileSize += delta
+                    groupFileSizes[groupId][fileId] = groupFileSize
+                    fileSizes[fileId] += groupFileSize
                 }
             }
             val fileData = Array<ByteBuffer>(fileCount) {
@@ -70,8 +72,8 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
             buffer.position(0)
             for (groupId in 0 until groupCount) {
                 for (fileId in 0 until fileCount) {
-                    val groupSize = groupFileSizes[groupId][fileId]
-                    val temp = ByteArray(groupSize)
+                    val groupFileSize = groupFileSizes[groupId][fileId]
+                    val temp = ByteArray(groupFileSize)
                     buffer.get(temp)
                     fileData[fileId].put(temp)
                 }
