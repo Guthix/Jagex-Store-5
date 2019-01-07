@@ -8,7 +8,7 @@ import java.nio.ByteBuffer
 
 class ArchiveTest {
     @ParameterizedTest
-    @MethodSource("encodeDecodegrCTestArgs")
+    @MethodSource("encodeDecodeTestArgs")
     @ExperimentalUnsignedTypes
     fun encodeDecodeTest(archive: Archive, groupCount: Int, containerVersion: Int) {
         Assertions.assertEquals(archive, Archive.decode(archive.encode(groupCount, containerVersion), archive.attributes))
@@ -16,7 +16,7 @@ class ArchiveTest {
 
     companion object {
         @JvmStatic
-        fun encodeDecodegrCTestArgs() = listOf(
+        fun encodeDecodeTestArgs() = listOf(
             Arguments.of( // group = 1 test
                 Archive(
                    ArchiveAttributes(

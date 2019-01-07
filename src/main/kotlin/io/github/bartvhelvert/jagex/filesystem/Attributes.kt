@@ -10,11 +10,11 @@ import java.io.DataOutputStream
 import java.nio.ByteBuffer
 
 data class DictionaryAttributes(val version: Int, val archiveAttributes: MutableMap<Int, ArchiveAttributes>) {
-    internal fun encode(format: Int): ByteBuffer {
+    internal fun encode(format: Format): ByteBuffer {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
-            os.writeByte(format)
-            if(format != 5) os.writeInt(version)
+            os.writeByte(format.opcode)
+            if(format != Format.UNVERSIONED) os.writeInt(version)
             var flags = 0
             val hasNameHashes = archiveAttributes.values.any { attr ->
                 attr.nameHash != null || attr.fileAttributes.values.any { file -> file.nameHash != null }
@@ -27,11 +27,16 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             if(hasWhirlPoolHashes) flags = flags or MASK_WHIRLPOOL_HASH
             if(hasSizes) flags = flags or MASK_SIZES
             os.writeByte(flags)
-            if(format == 7) os.writeSmart(archiveAttributes.size) else os.writeShort(archiveAttributes.size)
-            var attrDelta = 0
+            if(format == Format.VERSIONEDLARGE) {
+                os.writeSmart(archiveAttributes.size)
+            } else {
+                os.writeShort(archiveAttributes.size)
+            }
+            var prevArchiveId = 0
             for(id in archiveAttributes.keys) {
-                attrDelta += id
-                if(format == 7) os.writeSmart(attrDelta) else os.writeShort(attrDelta)
+                val delta = Math.abs(prevArchiveId - id)
+                if(format == Format.VERSIONEDLARGE) os.writeSmart(delta) else os.writeShort(delta)
+                prevArchiveId = id
             }
             if(hasNameHashes) {
                 for(attr in archiveAttributes.values) os.writeInt(attr.nameHash ?: 0)
@@ -52,16 +57,25 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
                 }
             }
             for(attr in archiveAttributes.values) {
-                os.writeInt(version)
+                os.writeInt(attr.version)
             }
             for(attr in archiveAttributes.values) {
-                if(format == 7) os.writeSmart(attr.fileAttributes.size) else os.writeShort(attr.fileAttributes.size)
+                if(format == Format.VERSIONEDLARGE) {
+                    os.writeSmart(attr.fileAttributes.size)
+                } else {
+                    os.writeShort(attr.fileAttributes.size)
+                }
             }
             for(attr in archiveAttributes.values) {
-                var fileDelta = 0
-                for(file in attr.fileAttributes.values) {
-                    fileDelta += file.id
-                    if(format == 7) os.writeSmart(fileDelta) else os.writeShort(fileDelta)
+                var prevFileId = 0
+                for(id in attr.fileAttributes.keys) {
+                    val delta = Math.abs(prevFileId - id)
+                    if(format == Format.VERSIONEDLARGE) {
+                        os.writeSmart(delta)
+                    } else {
+                        os.writeShort(delta)
+                    }
+                    prevFileId = id
                 }
             }
             if(hasNameHashes) {
@@ -75,6 +89,8 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
         return ByteBuffer.wrap(byteStr.toByteArray())
     }
 
+    enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONEDLARGE(7) }
+
     companion object {
         private const val MASK_NAME_HASH = 0x01
         private const val MASK_WHIRLPOOL_HASH = 0x02
@@ -84,15 +100,16 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
         @ExperimentalUnsignedTypes
         internal fun decode(container: Container): DictionaryAttributes {
             val buffer = container.data
-            val format = buffer.uByte.toInt()
-            require(format in 5..7)
-            val version = if (format == 5) 0 else buffer.int
+            val formatOpcode = buffer.uByte.toInt()
+            val format = Format.values().find { it.opcode == formatOpcode }
+            require(format != null)
+            val version = if (format == Format.UNVERSIONED) 0 else buffer.int
             val flags = buffer.uByte.toInt()
-            val archiveCount = if (format == 7) buffer.smart else buffer.uShort.toInt()
+            val archiveCount = if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt()
             val archiveIds = IntArray(archiveCount)
             var archiveIdAccumulator = 0
             for(archiveIndex in archiveIds.indices) {
-                val delta = if (format == 7) buffer.smart else buffer.uShort.toInt() // difference with previous id
+                val delta = if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt() // difference with previous id
                 archiveIdAccumulator += delta
                 archiveIds[archiveIndex] = archiveIdAccumulator
             }
@@ -111,12 +128,12 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             } else null
             val archiveVersions = Array(archiveCount) { buffer.int }
             val archiveFileIds = Array(archiveCount) {
-                IntArray(if (format == 7) buffer.smart else buffer.uShort.toInt()) // decode file count
+                IntArray(if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt()) // decode file count
             }
             for(archive in archiveFileIds) {
                 var fileIdAccumulator = 0
                 for(fileIndex in archive.indices) {
-                    val delta = if (format == 7) buffer.smart else buffer.uShort.toInt() // difference with previous id
+                    val delta = if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt() // difference with previous id
                     fileIdAccumulator += delta
                     archive[fileIndex] = fileIdAccumulator
                 }
