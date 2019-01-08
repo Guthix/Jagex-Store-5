@@ -73,9 +73,10 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
             for (groupId in 0 until groupCount) {
                 for (fileId in 0 until fileCount) {
                     val groupFileSize = groupFileSizes[groupId][fileId]
-                    val temp = ByteArray(groupFileSize)
-                    buffer.get(temp)
-                    fileData[fileId].put(temp)
+                    fileData[fileId].put(
+                        buffer.array().sliceArray(buffer.position() until buffer.position() + groupFileSize)
+                    )
+                    buffer.position(buffer.position() + groupFileSize)
                 }
             }
             fileData.forEach { it.flip() }
