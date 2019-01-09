@@ -12,8 +12,9 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
     internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
-        if (ptr < 0 || ptr >= fileChannel.size())
+        if (ptr < 0 || ptr >= fileChannel.size()) {
             throw FileNotFoundException("Could not find index for archive $containerId")
+        }
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
         return Index.decode(buffer.flip() as ByteBuffer)
@@ -31,7 +32,8 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
 }
 
 internal data class Index(val dataSize: Int, val segmentPos: Int) {
-    internal fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
+    internal fun encode(): ByteBuffer {
+        val buffer = ByteBuffer.allocate(SIZE)
         buffer.putMedium(dataSize)
         buffer.putMedium(segmentPos)
         return buffer.flip() as ByteBuffer
