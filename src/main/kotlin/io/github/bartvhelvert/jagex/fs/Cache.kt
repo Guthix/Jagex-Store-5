@@ -15,22 +15,17 @@ class Cache(directory: File) {
         )
     }
 
-    private val archiveCache = mutableMapOf<Int, MutableMap<Int, Archive>>()
-
     @ExperimentalUnsignedTypes
     fun readArchive(
         dictionaryId: Int,
         archiveId: Int,
-        xteaKey: IntArray = XTEA.ZERO_KEY,
-        shouldCache: Boolean = false
+        xteaKey: IntArray = XTEA.ZERO_KEY
     ): Archive {
         if(dictionaryId !in 0..dictionaryAttributesCache.size) throw IOException("Dictionary does not exist")
         val dictionaryAttributes = dictionaryAttributesCache[dictionaryId]
         val archiveAttributes = dictionaryAttributes.archiveAttributes[archiveId]
             ?: throw IOException("Archive does not exist")
         val archiveContainer = Container.decode(fileStore.read(dictionaryId, archiveId), xteaKey)
-        val archive = Archive.decode(archiveContainer, archiveAttributes)
-        if(shouldCache) archiveCache.computeIfAbsent(dictionaryId) { mutableMapOf() }[archiveId] = archive
-        return archive
+        return Archive.decode(archiveContainer, archiveAttributes)
     }
 }
