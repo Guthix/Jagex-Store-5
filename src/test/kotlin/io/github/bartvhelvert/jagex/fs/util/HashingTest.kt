@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.fs.transform
+package io.github.bartvhelvert.jagex.fs.util
 
 import org.bouncycastle.util.encoders.Hex
 import org.junit.jupiter.params.ParameterizedTest

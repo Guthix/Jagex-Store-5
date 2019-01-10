@@ -1,6 +1,6 @@
 package io.github.bartvhelvert.jagex.fs
 
-import io.github.bartvhelvert.jagex.fs.transform.whirlPoolHashByteCount
+import io.github.bartvhelvert.jagex.fs.util.whirlPoolHashByteCount
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments

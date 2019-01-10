@@ -4,7 +4,7 @@ import io.github.bartvhelvert.jagex.fs.io.smart
 import io.github.bartvhelvert.jagex.fs.io.uByte
 import io.github.bartvhelvert.jagex.fs.io.uShort
 import io.github.bartvhelvert.jagex.fs.io.writeSmart
-import io.github.bartvhelvert.jagex.fs.transform.whirlPoolHashByteCount
+import io.github.bartvhelvert.jagex.fs.util.whirlPoolHashByteCount
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer

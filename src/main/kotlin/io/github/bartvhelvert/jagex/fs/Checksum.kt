@@ -1,9 +1,9 @@
 package io.github.bartvhelvert.jagex.fs
 
 import io.github.bartvhelvert.jagex.fs.io.uByte
-import io.github.bartvhelvert.jagex.fs.transform.rsaCrypt
-import io.github.bartvhelvert.jagex.fs.transform.whirlPoolHash
-import io.github.bartvhelvert.jagex.fs.transform.whirlPoolHashByteCount
+import io.github.bartvhelvert.jagex.fs.util.rsaCrypt
+import io.github.bartvhelvert.jagex.fs.util.whirlPoolHash
+import io.github.bartvhelvert.jagex.fs.util.whirlPoolHashByteCount
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer

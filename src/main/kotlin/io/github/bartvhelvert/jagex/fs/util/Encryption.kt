@@ -1,4 +1,4 @@
-package io.github.bartvhelvert.jagex.fs.transform
+package io.github.bartvhelvert.jagex.fs.util
 
 import java.math.BigInteger
 import java.nio.ByteBuffer

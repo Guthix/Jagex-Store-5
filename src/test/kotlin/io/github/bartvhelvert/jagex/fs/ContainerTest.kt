@@ -1,6 +1,6 @@
 package io.github.bartvhelvert.jagex.fs
 
-import io.github.bartvhelvert.jagex.fs.transform.Compression
+import io.github.bartvhelvert.jagex.fs.util.Compression
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments

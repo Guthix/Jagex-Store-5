@@ -2,14 +2,14 @@ package io.github.bartvhelvert.jagex.fs
 
 import java.io.File
 import io.github.bartvhelvert.jagex.fs.store.FileStore
-import io.github.bartvhelvert.jagex.fs.transform.XTEA
+import io.github.bartvhelvert.jagex.fs.util.XTEA
 import java.io.IOException
 
 class JagexCache(directory: File) {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
-    private val dictionaryAttributes = Array(fileStore.indexFileCount) {
+    private val dictionaryAttributes = Array(fileStore.dictionaryCount) {
         DictionaryAttributes.decode(
             Container.decode(fileStore.read(FileStore.ATTRIBUTE_INDEX, it))
         )
