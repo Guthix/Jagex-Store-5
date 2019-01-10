@@ -5,7 +5,7 @@ import io.github.bartvhelvert.jagex.fs.store.FileStore
 import io.github.bartvhelvert.jagex.fs.transform.XTEA
 import java.io.IOException
 
-class Cache(directory: File) {
+class JagexCache(directory: File) {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
