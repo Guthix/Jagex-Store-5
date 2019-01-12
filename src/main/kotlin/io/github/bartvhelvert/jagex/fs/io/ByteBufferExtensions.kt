@@ -71,6 +71,17 @@ val ByteBuffer.string get(): String {
     return bldr.toString()
 }
 
+@ExperimentalUnsignedTypes
+val ByteBuffer.params get(): HashMap<Int, Any> {
+    val amount = uByte.toInt()
+    val params = HashMap<Int, Any>(nextPowerOfTwo(amount))
+    for(i in 0 until amount) {
+        val isString = uByte.toInt() == 1
+        params[uMedium] = if(isString) string else int
+    }
+    return params
+}
+
 fun ByteBuffer.splitOf(index: Int, splits: Int): ByteBuffer {
     val start = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * (index - 1)
     var end = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * index
