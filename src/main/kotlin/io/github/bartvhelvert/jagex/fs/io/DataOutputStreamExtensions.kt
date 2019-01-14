@@ -19,6 +19,15 @@ fun DataOutputStream.writeSmart(value: Int): DataOutputStream {
     return this
 }
 
+fun DataOutputStream.writeNullableSmart(value: Int?): DataOutputStream {
+    when {
+        value == Short.MAX_VALUE.toInt() || value == null -> writeShort(-1)
+        value < Short.MAX_VALUE -> writeShort(value)
+        else -> writeInt(value)
+    }
+    return this
+}
+
 fun DataOutputStream.writeString(string: String): DataOutputStream {
     string.forEach { char ->
         if(charset.contains(char)) {
