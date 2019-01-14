@@ -49,6 +49,14 @@ val ByteBuffer.smart get() = if (get(position()) < 0) {
     uShort.toInt()
 }
 
+@ExperimentalUnsignedTypes
+val ByteBuffer.nullableSmart get() = if (get(position()) < 0) {
+    uInt
+} else {
+    val temp = uShort.toInt()
+    if(temp == Short.MAX_VALUE.toInt()) null else uShort.toInt()
+}
+
 val charset = charArrayOf('€', '\u0000', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u0000',
     'Ž', '\u0000', '\u0000', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u0000', 'ž', 'Ÿ')
 
