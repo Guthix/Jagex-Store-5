@@ -57,23 +57,12 @@ val ByteBuffer.nullableSmart get() = if (get(position()) < 0) {
     if(temp == Short.MAX_VALUE.toInt()) null else uShort.toInt()
 }
 
-val charset = charArrayOf('€', '\u0000', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u0000',
-    'Ž', '\u0000', '\u0000', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u0000', 'ž', 'Ÿ')
-
 @ExperimentalUnsignedTypes
 val ByteBuffer.string get(): String {
     val bldr = StringBuilder()
     var encodedByte: Int = uByte.toInt()
     while (encodedByte != 0) {
-        if (encodedByte in 128..159) {
-            var curChar = charset[encodedByte - 128]
-            if (curChar.toInt() == 0) {
-                curChar = 63.toChar()
-            }
-            bldr.append(curChar)
-        } else {
-            bldr.append(encodedByte.toChar())
-        }
+        bldr.append(toJagexChar(encodedByte))
         encodedByte = get().toInt()
     }
     return bldr.toString()

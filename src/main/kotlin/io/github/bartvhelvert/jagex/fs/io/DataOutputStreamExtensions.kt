@@ -30,15 +30,7 @@ fun DataOutputStream.writeNullableSmart(value: Int?): DataOutputStream {
 
 fun DataOutputStream.writeString(string: String): DataOutputStream {
     string.forEach { char ->
-        if(charset.contains(char)) {
-            if(char.toInt() == 63) {
-                writeByte(128)
-            } else {
-                charset.indexOf(char) + 128
-            }
-        } else {
-            writeByte(char.toInt())
-        }
+        writeByte(toEncodedChar(char))
     }
     writeByte(0)
     return this
