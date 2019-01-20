@@ -54,7 +54,7 @@ val ByteBuffer.nullableSmart get() = if (get(position()) < 0) {
     uInt
 } else {
     val temp = uShort.toInt()
-    if(temp == Short.MAX_VALUE.toInt()) null else uShort.toInt()
+    if(temp == Short.MAX_VALUE.toInt()) null else temp
 }
 
 @ExperimentalUnsignedTypes
