@@ -2,14 +2,25 @@ package io.github.bartvhelvert.jagex.fs
 
 import io.github.bartvhelvert.jagex.fs.io.getUByte
 import io.github.bartvhelvert.jagex.fs.io.splitOf
+
 import java.nio.ByteBuffer
 
-data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBuffer>) {
+data class Archive(
+    val id: Int,
+    val nameHash: Int?,
+    val crc: Int,
+    val unknownHash: Int?,
+    val whirlpoolHash: ByteArray?,
+    val sizes: ArchiveAttributes.Size?,
+    val version: Int,
+    val files: Map<Int, File>
+) {
     internal fun encode(groupCount: Int = 1, containerVersion: Int = -1): Container {
+        val fileBuffers = files.values.map { it.data }.toTypedArray()
         val buffer = ByteBuffer.allocate(
-            fileData.sumBy { it.limit() } + groupCount * fileData.size * Int.SIZE_BYTES + 1
+            fileBuffers.sumBy { it.limit() } + groupCount * fileBuffers.size * Int.SIZE_BYTES + 1
         )
-        val groups = divideIntoGroups(groupCount)
+        val groups = divideIntoGroups(fileBuffers, groupCount)
         for(group in groups) {
             for(fileGroup in group) {
                 buffer.put(fileGroup)
@@ -27,32 +38,67 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
         return Container(containerVersion, buffer)
     }
 
-    private fun divideIntoGroups(groupCount: Int): Array<Array<ByteBuffer>> = Array(groupCount) { group ->
-        Array(fileData.size) { file ->
-            fileData[file].splitOf(group + 1, groupCount)
+    private fun divideIntoGroups(
+        fileBuffers: Array<ByteBuffer>,
+        groupCount: Int
+    ): Array<Array<ByteBuffer>> = Array(groupCount) { group ->
+        Array(fileBuffers.size) { file ->
+            fileBuffers[file].splitOf(group + 1, groupCount)
         }
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as Archive
-        if (attributes != other.attributes) return false
-        if (!fileData.contentEquals(other.fileData)) return false
+        if (other !is Archive) return false
+
+        if (id != other.id) return false
+        if (nameHash != other.nameHash) return false
+        if (crc != other.crc) return false
+        if (unknownHash != other.unknownHash) return false
+        if (whirlpoolHash != null) {
+            if (other.whirlpoolHash == null) return false
+            if (!whirlpoolHash.contentEquals(other.whirlpoolHash)) return false
+        } else if (other.whirlpoolHash != null) return false
+        if (sizes != other.sizes) return false
+        if (version != other.version) return false
+        if (files != other.files) return false
+
         return true
     }
 
     override fun hashCode(): Int {
-        var result = attributes.hashCode()
-        result = 31 * result + fileData.contentHashCode()
+        var result = id
+        result = 31 * result + (nameHash ?: 0)
+        result = 31 * result + crc
+        result = 31 * result + (unknownHash ?: 0)
+        result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
+        result = 31 * result + (sizes?.hashCode() ?: 0)
+        result = 31 * result + version
+        result = 31 * result + files.hashCode()
         return result
     }
 
+    data class File(val id: Int, val data: ByteBuffer, val nameHash: Int?)
+
     companion object {
         @ExperimentalUnsignedTypes
-        internal fun decode(container: Container, attributes: ArchiveAttributes): Archive {
+        internal fun decode(container: Container, attributes: ArchiveAttributes): Archive  {
+            val fileBuffers= decodeContainer(container, attributes.fileAttributes.size)
+            val files = mutableMapOf<Int, File>()
+            var index = 0
+            attributes.fileAttributes.forEach { fileId, attribute ->
+                files[fileId] = File(fileId, fileBuffers[index], attribute.nameHash)
+                index++
+            }
+            return Archive(attributes.id, attributes.nameHash, attributes.crc, attributes.unknownHash,
+                attributes.whirlpoolHash, attributes.sizes, attributes.version, files
+            )
+        }
+
+
+        @ExperimentalUnsignedTypes
+        internal fun decodeContainer(container: Container, fileCount: Int): Array<ByteBuffer> {
             val buffer = container.data
-            val fileCount = attributes.fileAttributes.size
             val fileSizes = IntArray(fileCount)
             val groupCount = buffer.getUByte(buffer.limit() - 1).toInt()
             val groupFileSizes = Array(groupCount) { IntArray(fileCount) }
@@ -80,7 +126,7 @@ data class Archive(val attributes: ArchiveAttributes, val fileData: Array<ByteBu
                 }
             }
             fileData.forEach { it.flip() }
-            return Archive(attributes, fileData)
+            return fileData
         }
     }
 }

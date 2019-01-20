@@ -16,19 +16,6 @@ class JagexCache(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    fun readArchives(dictionaryId: Int, xteas: Map<Int, IntArray> = emptyMap()): Map<Int, Archive> {
-        if(dictionaryId !in 0..dictionaryAttributes.size) throw IOException("Dictionary does not exist")
-        val dictAttributes = dictionaryAttributes[dictionaryId]
-        val archives = mutableMapOf<Int, Archive>()
-        for((id, archiveAttr) in dictAttributes.archiveAttributes) {
-            val xtea = xteas[id] ?: XTEA.ZERO_KEY
-            val archiveContainer = Container.decode(fileStore.read(dictionaryId, id), xtea)
-            archives[id] = Archive.decode(archiveContainer, archiveAttr)
-        }
-        return archives
-    }
-
-    @ExperimentalUnsignedTypes
     fun readArchive(
         dictionaryId: Int,
         archiveId: Int,

@@ -128,7 +128,7 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             } else null
             val archiveVersions = Array(archiveCount) { buffer.int }
             val archiveFileIds = Array(archiveCount) {
-                IntArray(if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt()) // decode file count
+                IntArray(if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt()) // decodeContainer file count
             }
             for(archive in archiveFileIds) {
                 var fileIdAccumulator = 0
