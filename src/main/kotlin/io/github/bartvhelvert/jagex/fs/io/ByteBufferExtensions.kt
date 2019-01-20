@@ -69,6 +69,9 @@ val ByteBuffer.string get(): String {
 }
 
 @ExperimentalUnsignedTypes
+val ByteBuffer.nullableString get(): String? = if(get().toInt() == 0) string else null
+
+@ExperimentalUnsignedTypes
 val ByteBuffer.params get(): HashMap<Int, Any> {
     val amount = uByte.toInt()
     val params = HashMap<Int, Any>(nextPowerOfTwo(amount))
