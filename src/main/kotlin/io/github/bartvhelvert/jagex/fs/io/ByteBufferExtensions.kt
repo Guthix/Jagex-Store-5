@@ -42,6 +42,32 @@ fun ByteBuffer.putMedium(value: Int): ByteBuffer {
 @ExperimentalUnsignedTypes
 val ByteBuffer.uInt get() = int and Int.MAX_VALUE
 
+val ByteBuffer.varInt get(): Int {
+    var result = 0
+    var size = get().toInt()
+    while (size < 0) {
+        result = result or (size and Byte.MAX_VALUE.toInt()) shl 7
+        size = get().toInt()
+    }
+    return result or size
+}
+
+fun ByteBuffer.putVarInt(value: Int) {
+    if (value and -0x80 != 0) {
+        if (value and -0x4000 != 0) {
+            if (value and -0x200000 != 0) {
+                if (value and -0x10000000 != 0) {
+                    put((value.ushr(28) or 0x80).toByte())
+                }
+                put((value.ushr(21) or 0x80).toByte())
+            }
+            put((value.ushr(14) or 0x80).toByte())
+        }
+        put((value.ushr(7) or 0x80).toByte())
+    }
+    put((value and 0x7F).toByte())
+}
+
 @ExperimentalUnsignedTypes
 val ByteBuffer.smart get() = if (get(position()) < 0) {
     uInt
