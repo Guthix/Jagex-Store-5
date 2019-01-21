@@ -17,6 +17,8 @@ package io.github.bartvhelvert.jagex.fs.io
 
 import java.nio.ByteBuffer
 
+fun ByteBuffer.skip(amount: Int) = position(position() + amount)
+
 @ExperimentalUnsignedTypes
 fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
 
