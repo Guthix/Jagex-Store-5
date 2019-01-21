@@ -45,7 +45,7 @@ class FileStore(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    internal fun write(indexFileId: Int, containerId: Int, container: Container) {
+    internal fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
         if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX)
             throw IOException("Index file does not exist")
         val indexChannel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
@@ -55,9 +55,9 @@ class FileStore(directory: File) {
         } else {
             (indexChannel.dataSize / Segment.SIZE).toInt()
         }
-        val index = Index(container.data.limit(), firstSegmentPos)
+        val index = Index(data.limit(), firstSegmentPos)
         indexChannel.write(containerId, index)
-        dataChannel.write(indexFileId, containerId, index, container.data)
+        dataChannel.write(indexFileId, containerId, index, data)
     }
 
     companion object {
