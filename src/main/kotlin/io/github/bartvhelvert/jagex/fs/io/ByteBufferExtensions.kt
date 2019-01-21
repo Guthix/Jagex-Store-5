@@ -52,7 +52,7 @@ val ByteBuffer.varInt get(): Int {
     return result or size
 }
 
-fun ByteBuffer.putVarInt(value: Int) {
+fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
     if (value and -0x80 != 0) {
         if (value and -0x4000 != 0) {
             if (value and -0x200000 != 0) {
@@ -66,6 +66,7 @@ fun ByteBuffer.putVarInt(value: Int) {
         put((value.ushr(7) or 0x80).toByte())
     }
     put((value and 0x7F).toByte())
+    return this
 }
 
 @ExperimentalUnsignedTypes
