@@ -1,9 +1,9 @@
 package io.github.bartvhelvert.jagex.fs
 
-import io.github.bartvhelvert.jagex.fs.io.smart
+import io.github.bartvhelvert.jagex.fs.io.largeSmart
 import io.github.bartvhelvert.jagex.fs.io.uByte
 import io.github.bartvhelvert.jagex.fs.io.uShort
-import io.github.bartvhelvert.jagex.fs.io.writeSmart
+import io.github.bartvhelvert.jagex.fs.io.writeLargeSmart
 import io.github.bartvhelvert.jagex.fs.util.whirlPoolHashByteCount
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -28,14 +28,14 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             if(hasSizes) flags = flags or MASK_SIZES
             os.writeByte(flags)
             if(format == Format.VERSIONEDLARGE) {
-                os.writeSmart(archiveAttributes.size)
+                os.writeLargeSmart(archiveAttributes.size)
             } else {
                 os.writeShort(archiveAttributes.size)
             }
             var prevArchiveId = 0
             for(id in archiveAttributes.keys) {
                 val delta = Math.abs(prevArchiveId - id)
-                if(format == Format.VERSIONEDLARGE) os.writeSmart(delta) else os.writeShort(delta)
+                if(format == Format.VERSIONEDLARGE) os.writeLargeSmart(delta) else os.writeShort(delta)
                 prevArchiveId = id
             }
             if(hasNameHashes) {
@@ -61,7 +61,7 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             }
             for(attr in archiveAttributes.values) {
                 if(format == Format.VERSIONEDLARGE) {
-                    os.writeSmart(attr.fileAttributes.size)
+                    os.writeLargeSmart(attr.fileAttributes.size)
                 } else {
                     os.writeShort(attr.fileAttributes.size)
                 }
@@ -71,7 +71,7 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
                 for(id in attr.fileAttributes.keys) {
                     val delta = Math.abs(prevFileId - id)
                     if(format == Format.VERSIONEDLARGE) {
-                        os.writeSmart(delta)
+                        os.writeLargeSmart(delta)
                     } else {
                         os.writeShort(delta)
                     }
@@ -105,11 +105,11 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             require(format != null)
             val version = if (format == Format.UNVERSIONED) 0 else buffer.int
             val flags = buffer.uByte.toInt()
-            val archiveCount = if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt()
+            val archiveCount = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt()
             val archiveIds = IntArray(archiveCount)
             var archiveIdAccumulator = 0
             for(archiveIndex in archiveIds.indices) {
-                val delta = if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt() // difference with previous id
+                val delta = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt() // difference with previous id
                 archiveIdAccumulator += delta
                 archiveIds[archiveIndex] = archiveIdAccumulator
             }
@@ -128,12 +128,12 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
             } else null
             val archiveVersions = Array(archiveCount) { buffer.int }
             val archiveFileIds = Array(archiveCount) {
-                IntArray(if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt()) // decodeContainer file count
+                IntArray(if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt()) // decodeContainer file count
             }
             for(archive in archiveFileIds) {
                 var fileIdAccumulator = 0
                 for(fileIndex in archive.indices) {
-                    val delta = if (format == Format.VERSIONEDLARGE) buffer.smart else buffer.uShort.toInt() // difference with previous id
+                    val delta = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt() // difference with previous id
                     fileIdAccumulator += delta
                     archive[fileIndex] = fileIdAccumulator
                 }

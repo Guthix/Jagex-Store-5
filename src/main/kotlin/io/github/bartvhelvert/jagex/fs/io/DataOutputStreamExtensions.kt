@@ -10,7 +10,7 @@ fun DataOutputStream.writeMedium(value: Int): DataOutputStream {
     return this
 }
 
-fun DataOutputStream.writeSmart(value: Int): DataOutputStream {
+fun DataOutputStream.writeLargeSmart(value: Int): DataOutputStream {
     if(value <= Short.MAX_VALUE) {
         writeShort(value)
     } else {
@@ -19,7 +19,7 @@ fun DataOutputStream.writeSmart(value: Int): DataOutputStream {
     return this
 }
 
-fun DataOutputStream.writeNullableSmart(value: Int?): DataOutputStream {
+fun DataOutputStream.writeNullableLargeSmart(value: Int?): DataOutputStream {
     when {
         value == Short.MAX_VALUE.toInt() || value == null -> writeShort(-1)
         value < Short.MAX_VALUE -> writeShort(value)

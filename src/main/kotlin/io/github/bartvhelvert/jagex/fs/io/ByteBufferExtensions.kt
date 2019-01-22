@@ -20,6 +20,20 @@ import java.nio.ByteBuffer
 fun ByteBuffer.skip(amount: Int) = position(position() + amount)
 
 @ExperimentalUnsignedTypes
+fun ByteBuffer.peak(): Byte {
+    val peak = get()
+    position(position() - 1)
+    return peak
+}
+
+@ExperimentalUnsignedTypes
+fun ByteBuffer.uPeak(): UByte {
+    val peak = uByte
+    position(position() - 1)
+    return peak
+}
+
+@ExperimentalUnsignedTypes
 fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
 
 @ExperimentalUnsignedTypes
@@ -71,15 +85,17 @@ fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
     return this
 }
 
+
+
 @ExperimentalUnsignedTypes
-val ByteBuffer.smart get() = if (get(position()) < 0) {
+val ByteBuffer.largeSmart get() = if (get(position()) < 0) {
     uInt
 } else {
     uShort.toInt()
 }
 
 @ExperimentalUnsignedTypes
-val ByteBuffer.nullableSmart get() = if (get(position()) < 0) {
+val ByteBuffer.nullableLargeSmart get() = if (get(position()) < 0) {
     uInt
 } else {
     val temp = uShort.toInt()
