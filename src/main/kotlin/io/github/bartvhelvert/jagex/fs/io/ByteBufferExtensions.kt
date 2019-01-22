@@ -85,7 +85,15 @@ fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
     return this
 }
 
+@ExperimentalUnsignedTypes
+val ByteBuffer.smallSmart get() = if(uPeak().toInt() < 128) {
+    (uByte.toInt() - 64).toUShort()
+} else {
+    (uShort.toInt() - 49152).toUShort()
+}
 
+@ExperimentalUnsignedTypes
+val ByteBuffer.smallUSmart get() = if(uPeak().toInt() < 128) uByte.toUShort() else uShort
 
 @ExperimentalUnsignedTypes
 val ByteBuffer.largeSmart get() = if (get(position()) < 0) {
