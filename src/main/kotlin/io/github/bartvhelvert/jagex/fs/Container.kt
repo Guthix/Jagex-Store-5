@@ -8,7 +8,7 @@ import io.github.bartvhelvert.jagex.fs.util.xteaEncrypt
 import java.io.IOException
 import java.nio.ByteBuffer
 
-data class Container(var version: Int = -1, val data: ByteBuffer) {
+internal data class Container(var version: Int = -1, val data: ByteBuffer) {
     internal fun encode(compression: Compression, xteaKey: IntArray = XTEA.ZERO_KEY): ByteBuffer {
         require(xteaKey.size == XTEA.KEY_SIZE)
         val compressedData = compression.compress(data.array())

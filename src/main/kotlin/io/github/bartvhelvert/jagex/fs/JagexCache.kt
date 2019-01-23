@@ -16,15 +16,19 @@ class JagexCache(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
-    fun readContainers(
-        dictionaryId: Int
-    ): Map<Int, Container> {
+    fun readArchives(
+        dictionaryId: Int,
+        xteaKeys: Map<Int, IntArray> = emptyMap()
+    ): Map<Int, Archive> {
         if(dictionaryId !in 0..dictionaryAttributes.size) throw IOException("Dictionary does not exist")
-        val containers = mutableMapOf<Int, Container>()
-        dictionaryAttributes[dictionaryId].archiveAttributes.forEach { containerId, _ ->
-            containers[containerId] = Container.decode(fileStore.read(dictionaryId, containerId))
+        val dictAttributes = dictionaryAttributes[dictionaryId]
+        val archives = mutableMapOf<Int, Archive>()
+        dictAttributes.archiveAttributes.forEach { archiveId, archiveAttributes ->
+            val xtea = xteaKeys[archiveId] ?: XTEA.ZERO_KEY
+            val archiveContainer = Container.decode(fileStore.read(dictionaryId, archiveId), xtea)
+            archives[archiveId] = Archive.decode(archiveContainer, archiveAttributes)
         }
-        return containers
+        return archives
     }
 
     @ExperimentalUnsignedTypes

@@ -83,7 +83,11 @@ data class Archive(
     companion object {
         @ExperimentalUnsignedTypes
         internal fun decode(container: Container, attributes: ArchiveAttributes): Archive  {
-            val fileBuffers= decodeContainer(container, attributes.fileAttributes.size)
+            val fileBuffers= if(attributes.fileAttributes.size == 1) {
+                arrayOf(container.data)
+            } else {
+                decodeMultiFileContainer(container, attributes.fileAttributes.size)
+            }
             val files = mutableMapOf<Int, File>()
             var index = 0
             attributes.fileAttributes.forEach { fileId, attribute ->
@@ -97,7 +101,7 @@ data class Archive(
 
 
         @ExperimentalUnsignedTypes
-        internal fun decodeContainer(container: Container, fileCount: Int): Array<ByteBuffer> {
+        internal fun decodeMultiFileContainer(container: Container, fileCount: Int): Array<ByteBuffer> {
             val buffer = container.data
             val fileSizes = IntArray(fileCount)
             val groupCount = buffer.getUByte(buffer.limit() - 1).toInt()
