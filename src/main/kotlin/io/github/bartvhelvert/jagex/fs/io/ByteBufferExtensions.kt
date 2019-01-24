@@ -20,18 +20,10 @@ import java.nio.ByteBuffer
 fun ByteBuffer.skip(amount: Int) = position(position() + amount)
 
 @ExperimentalUnsignedTypes
-fun ByteBuffer.peak(): Byte {
-    val peak = get()
-    position(position() - 1)
-    return peak
-}
+fun ByteBuffer.peak() = get(position())
 
 @ExperimentalUnsignedTypes
-fun ByteBuffer.uPeak(): UByte {
-    val peak = uByte
-    position(position() - 1)
-    return peak
-}
+fun ByteBuffer.uPeak() = getUByte(position())
 
 @ExperimentalUnsignedTypes
 fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
