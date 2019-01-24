@@ -93,7 +93,11 @@ val ByteBuffer.smallSmart get() = if(uPeak().toInt() < 128) {
 }
 
 @ExperimentalUnsignedTypes
-val ByteBuffer.smallUSmart get() = if(uPeak().toInt() < 128) uByte.toUShort() else uShort
+val ByteBuffer.smallUSmart get() = if(uPeak().toInt() < 128) {
+    uByte.toUShort()
+} else {
+    (uShort.toInt()- 32768).toUShort()
+}
 
 @ExperimentalUnsignedTypes
 val ByteBuffer.largeSmart get() = if (get(position()) < 0) {
