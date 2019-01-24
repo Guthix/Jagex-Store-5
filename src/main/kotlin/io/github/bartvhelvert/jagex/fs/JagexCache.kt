@@ -16,6 +16,13 @@ class JagexCache(directory: File) {
     }
 
     @ExperimentalUnsignedTypes
+    fun archiveIds(dictionaryId: Int) = dictionaryAttributes[dictionaryId].archiveAttributes.keys
+
+    @ExperimentalUnsignedTypes
+    fun fileIds(dictionaryId: Int, archiveId: Int) =
+        dictionaryAttributes[dictionaryId].archiveAttributes[archiveId]?.fileAttributes?.keys
+
+    @ExperimentalUnsignedTypes
     fun readArchives(
         dictionaryId: Int,
         xteaKeys: Map<Int, IntArray> = emptyMap()
