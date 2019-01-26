@@ -44,7 +44,7 @@ class MediumTest {
     @ExperimentalUnsignedTypes
     fun unsignedMediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
-        val mediumNumber = buffer.medium
+        val mediumNumber = buffer.uMedium
         assertEquals(expected, mediumNumber)
     }
 
