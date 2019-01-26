@@ -4,8 +4,8 @@ plugins {
     id 'java-library'
 }
 
-group 'io.github.bartvhelvert.jagex'
-version '0.1-DEV'
+group 'io.guthix.cache.fs'
+version '0.1-SNAPSHOT'
 sourceCompatibility = 1.9
 
 repositories {
