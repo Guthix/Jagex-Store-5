@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: bouncyCastleVersion
     implementation group: 'org.apache.commons', name: 'commons-compress', version: apacheCompressVersion
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junitVersion
