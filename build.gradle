@@ -1,7 +1,5 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.11'
-    id 'maven-publish'
-    id 'java-library'
 }
 
 group 'io.guthix.cache.fs'
@@ -26,30 +24,6 @@ compileKotlin {
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            pom {
-                name = 'Jagex-Filesystem'
-                description = 'Jagex Filesystem library'
-            }
-            from components.java
-            artifact sourcesJar
-            artifact javadocJar
-        }
-    }
 }
 
 test {
