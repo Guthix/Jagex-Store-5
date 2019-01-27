@@ -1,7 +1,5 @@
 /*
-GNU LGPL V3
-Copyright (C) 2019 Bart van Helvert
-B.A.J.v.Helvert@gmail.com
+Copyright (C) 2019 Guthix
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
