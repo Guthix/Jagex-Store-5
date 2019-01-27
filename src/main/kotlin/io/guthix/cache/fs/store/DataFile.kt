@@ -113,7 +113,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
     }
 }
 
-internal data class Segment @ExperimentalUnsignedTypes constructor(
+data class Segment @ExperimentalUnsignedTypes constructor(
     val indexFileId: UByte,
     val containerId: Int,
     val segmentPart: UShort,
@@ -173,10 +173,10 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
         const val SIZE = HEADER_SIZE + DATA_SIZE
 
         @ExperimentalUnsignedTypes
-        fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
+        internal fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
 
         @ExperimentalUnsignedTypes
-        fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(
+        internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(
                 containerId
             )
         ) {
@@ -186,7 +186,7 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
         }
 
         @ExperimentalUnsignedTypes
-        fun decode(buffer: ByteBuffer): Segment {
+        internal fun decode(buffer: ByteBuffer): Segment {
             val containerId = buffer.uShort.toInt()
             val segmentPart = buffer.uShort
             val nextSegmentPos = buffer.uMedium
@@ -197,7 +197,7 @@ internal data class Segment @ExperimentalUnsignedTypes constructor(
         }
 
         @ExperimentalUnsignedTypes
-        fun decodeExtended(buffer: ByteBuffer): Segment {
+        internal fun decodeExtended(buffer: ByteBuffer): Segment {
             val containerId = buffer.int
             val segmentPart = buffer.uShort
             val nextSegmentPos = buffer.uMedium
