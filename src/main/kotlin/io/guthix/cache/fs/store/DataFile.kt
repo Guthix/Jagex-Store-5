@@ -17,13 +17,11 @@
  */
 package io.guthix.cache.fs.store
 
-import io.guthix.cache.fs.io.putMedium
-import io.guthix.cache.fs.io.uByte
-import io.guthix.cache.fs.io.uMedium
-import io.guthix.cache.fs.io.uShort
+import io.guthix.cache.fs.io.*
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import java.util.*
 
 internal class DataChannel(private val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
@@ -93,8 +91,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
     private fun readSegment(ptr: Long): Segment {
         val buffer = ByteBuffer.allocate(Segment.SIZE)
-        fileChannel.position(ptr)
-        fileChannel.read(buffer)
+        fileChannel.readFully(buffer, ptr)
         return Segment.decode(buffer.flip() as ByteBuffer)
     }
 
@@ -176,10 +173,7 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         internal fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
 
         @ExperimentalUnsignedTypes
-        internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(
-                containerId
-            )
-        ) {
+        internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(containerId)) {
             decodeExtended(buffer)
         } else {
             decode(buffer)
