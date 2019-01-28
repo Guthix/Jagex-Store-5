@@ -17,8 +17,6 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 package io.guthix.cache.fs
 
-import io.guthix.cache.fs.CacheChecksum
-import io.guthix.cache.fs.DictionaryChecksum
 import io.guthix.cache.fs.util.whirlPoolHashByteCount
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest

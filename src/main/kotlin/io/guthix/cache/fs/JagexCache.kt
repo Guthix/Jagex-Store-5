@@ -20,7 +20,9 @@ package io.guthix.cache.fs
 import java.io.File
 import io.guthix.cache.fs.store.FileStore
 import io.guthix.cache.fs.util.XTEA
+import io.guthix.cache.fs.util.calculateCRC
 import io.guthix.cache.fs.util.djb2Hash
+import io.guthix.cache.fs.util.whirlPoolHash
 import java.io.IOException
 import java.nio.ByteBuffer
 
@@ -38,6 +40,22 @@ class JagexCache(directory: File) {
             )
         )
     }
+
+    @ExperimentalUnsignedTypes
+    fun generateChecksum(): CacheChecksum = CacheChecksum(
+        Array(dictionaryAttributes.size) { dictionaryId ->
+            val dictionaryAttributes = dictionaryAttributes[dictionaryId]
+            val rawBuffer = fileStore.read(FileStore.ATTRIBUTE_INDEX, dictionaryId)
+            DictionaryChecksum(
+                calculateCRC(rawBuffer),
+                dictionaryAttributes.version,
+                dictionaryAttributes.archiveAttributes.size,
+                dictionaryAttributes.archiveAttributes.values
+                    .sumBy { if(it.sizes != null) it.sizes.uncompressed else 0 },
+                whirlPoolHash(rawBuffer.array())
+            )
+        }
+    )
 
     @ExperimentalUnsignedTypes
     fun archiveIds(dictionaryId: Int) = getDictAttributes(dictionaryId).archiveAttributes.keys
