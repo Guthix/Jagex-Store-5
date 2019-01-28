@@ -73,7 +73,7 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
                 val uncompressed = compression.decompress(buffer.array().sliceArray(
                     headerLength until headerLength + compressedSize), uncompressedSize
                 )
-                if (uncompressed.size != uncompressedSize) throw IOException("Compression size mismatch")
+                if (uncompressed.size != uncompressedSize) throw IOException("Compression size mismatch.")
                 ByteBuffer.wrap(uncompressed)
             } else ByteBuffer.wrap(buffer.array().sliceArray(
                 ENC_HEADER_SIZE until ENC_HEADER_SIZE + compressedSize

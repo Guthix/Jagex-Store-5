@@ -107,7 +107,7 @@ data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
                 } else {
                     buffer.array().sliceArray(buffer.position() until buffer.position() + buffer.remaining())
                 }
-                if (!hash!!.contentEquals(calculatedDigest)) throw IOException("Whirlpool digest does not match")
+                if (!hash!!.contentEquals(calculatedDigest)) throw IOException("Whirlpool digest does not match.")
             }
             return CacheChecksum(indexFileChecksums)
         }

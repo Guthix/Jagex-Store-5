@@ -61,7 +61,7 @@ fun DataOutputStream.writeParams(params: HashMap<Int, Any>): DataOutputStream {
         when (value) {
             is String -> writeString(value)
             is Int -> writeInt(value)
-            else -> throw IOException("Unsupported param value type")
+            else -> throw IOException("Unsupported param value type.")
         }
     }
     return this

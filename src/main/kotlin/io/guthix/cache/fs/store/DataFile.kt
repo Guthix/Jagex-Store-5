@@ -106,9 +106,9 @@ internal class DataChannel(private val fileChannel: FileChannel) {
 
     @ExperimentalUnsignedTypes
     private fun Segment.validate(indexFileId: Int, containerId: Int, segmentPos: Int): Segment {
-        if (this.indexFileId.toInt() != indexFileId) throw IOException("Index id mismatch")
-        if (this.containerId != containerId) throw IOException("Archive id mismatch")
-        if (this.segmentPart.toInt() != segmentPos) throw IOException("Segment position mismatch")
+        if (this.indexFileId.toInt() != indexFileId) throw IOException("Index id mismatch.")
+        if (this.containerId != containerId) throw IOException("Archive id mismatch.")
+        if (this.segmentPart.toInt() != segmentPos) throw IOException("Segment position mismatch.")
         return this
     }
 }

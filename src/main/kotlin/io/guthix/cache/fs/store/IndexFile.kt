@@ -30,7 +30,7 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
     internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size()) {
-            throw FileNotFoundException("Could not find index for archive $containerId")
+            throw FileNotFoundException("Could not find container $containerId.")
         }
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)

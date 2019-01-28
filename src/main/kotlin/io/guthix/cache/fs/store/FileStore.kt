@@ -32,9 +32,9 @@ class FileStore(directory: File) {
     internal val dictionaryCount get() = dictionaryChannels.size
 
     init {
-        if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist")
+        if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist.")
         val dataFile = directory.resolve("$FILE_NAME.$DATA_FILE_EXTENSION")
-        if(!dataFile.isFile) throw IOException("$dataFile is not a file or doesn't exist")
+        if(!dataFile.isFile) throw IOException("$dataFile is not a file or doesn't exist.")
         dataChannel = DataChannel(
             RandomAccessFile(
                 dataFile,
@@ -56,7 +56,7 @@ class FileStore(directory: File) {
         }
         dictionaryChannels = indexChannelList.toTypedArray()
         val attributeFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
-        if(!attributeFile.isFile) throw IOException("$attributeFile is not a file or doesn't exist")
+        if(!attributeFile.isFile) throw IOException("$attributeFile is not a file or doesn't exist.")
         attributeIndexChannel = IndexChannel(
             RandomAccessFile(
                 attributeFile,

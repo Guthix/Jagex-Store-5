@@ -89,7 +89,7 @@ open class JagexCache(directory: File) {
     ): Archive {
         val dictAttributes = getDictAttributes(dictionaryId)
         val archiveAttributes = dictAttributes.archiveAttributes[archiveId]
-            ?: throw IOException("Archive does not exist")
+            ?: throw IOException("Archive does not exist.")
         val archiveContainer =
             Container.decode(readRawData(dictionaryId, archiveId), xteaKey)
         return Archive.decode(archiveContainer, archiveAttributes)
@@ -113,7 +113,7 @@ open class JagexCache(directory: File) {
 
     @ExperimentalUnsignedTypes
     private fun getDictAttributes(dictionaryId: Int): DictionaryAttributes {
-        if(dictionaryId !in 0..dictionaryAttributes.size) throw IOException("Dictionary does not exist")
+        if(dictionaryId !in 0..dictionaryAttributes.size) throw IOException("Dictionary does not exist.")
         return dictionaryAttributes[dictionaryId]
     }
 }
