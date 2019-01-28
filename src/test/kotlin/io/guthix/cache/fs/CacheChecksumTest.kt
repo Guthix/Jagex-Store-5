@@ -37,7 +37,7 @@ class CacheChecksumTest {
     ) {
         Assertions.assertEquals(cacheCheckSum,
             CacheChecksum.decode(
-                cacheCheckSum.encode(mod, pubKey),
+                cacheCheckSum.encode(whirlpool, mod, pubKey),
                 whirlpool,
                 mod,
                 privateKey
