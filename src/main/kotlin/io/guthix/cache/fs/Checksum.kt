@@ -26,8 +26,7 @@ import java.math.BigInteger
 import java.nio.ByteBuffer
 
 data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
-    fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuffer {
-        val whirlpool = dictionaryChecksums.all { it.whirlpoolDigest != null }
+    fun encode(whirlpool: Boolean = false, mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuffer {
         val buffer = ByteBuffer.allocate(if(whirlpool)
             WP_ENCODED_SIZE + DictionaryChecksum.WP_ENCODED_SIZE * dictionaryChecksums.size
         else
