@@ -22,6 +22,7 @@ import io.guthix.cache.fs.store.FileStore
 import io.guthix.cache.fs.util.XTEA
 import io.guthix.cache.fs.util.djb2Hash
 import java.io.IOException
+import java.nio.ByteBuffer
 
 class JagexCache(directory: File) {
     private val fileStore = FileStore(directory)
@@ -44,6 +45,9 @@ class JagexCache(directory: File) {
     @ExperimentalUnsignedTypes
     fun fileIds(dictionaryId: Int, archiveId: Int) =
         getDictAttributes(dictionaryId).archiveAttributes[archiveId]?.fileAttributes?.keys
+
+    @ExperimentalUnsignedTypes
+    fun readRawData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
 
     @ExperimentalUnsignedTypes
     fun readArchive(
