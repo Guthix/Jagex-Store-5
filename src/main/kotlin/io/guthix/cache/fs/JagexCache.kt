@@ -26,7 +26,7 @@ import io.guthix.cache.fs.util.whirlPoolHash
 import java.io.IOException
 import java.nio.ByteBuffer
 
-class JagexCache(directory: File) {
+open class JagexCache(directory: File) {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
@@ -65,10 +65,10 @@ class JagexCache(directory: File) {
         getDictAttributes(dictionaryId).archiveAttributes[archiveId]?.fileAttributes?.keys
 
     @ExperimentalUnsignedTypes
-    fun readRawData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
+    open fun readRawData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
 
     @ExperimentalUnsignedTypes
-    fun readArchive(
+    open fun readArchive(
         dictionaryId: Int,
         archiveName: String,
         xteaKey: IntArray = XTEA.ZERO_KEY
@@ -77,12 +77,12 @@ class JagexCache(directory: File) {
         val nameHash = djb2Hash(archiveName)
         val archiveAttributes =  dictAttributes.archiveAttributes.values.first { it.nameHash == nameHash}
         val archiveContainer =
-            Container.decode(fileStore.read(dictionaryId, archiveAttributes.id), xteaKey)
+            Container.decode(readRawData(dictionaryId, archiveAttributes.id), xteaKey)
         return Archive.decode(archiveContainer, archiveAttributes)
     }
 
     @ExperimentalUnsignedTypes
-    fun readArchive(
+    open fun readArchive(
         dictionaryId: Int,
         archiveId: Int,
         xteaKey: IntArray = XTEA.ZERO_KEY
@@ -91,12 +91,12 @@ class JagexCache(directory: File) {
         val archiveAttributes = dictAttributes.archiveAttributes[archiveId]
             ?: throw IOException("Archive does not exist")
         val archiveContainer =
-            Container.decode(fileStore.read(dictionaryId, archiveId), xteaKey)
+            Container.decode(readRawData(dictionaryId, archiveId), xteaKey)
         return Archive.decode(archiveContainer, archiveAttributes)
     }
 
     @ExperimentalUnsignedTypes
-    fun readArchives(
+    open fun readArchives(
         dictionaryId: Int,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Map<Int, Archive> {
@@ -105,7 +105,7 @@ class JagexCache(directory: File) {
         dictAttributes.archiveAttributes.forEach { archiveId, archiveAttributes ->
             val xtea = xteaKeys[archiveId] ?: XTEA.ZERO_KEY
             val archiveContainer =
-                Container.decode(fileStore.read(dictionaryId, archiveId), xtea)
+                Container.decode(readRawData(dictionaryId, archiveId), xtea)
             archives[archiveId] = Archive.decode(archiveContainer, archiveAttributes)
         }
         return archives
