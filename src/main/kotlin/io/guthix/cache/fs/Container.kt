@@ -25,8 +25,8 @@ import io.guthix.cache.fs.util.xteaEncrypt
 import java.io.IOException
 import java.nio.ByteBuffer
 
-internal data class Container(var version: Int = -1, val data: ByteBuffer) {
-    internal fun encode(compression: Compression, xteaKey: IntArray = XTEA.ZERO_KEY): ByteBuffer {
+data class Container(var version: Int = -1, val data: ByteBuffer) {
+    fun encode(compression: Compression, xteaKey: IntArray = XTEA.ZERO_KEY): ByteBuffer {
         require(xteaKey.size == XTEA.KEY_SIZE)
         val compressedData = compression.compress(data.array())
         val buffer = ByteBuffer.allocate(
@@ -56,7 +56,7 @@ internal data class Container(var version: Int = -1, val data: ByteBuffer) {
         private const val ENC_HEADER_SIZE = 5
 
         @ExperimentalUnsignedTypes
-        internal fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA.ZERO_KEY): Container {
+        fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA.ZERO_KEY): Container {
             require(xteaKey.size == XTEA.KEY_SIZE)
             val compression = Compression.getByOpcode(buffer.uByte.toInt())
             val compressedSize = buffer.int
