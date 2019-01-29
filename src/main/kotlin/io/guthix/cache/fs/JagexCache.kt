@@ -30,7 +30,7 @@ open class JagexCache(directory: File) {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
-    private val dictionaryAttributes = Array(fileStore.dictionaryCount) {
+    protected val dictionaryAttributes = Array(fileStore.dictionaryCount) {
         DictionaryAttributes.decode(
             Container.decode(
                 fileStore.read(
