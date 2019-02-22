@@ -19,6 +19,7 @@ package io.guthix.cache.fs.store
 
 import io.guthix.cache.fs.io.*
 import java.io.IOException
+import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.util.*
@@ -44,7 +45,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
                 dataToRead = 0
             }
         } while (dataToRead > 0)
-        return data.flip() as ByteBuffer
+        return (data as Buffer).flip() as ByteBuffer
     }
 
     @ExperimentalUnsignedTypes
@@ -92,7 +93,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
     private fun readSegment(ptr: Long): Segment {
         val buffer = ByteBuffer.allocate(Segment.SIZE)
         fileChannel.readFully(buffer, ptr)
-        return Segment.decode(buffer.flip() as ByteBuffer)
+        return Segment.decode((buffer as Buffer).flip() as ByteBuffer)
     }
 
     @ExperimentalUnsignedTypes
@@ -131,7 +132,7 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         buffer.putMedium(nextSegmentPos)
         buffer.put(indexFileId.toByte())
         buffer.put(data)
-        return buffer.flip() as ByteBuffer
+        return (buffer as Buffer).flip() as ByteBuffer
     }
 
     @ExperimentalUnsignedTypes

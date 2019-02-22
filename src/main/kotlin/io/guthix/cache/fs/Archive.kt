@@ -19,6 +19,7 @@ package io.guthix.cache.fs
 
 import io.guthix.cache.fs.io.getUByte
 import io.guthix.cache.fs.io.splitOf
+import java.nio.Buffer
 
 import java.nio.ByteBuffer
 
@@ -147,7 +148,7 @@ data class Archive(
                     buffer.position(buffer.position() + groupFileSize)
                 }
             }
-            fileData.forEach { it.flip() }
+            fileData.forEach { (it as Buffer).flip() as ByteBuffer }
             return fileData
         }
     }

@@ -23,6 +23,7 @@ import io.guthix.cache.fs.util.whirlPoolHash
 import io.guthix.cache.fs.util.whirlPoolHashByteCount
 import java.io.IOException
 import java.math.BigInteger
+import java.nio.Buffer
 import java.nio.ByteBuffer
 
 data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
@@ -54,7 +55,7 @@ data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
             }
             buffer.put(hash)
         }
-        return buffer.flip() as ByteBuffer
+        return (buffer as Buffer).flip() as ByteBuffer
     }
 
     override fun equals(other: Any?): Boolean {

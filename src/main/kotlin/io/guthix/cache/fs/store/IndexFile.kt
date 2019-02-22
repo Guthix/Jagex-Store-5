@@ -20,6 +20,7 @@ package io.guthix.cache.fs.store
 import io.guthix.cache.fs.io.putMedium
 import io.guthix.cache.fs.io.uMedium
 import java.io.FileNotFoundException
+import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
@@ -34,7 +35,7 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
         }
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
-        return Index.decode(buffer.flip() as ByteBuffer)
+        return Index.decode((buffer as Buffer).flip() as ByteBuffer)
     }
 
     internal fun write(containerId: Int, index: Index) {
@@ -53,7 +54,7 @@ internal data class Index(val dataSize: Int, val segmentPos: Int) {
         val buffer = ByteBuffer.allocate(SIZE)
         buffer.putMedium(dataSize)
         buffer.putMedium(segmentPos)
-        return buffer.flip() as ByteBuffer
+        return (buffer as Buffer).flip() as ByteBuffer
     }
 
     companion object {

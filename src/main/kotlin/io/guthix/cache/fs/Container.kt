@@ -23,6 +23,7 @@ import io.guthix.cache.fs.util.XTEA
 import io.guthix.cache.fs.util.xteaDecrypt
 import io.guthix.cache.fs.util.xteaEncrypt
 import java.io.IOException
+import java.nio.Buffer
 import java.nio.ByteBuffer
 
 data class Container(var version: Int = -1, val data: ByteBuffer) {
@@ -43,7 +44,7 @@ data class Container(var version: Int = -1, val data: ByteBuffer) {
                 start = ENC_HEADER_SIZE,
                 end = ENC_HEADER_SIZE + compression.headerSize + compressedData.size
             ).flip()
-        } else buffer.flip()
+        } else (buffer as Buffer).flip() as ByteBuffer
     }
 
     val isVersioned get() = version != -1
