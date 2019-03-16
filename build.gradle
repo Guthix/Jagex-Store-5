@@ -22,7 +22,6 @@ plugins {
 
 group 'io.guthix.cache.fs'
 version '0.1-SNAPSHOT'
-sourceCompatibility = 1.9
 
 repositories {
     mavenCentral()
@@ -38,9 +37,11 @@ dependencies {
 }
 
 compileKotlin {
+    sourceCompatibility = JavaVersion.VERSION_1_9
     kotlinOptions.jvmTarget = "1.8"
 }
 compileTestKotlin {
+    sourceCompatibility = JavaVersion.VERSION_1_9
     kotlinOptions.jvmTarget = "1.8"
 }
 

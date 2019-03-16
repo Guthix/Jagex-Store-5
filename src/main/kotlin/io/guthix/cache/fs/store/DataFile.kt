@@ -93,7 +93,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
     private fun readSegment(ptr: Long): Segment {
         val buffer = ByteBuffer.allocate(Segment.SIZE)
         fileChannel.readFully(buffer, ptr)
-        return Segment.decode((buffer as Buffer).flip() as ByteBuffer)
+        return Segment.decode(buffer.flip())
     }
 
     @ExperimentalUnsignedTypes
@@ -132,7 +132,7 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         buffer.putMedium(nextSegmentPos)
         buffer.put(indexFileId.toByte())
         buffer.put(data)
-        return (buffer as Buffer).flip() as ByteBuffer
+        return buffer.flip()
     }
 
     @ExperimentalUnsignedTypes

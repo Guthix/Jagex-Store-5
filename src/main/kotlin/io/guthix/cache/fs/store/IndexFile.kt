@@ -35,7 +35,7 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
         }
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
-        return Index.decode((buffer as Buffer).flip() as ByteBuffer)
+        return Index.decode(buffer.flip())
     }
 
     internal fun write(containerId: Int, index: Index) {
@@ -54,7 +54,7 @@ internal data class Index(val dataSize: Int, val segmentPos: Int) {
         val buffer = ByteBuffer.allocate(SIZE)
         buffer.putMedium(dataSize)
         buffer.putMedium(segmentPos)
-        return (buffer as Buffer).flip() as ByteBuffer
+        return buffer.flip()
     }
 
     companion object {

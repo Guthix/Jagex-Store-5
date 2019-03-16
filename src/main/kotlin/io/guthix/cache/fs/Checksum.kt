@@ -55,7 +55,7 @@ data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
             }
             buffer.put(hash)
         }
-        return (buffer as Buffer).flip() as ByteBuffer
+        return buffer.flip()
     }
 
     override fun equals(other: Any?): Boolean {

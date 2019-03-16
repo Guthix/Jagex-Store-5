@@ -44,7 +44,7 @@ data class Container(var version: Int = -1, val data: ByteBuffer) {
                 start = ENC_HEADER_SIZE,
                 end = ENC_HEADER_SIZE + compression.headerSize + compressedData.size
             ).flip()
-        } else (buffer as Buffer).flip() as ByteBuffer
+        } else buffer.flip()
     }
 
     val isVersioned get() = version != -1
