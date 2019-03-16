@@ -1,25 +1,9 @@
-/*
- * Copyright (C) 2019 Guthix
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
-package io.guthix.cache.fs.io
+package io.guthix.cache.fs.io.bytebufferextensions
 
 import io.guthix.cache.fs.io.medium
 import io.guthix.cache.fs.io.putMedium
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.guthix.cache.fs.io.uMedium
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -34,7 +18,7 @@ class MediumTest {
     fun mediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.medium
-        assertEquals(expected, mediumNumber)
+        Assertions.assertEquals(expected, mediumNumber)
     }
 
     @ParameterizedTest
@@ -43,7 +27,7 @@ class MediumTest {
     fun unsignedMediumPutGetTest(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.uMedium
-        assertEquals(expected, mediumNumber)
+        Assertions.assertEquals(expected, mediumNumber)
     }
 
     companion object {

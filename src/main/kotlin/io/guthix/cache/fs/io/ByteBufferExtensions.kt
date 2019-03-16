@@ -19,12 +19,12 @@ package io.guthix.cache.fs.io
 
 import java.nio.ByteBuffer
 
-fun ByteBuffer.skip(amount: Int) = position(position() + amount)
+fun ByteBuffer.skip(amount: Int): ByteBuffer = position(position() + amount)
 
 @ExperimentalUnsignedTypes
 fun ByteBuffer.peak() = get(position())
 
-@ExperimentalUnsignedTypes
+@ExperimentalUnsignedTypes 
 fun ByteBuffer.uPeak() = getUByte(position())
 
 @ExperimentalUnsignedTypes

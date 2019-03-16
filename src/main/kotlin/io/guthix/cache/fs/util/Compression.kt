@@ -32,7 +32,6 @@ enum class Compression(val opcode: Byte, val headerSize: Int) {
         override fun decompress(input: ByteArray, decompressedSize: Int) = input
     },
 
-
     BZIP2(opcode = 1, headerSize = Int.SIZE_BYTES) {
         val BLOCK_SIZE = 1
 
