@@ -37,21 +37,13 @@ class FileStore(directory: File) {
     init {
         if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist.")
         val dataFile = directory.resolve("$FILE_NAME.$DATA_FILE_EXTENSION")
-        if(!dataFile.isFile) {
-            logger.info("Could not find .dat2 file")
-            if(!dataFile.createNewFile()) {
-                throw IOException("Could not create .dat2 file")
-            } else {
-                logger.info("Created empty .dat2 file")
-            }
-        } else {
+        if(!dataFile.createNewFile()) {
             logger.info("Found .dat2 file")
+        } else {
+            logger.info("Could not find .dat2 file")
+            logger.info("Created empty .dat2 file")
         }
-        dataChannel = DataChannel(
-            RandomAccessFile(
-                dataFile,
-                accessMode
-            ).channel
+        dataChannel = DataChannel(RandomAccessFile(dataFile, accessMode).channel
         )
         val indexChannelList = mutableListOf<IndexChannel>()
         for (indexFileId in 0 until ATTRIBUTE_INDEX) {
@@ -60,33 +52,17 @@ class FileStore(directory: File) {
                 logger.info("Found $indexFileId index ${if(indexFileId == 1) "file " else "files"}")
                 break
             }
-            indexChannelList.add(
-                IndexChannel(
-                    RandomAccessFile(
-                        indexFile,
-                        accessMode
-                    ).channel
-                )
-            )
+            indexChannelList.add(IndexChannel(RandomAccessFile(indexFile, accessMode).channel))
         }
         dictionaryChannels = indexChannelList.toTypedArray()
         val attributeFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$ATTRIBUTE_INDEX")
-        if(!attributeFile.isFile) {
-            logger.info("Could not find .idx255 file")
-            if(!attributeFile.createNewFile()) {
-                throw IOException("Could not create .idx255 file")
-            } else {
-                logger.info("Created empty .idx255 file")
-            }
-        } else {
+        if(!attributeFile.createNewFile()) {
             logger.info("Found .idx255 file:")
+        } else {
+            logger.info("Could not find .idx255 file")
+            logger.info("Created empty .idx255 file")
         }
-        attributeIndexChannel = IndexChannel(
-            RandomAccessFile(
-                attributeFile,
-                accessMode
-            ).channel
-        )
+        attributeIndexChannel = IndexChannel(RandomAccessFile(attributeFile, accessMode).channel)
     }
 
     @ExperimentalUnsignedTypes
@@ -103,8 +79,9 @@ class FileStore(directory: File) {
 
     @ExperimentalUnsignedTypes
     internal fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
-        if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX)
+        if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX) {
             throw IOException("Index file does not exist")
+        }
         val indexChannel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
         val overwriteIndex= indexChannel.containsIndex(containerId)
         val firstSegmentPos = if(overwriteIndex) {
