@@ -43,8 +43,7 @@ class FileStore(directory: File) {
             logger.info("Could not find .dat2 file")
             logger.info("Created empty .dat2 file")
         }
-        dataChannel = DataChannel(RandomAccessFile(dataFile, accessMode).channel
-        )
+        dataChannel = DataChannel(RandomAccessFile(dataFile, accessMode).channel)
         val indexChannelList = mutableListOf<IndexChannel>()
         for (indexFileId in 0 until ATTRIBUTE_INDEX) {
             val indexFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$indexFileId")
@@ -79,10 +78,10 @@ class FileStore(directory: File) {
 
     @ExperimentalUnsignedTypes
     internal fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
-        if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX) {
+        if(indexFileId < 0 || indexFileId >= dictionaryChannels.size) {
             throw IOException("Index file does not exist")
         }
-        val indexChannel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
+        val indexChannel = dictionaryChannels[indexFileId]
         val overwriteIndex= indexChannel.containsIndex(containerId)
         val firstSegmentPos = if(overwriteIndex) {
             indexChannel.read(containerId).segmentPos
@@ -92,6 +91,22 @@ class FileStore(directory: File) {
         val index = Index(data.limit(), firstSegmentPos)
         indexChannel.write(containerId, index)
         dataChannel.write(indexFileId, containerId, index, data)
+    }
+
+    @ExperimentalUnsignedTypes
+    internal fun writeAttributes(indexFileId: Int, data: ByteBuffer) {
+        if(indexFileId != ATTRIBUTE_INDEX) {
+            throw IOException("Index file does not exist")
+        }
+        val overwriteIndex= attributeIndexChannel.containsIndex(indexFileId)
+        val firstSegmentPos = if(overwriteIndex) {
+            attributeIndexChannel.read(indexFileId).segmentPos
+        } else {
+            (attributeIndexChannel.dataSize / Segment.SIZE).toInt()
+        }
+        val index = Index(data.limit(), firstSegmentPos)
+        attributeIndexChannel.write(indexFileId, index)
+        dataChannel.write(indexFileId, indexFileId, index, data)
     }
 
     companion object {

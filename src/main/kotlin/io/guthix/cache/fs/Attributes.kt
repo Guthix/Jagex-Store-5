@@ -26,9 +26,9 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer
 
-data class DictionaryAttributes(val version: Int, val archiveAttributes: MutableMap<Int, ArchiveAttributes>) {
+data class DictionaryAttributes(var version: Int, val archiveAttributes: MutableMap<Int, ArchiveAttributes>) {
     @ExperimentalUnsignedTypes
-    internal fun encode(): ByteBuffer {
+    internal fun encode(containerVersion: Int): Container {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
             val format = if(version == -1) {
@@ -113,7 +113,7 @@ data class DictionaryAttributes(val version: Int, val archiveAttributes: Mutable
                 }
             }
         }
-        return ByteBuffer.wrap(byteStr.toByteArray())
+        return Container(containerVersion, ByteBuffer.wrap(byteStr.toByteArray()))
     }
 
     enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONEDLARGE(7) }

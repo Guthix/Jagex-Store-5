@@ -30,7 +30,7 @@ class AttributesTest {
         Assertions.assertEquals(
             dictAttr,
             DictionaryAttributes.decode(
-                Container(containerVersion, dictAttr.encode())
+                dictAttr.encode(containerVersion)
             )
         )
     }
