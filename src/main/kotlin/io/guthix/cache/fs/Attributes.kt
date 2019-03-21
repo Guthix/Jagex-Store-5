@@ -27,9 +27,19 @@ import java.io.DataOutputStream
 import java.nio.ByteBuffer
 
 data class DictionaryAttributes(val version: Int, val archiveAttributes: MutableMap<Int, ArchiveAttributes>) {
-    internal fun encode(format: Format): ByteBuffer {
+    @ExperimentalUnsignedTypes
+    internal fun encode(): ByteBuffer {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
+            val format = if(version == -1) {
+                Format.UNVERSIONED
+            } else {
+                if(archiveAttributes.size <= UShort.MAX_VALUE.toInt()) {
+                    Format.VERSIONED
+                } else {
+                    Format.VERSIONEDLARGE
+                }
+            }
             os.writeByte(format.opcode)
             if(format != Format.UNVERSIONED) os.writeInt(version)
             var flags = 0
@@ -230,7 +240,7 @@ data class ArchiveAttributes(
         return result
     }
 
-    class Size(val compressed: Int, val uncompressed: Int)
+    class Size(val compressed: Int?, val uncompressed: Int?)
 }
 
 data class FileAttributes(val id: Int, val nameHash: Int?)

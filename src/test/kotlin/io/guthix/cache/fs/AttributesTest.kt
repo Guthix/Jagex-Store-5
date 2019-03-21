@@ -26,11 +26,11 @@ class AttributesTest {
     @ParameterizedTest
     @MethodSource("encodeDecodeTestArgs")
     @ExperimentalUnsignedTypes
-    fun encodeDecodeTest(dictAttr: DictionaryAttributes, containerVersion: Int, format: DictionaryAttributes.Format) {
+    fun encodeDecodeTest(dictAttr: DictionaryAttributes, containerVersion: Int) {
         Assertions.assertEquals(
             dictAttr,
             DictionaryAttributes.decode(
-                Container(containerVersion, dictAttr.encode(format))
+                Container(containerVersion, dictAttr.encode())
             )
         )
     }
@@ -70,8 +70,7 @@ class AttributesTest {
                         )
                     )
                 ),
-                3,
-                DictionaryAttributes.Format.VERSIONED
+                3
             )
         )
     }
