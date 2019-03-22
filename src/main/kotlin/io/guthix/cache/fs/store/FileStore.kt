@@ -25,7 +25,7 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
-class FileStore(val directory: File) {
+class FileStore(val directory: File) : AutoCloseable {
     private val dataChannel: DataChannel
 
     private val dictionaryChannels: MutableList<IndexChannel> = mutableListOf()
@@ -96,6 +96,12 @@ class FileStore(val directory: File) {
         val index = Index(data.limit(), firstSegmentPos)
         indexChannel.write(containerId, index)
         dataChannel.write(indexFileId, containerId, index, data)
+    }
+
+    override fun close() {
+        dataChannel.close()
+        dictionaryChannels.forEach { it.close() }
+        attributeIndexChannel.close()
     }
 
     companion object {

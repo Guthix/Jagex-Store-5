@@ -26,7 +26,7 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
-open class JagexCache(directory: File) {
+open class JagexCache(directory: File) : AutoCloseable {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
@@ -242,4 +242,6 @@ open class JagexCache(directory: File) {
         if(dictionaryId !in 0..dictionaryAttributes.size) throw IOException("Dictionary does not exist.")
         return dictionaryAttributes[dictionaryId]
     }
+
+    override fun close()  = fileStore.close()
 }

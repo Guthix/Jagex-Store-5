@@ -24,7 +24,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.util.*
 
-internal class DataChannel(private val fileChannel: FileChannel) {
+internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable {
     @ExperimentalUnsignedTypes
     internal fun read(indexFileId: Int, index: Index, containerId: Int): ByteBuffer {
         val data = ByteBuffer.allocate(index.dataSize)
@@ -61,7 +61,6 @@ internal class DataChannel(private val fileChannel: FileChannel) {
         var ptr = index.segmentPos.toLong() * Segment.SIZE.toLong()
         do {
             val overwrite = containsSegment(ptr)
-            println(ptr)
             val segmentDataSize = if(dataToWrite < segmentData.size) dataToWrite else segmentData.size
             buffer.get(segmentData, 0, segmentDataSize)
             val segment = if(overwrite) {
@@ -112,6 +111,8 @@ internal class DataChannel(private val fileChannel: FileChannel) {
         if (this.segmentPart.toInt() != segmentPos) throw IOException("Segment position mismatch.")
         return this
     }
+
+    override fun close() =  fileChannel.close()
 }
 
 data class Segment @ExperimentalUnsignedTypes constructor(
