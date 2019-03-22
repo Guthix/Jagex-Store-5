@@ -214,8 +214,9 @@ open class JagexCache(directory: File) {
             archive.version,
             fileAttr
         )
-        fileStore.writeAttributes(
+        fileStore.write(
             FileStore.ATTRIBUTE_INDEX,
+            dictionaryId,
             dictAtrributes.encode(containerVersion).encode(compression, xteaKey)
         )
     }

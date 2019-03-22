@@ -93,22 +93,6 @@ class FileStore(directory: File) {
         dataChannel.write(indexFileId, containerId, index, data)
     }
 
-    @ExperimentalUnsignedTypes
-    internal fun writeAttributes(indexFileId: Int, data: ByteBuffer) {
-        if(indexFileId != ATTRIBUTE_INDEX) {
-            throw IOException("Index file does not exist")
-        }
-        val overwriteIndex= attributeIndexChannel.containsIndex(indexFileId)
-        val firstSegmentPos = if(overwriteIndex) {
-            attributeIndexChannel.read(indexFileId).segmentPos
-        } else {
-            (attributeIndexChannel.dataSize / Segment.SIZE).toInt()
-        }
-        val index = Index(data.limit(), firstSegmentPos)
-        attributeIndexChannel.write(indexFileId, index)
-        dataChannel.write(indexFileId, indexFileId, index, data)
-    }
-
     companion object {
         private const val accessMode = "rw"
         private const val DATA_FILE_EXTENSION = "dat2"
