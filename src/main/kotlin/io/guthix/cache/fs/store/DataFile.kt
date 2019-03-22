@@ -51,9 +51,11 @@ internal class DataChannel(private val fileChannel: FileChannel) {
     @ExperimentalUnsignedTypes
     internal fun write(indexFileId: Int, containerId: Int, index: Index, buffer: ByteBuffer) {
         val isExtended = Segment.isExtended(containerId)
-        val segmentData = if(isExtended) ByteArray(Segment.EXTENDED_DATA_SIZE) else ByteArray(
-            Segment.DATA_SIZE
-        )
+        val segmentData = if(isExtended) {
+            ByteArray(Segment.EXTENDED_DATA_SIZE)
+        } else {
+            ByteArray(Segment.DATA_SIZE)
+        }
         var segmentPart = 0
         var dataToWrite = index.dataSize
         var ptr = index.segmentPos.toLong() * Segment.SIZE.toLong()
@@ -87,7 +89,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
         } while (dataToWrite > 0)
     }
 
-    private fun containsSegment(ptr: Long) = ptr < 0 || ptr >= fileChannel.size()
+    private fun containsSegment(ptr: Long) = ptr <= fileChannel.size()
 
     @ExperimentalUnsignedTypes
     private fun readSegment(ptr: Long): Segment {
