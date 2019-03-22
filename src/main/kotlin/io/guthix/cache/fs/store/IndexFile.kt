@@ -45,7 +45,7 @@ internal class IndexChannel(private val fileChannel: FileChannel) {
 
     internal fun containsIndex(containerId: Int): Boolean {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
-        return ptr <= fileChannel.size()
+        return ptr < fileChannel.size()
     }
 }
 

@@ -61,6 +61,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
         var ptr = index.segmentPos.toLong() * Segment.SIZE.toLong()
         do {
             val overwrite = containsSegment(ptr)
+            println(ptr)
             val segmentDataSize = if(dataToWrite < segmentData.size) dataToWrite else segmentData.size
             buffer.get(segmentData, 0, segmentDataSize)
             val segment = if(overwrite) {
@@ -89,7 +90,7 @@ internal class DataChannel(private val fileChannel: FileChannel) {
         } while (dataToWrite > 0)
     }
 
-    private fun containsSegment(ptr: Long) = ptr <= fileChannel.size()
+    private fun containsSegment(ptr: Long) = ptr < fileChannel.size()
 
     @ExperimentalUnsignedTypes
     private fun readSegment(ptr: Long): Segment {
