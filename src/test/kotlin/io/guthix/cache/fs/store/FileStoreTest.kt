@@ -17,11 +17,13 @@
  */
 package io.guthix.cache.fs.store
 
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.io.IOException
 import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -36,6 +38,36 @@ class FileStoreTest {
             fs.write(0, 1, dataToWrite)
             val readData = fs.read(0, 1)
             assertEquals(dataToWrite.flip(), readData)
+        }
+    }
+
+    @Test
+    @ExperimentalUnsignedTypes
+    fun overwriteTest(@TempDir cacheDir: File) {
+        FileStore(cacheDir).use { fs ->
+            val dataToWrite = ByteBuffer.allocate(20).apply {
+                repeat(20) { put(it.toByte())}
+            }.flip()
+            val dataToOverWrite = ByteBuffer.allocate(20).apply {
+                repeat(20) { put((2 * it).toByte())}
+            }.flip()
+            fs.write(0, 1, dataToWrite)
+            fs.write(0, 1, dataToOverWrite)
+            val readData = fs.read(0, 1)
+            assertEquals(dataToOverWrite.flip(), readData)
+        }
+    }
+
+    @Test
+    @ExperimentalUnsignedTypes
+    fun nonConsecutiveIndexTest(@TempDir cacheDir: File) {
+        FileStore(cacheDir).use { fs ->
+            val dataToWrite = ByteBuffer.allocate(20).apply {
+                repeat(20) { put(it.toByte())}
+            }.flip()
+            Assertions.assertThrows(IOException::class.java) {
+                fs.write(1, 1, dataToWrite)
+            }
         }
     }
 }
