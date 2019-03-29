@@ -93,7 +93,7 @@ class FileStore(val directory: File) : AutoCloseable {
         val firstSegmentPos = if(overwriteIndex) {
             indexChannel.read(containerId).segmentPos
         } else {
-            (indexChannel.dataSize / Segment.SIZE).toInt()
+            (dataChannel.size / Segment.SIZE).toInt()
         }
         val index = Index(data.limit(), firstSegmentPos)
         indexChannel.write(containerId, index)
