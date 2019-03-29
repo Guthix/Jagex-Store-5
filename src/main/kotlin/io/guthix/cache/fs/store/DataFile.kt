@@ -22,9 +22,10 @@ import java.io.IOException
 import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
-import java.util.*
 
 internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable {
+    val size get() = fileChannel.size()
+
     @ExperimentalUnsignedTypes
     internal fun read(indexFileId: Int, index: Index, containerId: Int): ByteBuffer {
         val data = ByteBuffer.allocate(index.dataSize)
@@ -106,9 +107,15 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
 
     @ExperimentalUnsignedTypes
     private fun Segment.validate(indexFileId: Int, containerId: Int, segmentPos: Int): Segment {
-        if (this.indexFileId.toInt() != indexFileId) throw IOException("Index id mismatch.")
-        if (this.containerId != containerId) throw IOException("Archive id mismatch.")
-        if (this.segmentPart.toInt() != segmentPos) throw IOException("Segment position mismatch.")
+        if (this.indexFileId.toInt() != indexFileId) throw IOException(
+            "Index id mismatch expected ${this.indexFileId} was $indexFileId."
+        )
+        if (this.containerId != containerId) throw IOException(
+            "Container id mismatch expected ${this.containerId} was $containerId."
+        )
+        if (this.segmentPart.toInt() != segmentPos) throw IOException(
+            "Segment position mismatch expected ${this.segmentPart} was $segmentPos."
+        )
         return this
     }
 
