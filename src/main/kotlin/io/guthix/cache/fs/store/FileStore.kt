@@ -64,6 +64,7 @@ class FileStore(val directory: File) : AutoCloseable {
 
     @ExperimentalUnsignedTypes
     internal fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+        logger.info("Reading index file $indexFileId container $containerId")
         if((indexFileId < 0 || indexFileId >= dictionaryChannels.size) && indexFileId != ATTRIBUTE_INDEX)
             throw IOException("Index file does not exist.")
         val index = if(indexFileId == ATTRIBUTE_INDEX) {
@@ -76,17 +77,18 @@ class FileStore(val directory: File) : AutoCloseable {
 
     @ExperimentalUnsignedTypes
     internal fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
-        if(indexFileId < 0 || indexFileId >= dictionaryChannels.size) {
+        logger.info("Writing index file $indexFileId container $containerId")
+        if(indexFileId < 0 || indexFileId >= dictionaryChannels.size && indexFileId != ATTRIBUTE_INDEX) {
             if(indexFileId == dictionaryChannels.size) {
                 val indexFile = directory.resolve("$FILE_NAME.$INDEX_FILE_EXTENSION$indexFileId")
                 indexFile.createNewFile()
                 dictionaryChannels.add(IndexChannel(RandomAccessFile(indexFile, accessMode).channel))
                 logger.info("Created empty .idx$indexFileId file.")
             } else {
-                throw IOException("Index file does not exist and could not be created.")
+                throw IOException("Index file with id $indexFileId does not exist and could not be created.")
             }
         }
-        val indexChannel = dictionaryChannels[indexFileId]
+        val indexChannel = if(indexFileId == ATTRIBUTE_INDEX) attributeIndexChannel else dictionaryChannels[indexFileId]
         val overwriteIndex= indexChannel.containsIndex(containerId)
         val firstSegmentPos = if(overwriteIndex) {
             indexChannel.read(containerId).segmentPos
