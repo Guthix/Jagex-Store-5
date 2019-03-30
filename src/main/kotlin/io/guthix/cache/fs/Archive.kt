@@ -45,11 +45,11 @@ data class Archive(
             }
         }
         for(group in groups) {
-            var delta = group[0].limit()
-            buffer.putInt(delta)
+            var lastWrittenSize = group[0].limit()
+            buffer.putInt(lastWrittenSize)
             for(i in 1 until group.size) {
-                buffer.putInt(delta - group[i].limit())
-                delta = group[i].limit()
+                buffer.putInt(group[i].limit() - lastWrittenSize) // write delta
+                lastWrittenSize = group[i].limit()
             }
         }
         buffer.put(groupCount.toByte())
@@ -101,7 +101,7 @@ data class Archive(
     companion object {
         @ExperimentalUnsignedTypes
         internal fun decode(container: Container, attributes: ArchiveAttributes): Archive {
-            val fileBuffers= if(attributes.fileAttributes.size == 1) {
+            val fileBuffers = if(attributes.fileAttributes.size == 1) {
                 arrayOf(container.data)
             } else {
                 decodeMultiFileContainer(container, attributes.fileAttributes.size)
