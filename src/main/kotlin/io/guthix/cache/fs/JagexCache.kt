@@ -30,7 +30,7 @@ open class JagexCache(directory: File) : AutoCloseable {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
-    protected val dictionaryAttributes = Array(fileStore.dictionaryCount) {
+    protected val dictionaryAttributes = MutableList(fileStore.dictionaryCount) {
         DictionaryAttributes.decode(
             Container.decode(
                 fileStore.read(
@@ -79,7 +79,6 @@ open class JagexCache(directory: File) : AutoCloseable {
         return Archive.decode(archiveContainer, archiveAttributes)
     }
 
-
     @ExperimentalUnsignedTypes
     open fun readArchives(
         dictionaryId: Int,
@@ -108,8 +107,8 @@ open class JagexCache(directory: File) : AutoCloseable {
         attributesContainerVersion: Int = -1,
         archiveXteaKey: IntArray = XTEA.ZERO_KEY,
         attributesXteaKey: IntArray = XTEA.ZERO_KEY,
-        archiveCompression: Compression = Compression.GZIP,
-        attributesCompression: Compression = Compression.GZIP
+        archiveCompression: Compression = Compression.NONE,
+        attributesCompression: Compression = Compression.NONE
     ) {
         val archiveBuffer = ByteBuffer.allocate(fileBuffers.values.sumBy { it.limit() })
         fileBuffers.values.forEach { archiveBuffer.put(it) }
@@ -149,8 +148,8 @@ open class JagexCache(directory: File) : AutoCloseable {
         attributesContainerVersion: Int = -1,
         archiveXteaKey: IntArray = XTEA.ZERO_KEY,
         attributesXteaKey: IntArray = XTEA.ZERO_KEY,
-        archiveCompression: Compression = Compression.GZIP,
-        attributesCompression: Compression = Compression.GZIP
+        archiveCompression: Compression = Compression.NONE,
+        attributesCompression: Compression = Compression.NONE
     ) {
         if(dictionaryId > dictionaryAttributes.size) throw IOException(
             "Can not create dictionary with id $dictionaryId, expected: ${dictionaryAttributes.size}"
@@ -176,7 +175,7 @@ open class JagexCache(directory: File) : AutoCloseable {
         archiveGroupCount: Int = 1,
         containerVersion: Int = -1,
         xteaKey: IntArray = XTEA.ZERO_KEY,
-        compression: Compression
+        compression: Compression = Compression.NONE
     ): Int {
         val container = archive.encode(archiveGroupCount, containerVersion)
         val data = container.encode(compression, xteaKey)
@@ -192,10 +191,12 @@ open class JagexCache(directory: File) : AutoCloseable {
         attributesVersion: Int? = null,
         containerVersion: Int = -1,
         xteaKey: IntArray = XTEA.ZERO_KEY,
-        compression: Compression = Compression.GZIP
+        compression: Compression = Compression.NONE
     ) {
         val dictAtrributes = if(dictionaryId == dictionaryAttributes.size) {
-            DictionaryAttributes(0, mutableMapOf())
+            val dictAttr = DictionaryAttributes(0, mutableMapOf())
+            dictionaryAttributes.add(dictionaryId, dictAttr)
+            dictAttr
         } else {
             getDictAttributes(dictionaryId)
         }
