@@ -67,8 +67,8 @@ class ArchiveTest {
                 putInt(93432)
             }.flip()
             val encodeData = mapOf(
-                1 to Archive.File(1, buffer1, null),
-                2 to Archive.File(2, buffer2, null)
+                1 to Archive.File(buffer1, null),
+                2 to Archive.File(buffer2, null)
             )
             return listOf(
                 Arguments.of( // group = 1 test

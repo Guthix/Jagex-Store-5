@@ -96,7 +96,7 @@ data class Archive(
         return result
     }
 
-    data class File(val id: Int, val data: ByteBuffer, val nameHash: Int?)
+    data class File(val data: ByteBuffer, val nameHash: Int?)
 
     companion object {
         @ExperimentalUnsignedTypes
@@ -109,7 +109,7 @@ data class Archive(
             val files = mutableMapOf<Int, File>()
             var index = 0
             attributes.fileAttributes.forEach { fileId, attribute ->
-                files[fileId] = File(fileId, fileBuffers[index], attribute.nameHash)
+                files[fileId] = File(fileBuffers[index], attribute.nameHash)
                 index++
             }
             return Archive(

@@ -36,9 +36,9 @@ class JagexCacheTest {
     @ExperimentalUnsignedTypes
     fun readWriteArchiveSequentialTest(@TempDir cacheDir: File) {
         val filesToWrite = mapOf<Int, Archive.File>(
-            1 to Archive.File(1, ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
-            2 to Archive.File(2, ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
-            3 to Archive.File(3, ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }, null)
+            1 to Archive.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
+            2 to Archive.File(ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
+            3 to Archive.File(ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }, null)
         )
         readWriteTest(cacheDir, filesToWrite)
     }
@@ -47,9 +47,9 @@ class JagexCacheTest {
     @ExperimentalUnsignedTypes
     fun readWriteArchiveNonSequentialFilesTest(@TempDir cacheDir: File) {
         val filesToWrite = mapOf<Int, Archive.File>(
-            1 to Archive.File(1, ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
-            6 to Archive.File(6, ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
-            10 to Archive.File(10, ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }, null)
+            1 to Archive.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
+            6 to Archive.File(ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
+            10 to Archive.File(ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }, null)
         )
         readWriteTest(cacheDir, filesToWrite)
     }
