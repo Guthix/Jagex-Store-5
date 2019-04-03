@@ -240,7 +240,7 @@ data class ArchiveAttributes(
         return result
     }
 
-    class Size(val compressed: Int?, val uncompressed: Int?)
+    data class Size(var compressed: Int?, val uncompressed: Int?)
 }
 
 data class FileAttributes(val id: Int, val nameHash: Int?)
