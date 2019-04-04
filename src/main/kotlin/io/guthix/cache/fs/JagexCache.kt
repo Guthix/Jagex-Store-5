@@ -26,7 +26,7 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
-open class JagexCache(directory: File) : AutoCloseable {
+open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntArray> = mutableMapOf()) : AutoCloseable {
     private val fileStore = FileStore(directory)
 
     @ExperimentalUnsignedTypes
@@ -36,7 +36,8 @@ open class JagexCache(directory: File) : AutoCloseable {
                 fileStore.read(
                     FileStore.ATTRIBUTE_INDEX,
                     it
-                )
+                ),
+                attributeXteas[it] ?: XTEA.ZERO_KEY
             )
         )
     }
@@ -160,6 +161,7 @@ open class JagexCache(directory: File) : AutoCloseable {
         archive.files.forEach { id, file ->
             fileAttr[id] = FileAttributes(id, file.nameHash)
         }
+        if(!xteaKey.contentEquals(XTEA.ZERO_KEY)) attributeXteas[dictionaryId] = xteaKey
         dictAtrributes.archiveAttributes[archive.id] = ArchiveAttributes(
             archive.id,
             archive.nameHash,
