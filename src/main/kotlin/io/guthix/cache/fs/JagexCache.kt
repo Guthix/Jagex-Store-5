@@ -97,7 +97,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    fun writeArchive(
+    open fun writeArchive(
         dictionaryId: Int,
         archive: Archive,
         archiveGroupCount: Int = 1,
