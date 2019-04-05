@@ -73,7 +73,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         xteaKey: IntArray = XTEA.ZERO_KEY
     ): Archive {
         val dictAttributes = getDictAttributes(dictionaryId)
-        val nameHash = djb2Hash(archiveName)
+        val nameHash = archiveName.hashCode()
         val archiveAttributes =  dictAttributes.archiveAttributes.values.first { it.nameHash == nameHash}
         val archiveContainer =
             Container.decode(readRawData(dictionaryId, archiveAttributes.id), xteaKey)
