@@ -48,6 +48,12 @@ class ContainerTest {
     @ParameterizedTest
     @MethodSource("encodeDecodeTestArgs")
     @ExperimentalUnsignedTypes
+    internal fun compLZMAEncodeDecodeTest(container: Container) =
+        Assertions.assertEquals(container, Container.decode(container.encode(Compression.LZMA)))
+
+    @ParameterizedTest
+    @MethodSource("encodeDecodeTestArgs")
+    @ExperimentalUnsignedTypes
     internal fun encNoneEncodeDecodeTest(container: Container) {
         val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.NONE, xteaKey), xteaKey))
@@ -67,6 +73,14 @@ class ContainerTest {
     internal fun encBZIP2EncodeDecodeTest(container: Container) {
         val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.BZIP2, xteaKey), xteaKey))
+    }
+
+    @ParameterizedTest
+    @MethodSource("encodeDecodeTestArgs")
+    @ExperimentalUnsignedTypes
+    internal fun encLZMAEncodeDecodeTest(container: Container) {
+        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
+        Assertions.assertEquals(container, Container.decode(container.encode(Compression.LZMA, xteaKey), xteaKey))
     }
 
     companion object {

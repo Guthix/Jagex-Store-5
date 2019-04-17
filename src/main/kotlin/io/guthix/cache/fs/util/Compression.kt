@@ -19,6 +19,8 @@ package io.guthix.cache.fs.util
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
+import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream
+import org.apache.commons.compress.compressors.lzma.LZMACompressorOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.SequenceInputStream
@@ -71,6 +73,26 @@ enum class Compression(val opcode: Byte, val headerSize: Int) {
         override fun decompress(input: ByteArray, decompressedSize: Int): ByteArray {
             val decompressed = ByteArray(decompressedSize)
             GZIPInputStream(ByteArrayInputStream(input)).use { inStream ->
+                inStream.readNBytes(decompressed, 0, decompressed.size)
+            }
+            return decompressed
+        }
+    },
+
+    LZMA(opcode = 3, headerSize = Int.SIZE_BYTES) {
+        override fun compress(input: ByteArray): ByteArray {
+            ByteArrayInputStream(input).use { inStream ->
+                val bout = ByteArrayOutputStream()
+                LZMACompressorOutputStream(bout).use { outStream ->
+                    inStream.transferTo(outStream)
+                }
+                return bout.toByteArray()
+            }
+        }
+
+        override fun decompress(input: ByteArray, decompressedSize: Int): ByteArray {
+            val decompressed = ByteArray(decompressedSize)
+            LZMACompressorInputStream(ByteArrayInputStream(input)).use { inStream ->
                 inStream.readNBytes(decompressed, 0, decompressed.size)
             }
             return decompressed

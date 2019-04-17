@@ -29,6 +29,7 @@ repositories {
 
 dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
+    implementation group: 'org.tukaani', name: 'xz', version: xzVersion
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: bouncyCastleVersion
     implementation group: 'org.apache.commons', name: 'commons-compress', version: apacheCompressVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
