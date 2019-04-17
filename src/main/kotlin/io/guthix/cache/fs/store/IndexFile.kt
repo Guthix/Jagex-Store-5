@@ -25,8 +25,6 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
 internal class IndexChannel(private val fileChannel: FileChannel) : AutoCloseable {
-    val dataSize get() = fileChannel.size()
-
     @ExperimentalUnsignedTypes
     internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()

@@ -30,7 +30,7 @@ internal fun crc(buffer: ByteBuffer): Int {
     return crc.value.toInt()
 }
 
-internal const val whirlPoolHashByteCount = 64
+internal const val WP_HASH_BYTE_COUNT = 64
 
 internal fun whirlPoolHash(data: ByteArray): ByteArray {
     Security.addProvider(BouncyCastleProvider())
@@ -45,6 +45,7 @@ private const val XTEA_GOLDEN_RATIO = -0x61c88647
 
 private const val XTEA_ROUNDS = 32
 
+@Suppress("MagicNumber")
 internal fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteBuffer {
     require(key.size == XTEA_KEY_SIZE)
     val numQuads = (end - start) / 8
@@ -84,3 +85,38 @@ internal fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = li
 
 internal fun rsaCrypt(data: ByteArray, mod: BigInteger, key: BigInteger) =
     BigInteger(data).modPow(key, mod).toByteArray()
+
+val charset = charArrayOf('€', '\u0000', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u0000',
+    'Ž', '\u0000', '\u0000', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u0000', 'ž', 'Ÿ'
+)
+
+fun nextPowerOfTwo(value: Int): Int {
+    var result = value
+    --result
+    result = result or result.ushr(1)
+    result = result or result.ushr(2)
+    result = result or result.ushr(4)
+    result = result or result.ushr(8)
+    result = result or result.ushr(16)
+    return result + 1
+}
+
+fun toJagexChar(char: Int): Char = if (char in 128..159) {
+    var curChar = charset[char - 128]
+    if (curChar.toInt() == 0) {
+        curChar = 63.toChar()
+    }
+    curChar
+} else {
+    char.toChar()
+}
+
+fun toEncodedChar(char: Char): Int = if(charset.contains(char)) {
+    if(char.toInt() == 63) {
+        128
+    } else {
+        charset.indexOf(char) + 128
+    }
+} else {
+    char.toInt()
+}

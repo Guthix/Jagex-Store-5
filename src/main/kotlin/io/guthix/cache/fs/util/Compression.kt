@@ -35,23 +35,23 @@ enum class Compression(val opcode: Byte, val headerSize: Int) {
     },
 
     BZIP2(opcode = 1, headerSize = Int.SIZE_BYTES) {
-        val BLOCK_SIZE = 1
+        val blockSize = 1
 
-        val HEADER = "BZh$BLOCK_SIZE".toByteArray(StandardCharsets.US_ASCII)
+        val header = "BZh$blockSize".toByteArray(StandardCharsets.US_ASCII)
 
         override fun compress(input: ByteArray): ByteArray {
             ByteArrayInputStream(input).use { inStream ->
                 val bout = ByteArrayOutputStream()
-                BZip2CompressorOutputStream(bout, BLOCK_SIZE).use { outStream ->
+                BZip2CompressorOutputStream(bout, blockSize).use { outStream ->
                     inStream.transferTo(outStream)
                 }
-                return bout.toByteArray().sliceArray(HEADER.size until bout.size())
+                return bout.toByteArray().sliceArray(header.size until bout.size())
             }
         }
 
         override fun decompress(input: ByteArray, decompressedSize: Int): ByteArray {
             val decompressed = ByteArray(decompressedSize)
-            val str = SequenceInputStream(ByteArrayInputStream(HEADER), ByteArrayInputStream(input))
+            val str = SequenceInputStream(ByteArrayInputStream(header), ByteArrayInputStream(input))
             BZip2CompressorInputStream(str).use { inStream ->
                 inStream.readNBytes(decompressed, 0, decompressed.size)
             }

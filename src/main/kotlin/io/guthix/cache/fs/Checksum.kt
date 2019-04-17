@@ -20,7 +20,7 @@ package io.guthix.cache.fs
 import io.guthix.cache.fs.io.uByte
 import io.guthix.cache.fs.util.rsaCrypt
 import io.guthix.cache.fs.util.whirlPoolHash
-import io.guthix.cache.fs.util.whirlPoolHashByteCount
+import io.guthix.cache.fs.util.WP_HASH_BYTE_COUNT
 import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
@@ -70,11 +70,15 @@ data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
     }
 
     companion object {
-        const val WP_ENCODED_SIZE = whirlPoolHashByteCount + 1
+        const val WP_ENCODED_SIZE = WP_HASH_BYTE_COUNT + 1
 
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, privateKey: BigInteger?): CacheChecksum {
-            val indexFileCount = if (whirlpool) buffer.uByte.toInt() else buffer.limit() / DictionaryChecksum.ENCODED_SIZE
+            val indexFileCount = if (whirlpool) {
+                buffer.uByte.toInt()
+            } else {
+                buffer.limit() / DictionaryChecksum.ENCODED_SIZE
+            }
             val indexFileEncodedSize = if(whirlpool) {
                 DictionaryChecksum.WP_ENCODED_SIZE * indexFileCount
             } else {
@@ -90,7 +94,7 @@ data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {
                 val fileCount = if (whirlpool) buffer.int else 0
                 val indexFileSize = if (whirlpool) buffer.int else 0
                 val whirlPoolDigest = if (whirlpool) {
-                    val digest = ByteArray(whirlPoolHashByteCount)
+                    val digest = ByteArray(WP_HASH_BYTE_COUNT)
                     buffer.get(digest)
                     digest
                 } else null
@@ -147,6 +151,6 @@ data class DictionaryChecksum(
 
     companion object {
         internal const val ENCODED_SIZE = 8
-        internal const val WP_ENCODED_SIZE = ENCODED_SIZE + whirlPoolHashByteCount + 8
+        internal const val WP_ENCODED_SIZE = ENCODED_SIZE + WP_HASH_BYTE_COUNT + 8
     }
 }

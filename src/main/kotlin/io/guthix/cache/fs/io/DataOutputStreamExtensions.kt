@@ -17,6 +17,7 @@
  */
 package io.guthix.cache.fs.io
 
+import io.guthix.cache.fs.util.toEncodedChar
 import java.io.DataOutputStream
 import java.io.IOException
 

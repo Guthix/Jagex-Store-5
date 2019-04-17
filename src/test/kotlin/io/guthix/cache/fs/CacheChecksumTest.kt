@@ -17,7 +17,7 @@
  */
 package io.guthix.cache.fs
 
-import io.guthix.cache.fs.util.whirlPoolHashByteCount
+import io.guthix.cache.fs.util.WP_HASH_BYTE_COUNT
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
@@ -59,14 +59,14 @@ class CacheChecksumTest {
                             version = 1,
                             fileCount = 0,
                             size = 12,
-                            whirlpoolDigest = ByteArray(whirlPoolHashByteCount)
+                            whirlpoolDigest = ByteArray(WP_HASH_BYTE_COUNT)
                         ),
                         DictionaryChecksum(
                             crc = 3331,
                             version = 3,
                             fileCount = 3,
                             size = 12,
-                            whirlpoolDigest = ByteArray(whirlPoolHashByteCount)
+                            whirlpoolDigest = ByteArray(WP_HASH_BYTE_COUNT)
                         )
                     )
                 ),

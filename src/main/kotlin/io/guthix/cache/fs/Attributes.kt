@@ -21,7 +21,7 @@ import io.guthix.cache.fs.io.largeSmart
 import io.guthix.cache.fs.io.uByte
 import io.guthix.cache.fs.io.uShort
 import io.guthix.cache.fs.io.writeLargeSmart
-import io.guthix.cache.fs.util.whirlPoolHashByteCount
+import io.guthix.cache.fs.util.WP_HASH_BYTE_COUNT
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer
@@ -74,7 +74,7 @@ data class DictionaryAttributes(var version: Int, val archiveAttributes: Mutable
             }
             if(hasWhirlPoolHashes) {
                 for(attr in archiveAttributes.values) {
-                    os.write(attr.whirlpoolHash ?: ByteArray(whirlPoolHashByteCount))
+                    os.write(attr.whirlpoolHash ?: ByteArray(WP_HASH_BYTE_COUNT))
                 }
             }
             if(hasSizes) {
@@ -136,7 +136,8 @@ data class DictionaryAttributes(var version: Int, val archiveAttributes: Mutable
             val archiveIds = IntArray(archiveCount)
             var archiveIdAccumulator = 0
             for(archiveIndex in archiveIds.indices) {
-                val delta = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt() // difference with previous id
+                // difference with previous id
+                val delta = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt()
                 archiveIdAccumulator += delta
                 archiveIds[archiveIndex] = archiveIdAccumulator
             }
@@ -148,19 +149,21 @@ data class DictionaryAttributes(var version: Int, val archiveAttributes: Mutable
                 buffer.int
             } else null
             val archiveWhirlpoolHashes = if (flags and MASK_WHIRLPOOL_HASH != 0) Array(archiveCount) {
-                ByteArray(whirlPoolHashByteCount) { buffer.get() }
+                ByteArray(WP_HASH_BYTE_COUNT) { buffer.get() }
             } else null
             val archiveSizes = if(flags and MASK_SIZES != 0) Array(archiveCount) {
                 ArchiveAttributes.Size(compressed = buffer.int, uncompressed = buffer.int)
             } else null
             val archiveVersions = Array(archiveCount) { buffer.int }
             val archiveFileIds = Array(archiveCount) {
-                IntArray(if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt()) // decodeMultiFileContainer file count
+                // decodeMultiFileContainer file count
+                IntArray(if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt())
             }
             for(archive in archiveFileIds) {
                 var fileIdAccumulator = 0
                 for(fileIndex in archive.indices) {
-                    val delta = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt() // difference with previous id
+                    // difference with previous id
+                    val delta = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt()
                     fileIdAccumulator += delta
                     archive[fileIndex] = fileIdAccumulator
                 }
