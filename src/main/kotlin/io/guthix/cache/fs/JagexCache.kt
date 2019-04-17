@@ -26,6 +26,7 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
+@ExperimentalUnsignedTypes
 open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntArray> = mutableMapOf()) : AutoCloseable {
     private val fileStore = FileStore(directory)
 
@@ -42,6 +43,10 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         )
     }
 
+    init {
+        logger.info("Loaded cache with ${dictionaryAttributes.size} dictionaries")
+    }
+
     @ExperimentalUnsignedTypes
     fun archiveIds(dictionaryId: Int) = getDictAttributes(dictionaryId).archiveAttributes.keys
 
@@ -50,7 +55,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         getDictAttributes(dictionaryId).archiveAttributes[archiveId]?.fileAttributes?.keys
 
     @ExperimentalUnsignedTypes
-    open fun readRawData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
+    open fun readData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
 
     @ExperimentalUnsignedTypes
     open fun readArchive(
@@ -61,8 +66,8 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         val dictAttributes = getDictAttributes(dictionaryId)
         val archiveAttributes = dictAttributes.archiveAttributes[archiveId]
             ?: throw IOException("Archive does not exist.")
-        val archiveContainer =
-            Container.decode(readRawData(dictionaryId, archiveId), xteaKey)
+        val archiveContainer = Container.decode(readData(dictionaryId, archiveId), xteaKey)
+        logger.info("Reading archive $archiveId from dictionary $dictionaryId")
         return Archive.decode(archiveContainer, archiveAttributes)
     }
 
@@ -74,9 +79,9 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     ): Archive {
         val dictAttributes = getDictAttributes(dictionaryId)
         val nameHash = archiveName.hashCode()
-        val archiveAttributes =  dictAttributes.archiveAttributes.values.first { it.nameHash == nameHash}
-        val archiveContainer =
-            Container.decode(readRawData(dictionaryId, archiveAttributes.id), xteaKey)
+        val archiveAttributes =  dictAttributes.archiveAttributes.values.first { it.nameHash == nameHash }
+        logger.info("Reading archive ${archiveAttributes.id} from dictionary $dictionaryId")
+        val archiveContainer = Container.decode(readData(dictionaryId, archiveAttributes.id), xteaKey)
         return Archive.decode(archiveContainer, archiveAttributes)
     }
 
@@ -89,8 +94,8 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         val archives = mutableMapOf<Int, Archive>()
         dictAttributes.archiveAttributes.forEach { archiveId, archiveAttributes ->
             val xtea = xteaKeys[archiveId] ?: XTEA.ZERO_KEY
-            val archiveContainer =
-                Container.decode(readRawData(dictionaryId, archiveId), xtea)
+            logger.info("Reading archive ${archiveAttributes.id} from dictionary $dictionaryId")
+            val archiveContainer = Container.decode(readData(dictionaryId, archiveId), xtea)
             archives[archiveId] = Archive.decode(archiveContainer, archiveAttributes)
         }
         return archives
@@ -112,6 +117,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         if(dictionaryId > dictionaryAttributes.size) throw IOException(
             "Can not create dictionary with id $dictionaryId, expected: ${dictionaryAttributes.size}"
         )
+        logger.info("Writing archive ${archive.id} from dictionary $dictionaryId")
         archive.sizes?.compressed = writeArchiveData(
             dictionaryId, archive, archiveGroupCount, archiveContainerVersion, archiveXteaKey, archiveCompression
         )
@@ -134,6 +140,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         xteaKey: IntArray = XTEA.ZERO_KEY,
         compression: Compression = Compression.NONE
     ): Int {
+        logger.info("Writing archive data for archive ${archive.id} from dictionary $dictionaryId")
         val container = archive.encode(archiveGroupCount, containerVersion)
         val data = container.encode(compression, xteaKey)
         fileStore.write(dictionaryId, archive.id, data)
@@ -149,6 +156,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         xteaKey: IntArray = XTEA.ZERO_KEY,
         compression: Compression = Compression.NONE
     ) {
+        logger.info("Writing archive attributes for archive ${archive.id} from dictionary $dictionaryId")
         val dictAtrributes = if(dictionaryId == dictionaryAttributes.size) {
             val dictAttr = DictionaryAttributes(0, mutableMapOf())
             dictionaryAttributes.add(dictionaryId, dictAttr)
@@ -180,20 +188,23 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    fun generateChecksum(): CacheChecksum = CacheChecksum(
-        Array(dictionaryAttributes.size) { dictionaryId ->
-            val dictionaryAttributes = dictionaryAttributes[dictionaryId]
-            val rawBuffer = fileStore.read(FileStore.ATTRIBUTE_INDEX, dictionaryId)
-            DictionaryChecksum(
-                calculateCRC(rawBuffer),
-                dictionaryAttributes.version,
-                dictionaryAttributes.archiveAttributes.size,
-                dictionaryAttributes.archiveAttributes.values
-                    .sumBy { if(it.sizes?.compressed != null) it.sizes.uncompressed!! else 0 },
-                whirlPoolHash(rawBuffer.array())
-            )
-        }
-    )
+    fun generateChecksum(): CacheChecksum {
+        logger.info("Generating cache checksum")
+        return CacheChecksum(
+            Array(dictionaryAttributes.size) { dictionaryId ->
+                val dictionaryAttributes = dictionaryAttributes[dictionaryId]
+                val rawBuffer = fileStore.read(FileStore.ATTRIBUTE_INDEX, dictionaryId)
+                DictionaryChecksum(
+                    calculateCRC(rawBuffer),
+                    dictionaryAttributes.version,
+                    dictionaryAttributes.archiveAttributes.size,
+                    dictionaryAttributes.archiveAttributes.values
+                        .sumBy { if(it.sizes?.compressed != null) it.sizes.uncompressed!! else 0 },
+                    whirlPoolHash(rawBuffer.array())
+                )
+            }
+        )
+    }
 
     @ExperimentalUnsignedTypes
     private fun getDictAttributes(dictionaryId: Int): DictionaryAttributes {
