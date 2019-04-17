@@ -18,17 +18,15 @@
 package io.guthix.cache.fs
 
 import io.guthix.cache.fs.io.uByte
-import io.guthix.cache.fs.util.Compression
-import io.guthix.cache.fs.util.XTEA
+import io.guthix.cache.fs.util.*
 import io.guthix.cache.fs.util.xteaDecrypt
 import io.guthix.cache.fs.util.xteaEncrypt
 import java.io.IOException
-import java.nio.Buffer
 import java.nio.ByteBuffer
 
 data class Container(var version: Int = -1, val data: ByteBuffer) {
-    fun encode(compression: Compression, xteaKey: IntArray = XTEA.ZERO_KEY): ByteBuffer {
-        require(xteaKey.size == XTEA.KEY_SIZE)
+    fun encode(compression: Compression, xteaKey: IntArray = XTEA_ZERO_KEY): ByteBuffer {
+        require(xteaKey.size == XTEA_KEY_SIZE)
         val compressedData = compression.compress(data.array())
         val buffer = ByteBuffer.allocate(
             ENC_HEADER_SIZE + compression.headerSize + compressedData.size + if(isVersioned) 2 else 0
@@ -57,8 +55,8 @@ data class Container(var version: Int = -1, val data: ByteBuffer) {
         private const val ENC_HEADER_SIZE = 5
 
         @ExperimentalUnsignedTypes
-        fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA.ZERO_KEY): Container {
-            require(xteaKey.size == XTEA.KEY_SIZE)
+        fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA_ZERO_KEY): Container {
+            require(xteaKey.size == XTEA_KEY_SIZE)
             val compression = Compression.getByOpcode(buffer.uByte.toInt())
             val compressedSize = buffer.int
             if(xteaKey.all { it != 0 }) {

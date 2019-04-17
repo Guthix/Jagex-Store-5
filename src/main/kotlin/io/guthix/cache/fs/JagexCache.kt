@@ -38,7 +38,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
                     FileStore.ATTRIBUTE_INDEX,
                     it
                 ),
-                attributeXteas[it] ?: XTEA.ZERO_KEY
+                attributeXteas[it] ?: XTEA_ZERO_KEY
             )
         )
     }
@@ -61,7 +61,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     open fun readArchive(
         dictionaryId: Int,
         archiveId: Int,
-        xteaKey: IntArray = XTEA.ZERO_KEY
+        xteaKey: IntArray = XTEA_ZERO_KEY
     ): Archive {
         val dictAttributes = getDictAttributes(dictionaryId)
         val archiveAttributes = dictAttributes.archiveAttributes[archiveId]
@@ -75,7 +75,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     open fun readArchive(
         dictionaryId: Int,
         archiveName: String,
-        xteaKey: IntArray = XTEA.ZERO_KEY
+        xteaKey: IntArray = XTEA_ZERO_KEY
     ): Archive {
         val dictAttributes = getDictAttributes(dictionaryId)
         val nameHash = archiveName.hashCode()
@@ -93,7 +93,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         val dictAttributes = getDictAttributes(dictionaryId)
         val archives = mutableMapOf<Int, Archive>()
         dictAttributes.archiveAttributes.forEach { archiveId, archiveAttributes ->
-            val xtea = xteaKeys[archiveId] ?: XTEA.ZERO_KEY
+            val xtea = xteaKeys[archiveId] ?: XTEA_ZERO_KEY
             logger.info("Reading archive ${archiveAttributes.id} from dictionary $dictionaryId")
             val archiveContainer = Container.decode(readData(dictionaryId, archiveId), xtea)
             archives[archiveId] = Archive.decode(archiveContainer, archiveAttributes)
@@ -109,8 +109,8 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         attributesVersion: Int? = null,
         archiveContainerVersion: Int = -1,
         attributesContainerVersion: Int = -1,
-        archiveXteaKey: IntArray = XTEA.ZERO_KEY,
-        attributesXteaKey: IntArray = XTEA.ZERO_KEY,
+        archiveXteaKey: IntArray = XTEA_ZERO_KEY,
+        attributesXteaKey: IntArray = XTEA_ZERO_KEY,
         archiveCompression: Compression = Compression.NONE,
         attributesCompression: Compression = Compression.NONE
     ) {
@@ -137,7 +137,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         archive: Archive,
         archiveGroupCount: Int = 1,
         containerVersion: Int = -1,
-        xteaKey: IntArray = XTEA.ZERO_KEY,
+        xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Compression = Compression.NONE
     ): Int {
         logger.info("Writing archive data for archive ${archive.id} from dictionary $dictionaryId")
@@ -153,7 +153,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         archive: Archive,
         attributesVersion: Int? = null,
         containerVersion: Int = -1,
-        xteaKey: IntArray = XTEA.ZERO_KEY,
+        xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Compression = Compression.NONE
     ) {
         logger.info("Writing archive attributes for archive ${archive.id} from dictionary $dictionaryId")
@@ -169,7 +169,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
         archive.files.forEach { id, file ->
             fileAttr[id] = FileAttributes(id, file.nameHash)
         }
-        if(!xteaKey.contentEquals(XTEA.ZERO_KEY)) attributeXteas[dictionaryId] = xteaKey
+        if(!xteaKey.contentEquals(XTEA_ZERO_KEY)) attributeXteas[dictionaryId] = xteaKey
         dictAtrributes.archiveAttributes[archive.id] = ArchiveAttributes(
             archive.id,
             archive.nameHash,
@@ -195,7 +195,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
                 val dictionaryAttributes = dictionaryAttributes[dictionaryId]
                 val rawBuffer = fileStore.read(FileStore.ATTRIBUTE_INDEX, dictionaryId)
                 DictionaryChecksum(
-                    calculateCRC(rawBuffer),
+                    crc(rawBuffer),
                     dictionaryAttributes.version,
                     dictionaryAttributes.archiveAttributes.size,
                     dictionaryAttributes.archiveAttributes.values

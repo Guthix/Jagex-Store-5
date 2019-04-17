@@ -17,26 +17,44 @@
  */
 package io.guthix.cache.fs.util
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.math.BigInteger
 import java.nio.ByteBuffer
+import java.security.MessageDigest
+import java.security.Security
+import java.util.zip.CRC32
 
-object XTEA {
-    const val GOLDEN_RATIO = -0x61c88647
-    const val ROUNDS = 32
-    const val KEY_SIZE = 4
-    val ZERO_KEY = IntArray(KEY_SIZE)
+internal fun crc(buffer: ByteBuffer): Int {
+    val crc = CRC32()
+    crc.update(buffer.array())
+    return crc.value.toInt()
 }
 
-fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteBuffer {
-    require(key.size == XTEA.KEY_SIZE)
+internal const val whirlPoolHashByteCount = 64
+
+internal fun whirlPoolHash(data: ByteArray): ByteArray {
+    Security.addProvider(BouncyCastleProvider())
+    return MessageDigest.getInstance("Whirlpool").digest(data)
+}
+
+const val XTEA_KEY_SIZE = 4
+
+val XTEA_ZERO_KEY = IntArray(XTEA_KEY_SIZE)
+
+private const val XTEA_GOLDEN_RATIO = -0x61c88647
+
+private const val XTEA_ROUNDS = 32
+
+internal fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteBuffer {
+    require(key.size == XTEA_KEY_SIZE)
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
         var sum = 0
         var v0 = getInt(start + i * 8)
         var v1 = getInt(start + i * 8 + 4)
-        repeat(XTEA.ROUNDS) {
+        repeat(XTEA_ROUNDS) {
             v0 += (v1 shl 4 xor v1.ushr(5)) + v1 xor sum + key[sum and 3]
-            sum += XTEA.GOLDEN_RATIO
+            sum += XTEA_GOLDEN_RATIO
             v1 += (v0 shl 4 xor v0.ushr(5)) + v0 xor sum + key[sum.ushr(11) and 3]
         }
         putInt(start + i * 8, v0)
@@ -46,16 +64,16 @@ fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteBuffer {
 }
 
 @Suppress("INTEGER_OVERFLOW")
-fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): ByteBuffer {
-    require(key.size == XTEA.KEY_SIZE)
+internal fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): ByteBuffer {
+    require(key.size == XTEA_KEY_SIZE)
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
-        var sum = XTEA.GOLDEN_RATIO * XTEA.ROUNDS
+        var sum = XTEA_GOLDEN_RATIO * XTEA_ROUNDS
         var v0 = getInt(start + i * 8)
         var v1 = getInt(start + i * 8 + 4)
-        repeat(XTEA.ROUNDS) {
+        repeat(XTEA_ROUNDS) {
             v1 -= (v0 shl 4 xor v0.ushr(5)) + v0 xor sum + key[sum.ushr(11) and 3]
-            sum -= XTEA.GOLDEN_RATIO
+            sum -= XTEA_GOLDEN_RATIO
             v0 -= (v1 shl 4 xor v1.ushr(5)) + v1 xor sum + key[sum and 3]
         }
         putInt(start + i * 8, v0)
@@ -64,5 +82,5 @@ fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): B
     return this
 }
 
-fun rsaCrypt(data: ByteArray, mod: BigInteger, key: BigInteger) = BigInteger(data).modPow(key, mod).toByteArray()
-
+internal fun rsaCrypt(data: ByteArray, mod: BigInteger, key: BigInteger) =
+    BigInteger(data).modPow(key, mod).toByteArray()

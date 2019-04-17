@@ -23,7 +23,6 @@ import io.guthix.cache.fs.util.whirlPoolHash
 import io.guthix.cache.fs.util.whirlPoolHashByteCount
 import java.io.IOException
 import java.math.BigInteger
-import java.nio.Buffer
 import java.nio.ByteBuffer
 
 data class CacheChecksum(val dictionaryChecksums: Array<DictionaryChecksum>) {

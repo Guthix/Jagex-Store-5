@@ -22,8 +22,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -117,8 +115,8 @@ class JagexCacheTest {
         attributesVersion: Int? = null,
         archiveContainerVersion: Int = -1,
         attributesContainerVersion: Int = -1,
-        archiveXteaKey: IntArray = XTEA.ZERO_KEY,
-        attributesXteaKey: IntArray = XTEA.ZERO_KEY,
+        archiveXteaKey: IntArray = XTEA_ZERO_KEY,
+        attributesXteaKey: IntArray = XTEA_ZERO_KEY,
         archiveCompression: Compression = Compression.NONE,
         attributesCompression: Compression = Compression.NONE
     ) {
@@ -127,7 +125,7 @@ class JagexCacheTest {
         val archive = Archive(
             archiveId,
             nameHash,
-            calculateCRC(archiveBuffer),
+            crc(archiveBuffer),
             null,
             whirlPoolHash(archiveBuffer.array()),
             ArchiveAttributes.Size(null, archiveBuffer.limit()),
