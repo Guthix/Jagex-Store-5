@@ -99,14 +99,14 @@ val ByteBuffer.smallUSmart get() = if(uPeak().toInt() < 128) {
 }
 
 @ExperimentalUnsignedTypes
-val ByteBuffer.largeSmart get() = if (get(position()) < 0) {
+val ByteBuffer.largeSmart get() = if (peak() < 0) {
     uInt
 } else {
     uShort.toInt()
 }
 
 @ExperimentalUnsignedTypes
-val ByteBuffer.nullableLargeSmart get() = if (get(position()) < 0) {
+val ByteBuffer.nullableLargeSmart get() = if (peak() < 0) {
     uInt
 } else {
     val temp = uShort.toInt()
@@ -125,7 +125,7 @@ val ByteBuffer.string get(): String {
 }
 
 @ExperimentalUnsignedTypes
-val ByteBuffer.nullableString get(): String? = if(get().toInt() == 0) string else null
+val ByteBuffer.nullableString get(): String? = if(peak().toInt() != 0) string else { get(); null }
 
 @ExperimentalUnsignedTypes
 val ByteBuffer.params get(): HashMap<Int, Any> {
