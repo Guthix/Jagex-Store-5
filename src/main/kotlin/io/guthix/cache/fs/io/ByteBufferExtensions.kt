@@ -39,6 +39,9 @@ val ByteBuffer.uByte get() = get().toUByte()
 val ByteBuffer.uShort get() = short.toUShort()
 
 @ExperimentalUnsignedTypes
+fun ByteBuffer.getUShort(pos: Int) = getShort(pos).toUShort()
+
+@ExperimentalUnsignedTypes
 val ByteBuffer.uMedium get() = (short.toUShort().toInt() shl 8) or get().toUByte().toInt()
 
 @ExperimentalUnsignedTypes
