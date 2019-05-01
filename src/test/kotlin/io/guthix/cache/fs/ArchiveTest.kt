@@ -27,9 +27,9 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ArchiveTest {
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testArchives")
     @ExperimentalUnsignedTypes
-    fun encodeDecodeTest(archive: Archive, groupCount: Int, containerVersion: Int) {
+    fun `Encode and decode compare archive`(archive: Archive, groupCount: Int, containerVersion: Int) {
         val fileAttributes = mutableMapOf<Int, FileAttributes>()
         archive.files.forEach { fileId, file ->
             fileAttributes[fileId] = FileAttributes(fileId, file.nameHash)
@@ -53,7 +53,7 @@ class ArchiveTest {
 
     companion object {
         @JvmStatic
-        fun encodeDecodeTestArgs(): List<Arguments> {
+        fun testArchives(): List<Arguments> {
             val buffer1 = ByteBuffer.allocate(8).apply {
                 put(8)
                 put(3)

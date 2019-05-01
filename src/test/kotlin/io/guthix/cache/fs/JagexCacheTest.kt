@@ -29,13 +29,13 @@ import java.nio.ByteBuffer
 class JagexCacheTest {
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteArchiveSequentialTest(@TempDir cacheDir: File) {
+    fun `Read write compare  archive with sequential file ids`(@TempDir cacheDir: File) {
         readWriteTest(cacheDir, testFiles)
     }
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteArchiveNonSequentialFilesTest(@TempDir cacheDir: File) {
+    fun `Read write compare archive with non sequential file ids`(@TempDir cacheDir: File) {
         val nonSeqTestFiles = mapOf(
             1 to Archive.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
             6 to Archive.File(ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
@@ -46,7 +46,7 @@ class JagexCacheTest {
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteNameHashTest(@TempDir cacheDir: File) {
+    fun `Read write compare archive with named archive and files`(@TempDir cacheDir: File) {
         val seqNameTestFiles = mapOf(
             1 to Archive.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} },
                 "SeqTest1".hashCode()
@@ -63,26 +63,26 @@ class JagexCacheTest {
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteMultipleGroupsTest(@TempDir cacheDir: File) {
+    fun `Read write compare archive in multiple groups`(@TempDir cacheDir: File) {
         val testGroups = listOf(1, 3, 8, 10, 20)
         testGroups.forEach { readWriteTest(cacheDir, testFiles, archiveGroupCount = it) }
     }
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteCustomVersionTest(@TempDir cacheDir: File) {
+    fun `Read write compare archive with manually providing versions`(@TempDir cacheDir: File) {
         readWriteTest(cacheDir, testFiles, archiveVersion = 3, attributesVersion = 8)
     }
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteCustomContainerVersionTest(@TempDir cacheDir: File) {
+    fun `Read write compare archive with manually providing container versions`(@TempDir cacheDir: File) {
         readWriteTest(cacheDir, testFiles, archiveContainerVersion = 3, attributesContainerVersion = 8)
     }
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteEncryptionTest(@TempDir cacheDir: File) {
+    fun `Read write compare encrypted archive`(@TempDir cacheDir: File) {
         val archiveXtea = intArrayOf(3028, 1, 759, 43945)
         val attributesXtea = intArrayOf(895, 3458790, 4358976, 32470)
         readWriteTest(cacheDir, testFiles, archiveXteaKey = archiveXtea, attributesXteaKey = attributesXtea)
@@ -90,7 +90,7 @@ class JagexCacheTest {
 
     @Test
     @ExperimentalUnsignedTypes
-    fun readWriteCompressionTest(@TempDir cacheDir: File) {
+    fun  `Read write compare compressed archive`(@TempDir cacheDir: File) {
         Compression.values().forEach { archiveCompression ->
             Compression.values().forEach { attributesCompression ->
                 readWriteTest(

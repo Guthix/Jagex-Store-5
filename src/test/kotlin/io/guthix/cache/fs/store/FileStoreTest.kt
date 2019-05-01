@@ -30,7 +30,7 @@ import java.nio.ByteBuffer
 class FileStoreTest {
     @Test
     @ExperimentalUnsignedTypes
-    fun writeReadTest(@TempDir cacheDir: File) {
+    fun `Write and read compare file`(@TempDir cacheDir: File) {
         FileStore(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
@@ -43,7 +43,7 @@ class FileStoreTest {
 
     @Test
     @ExperimentalUnsignedTypes
-    fun overwriteTest(@TempDir cacheDir: File) {
+    fun `Write, overwrite and read compare file`(@TempDir cacheDir: File) {
         FileStore(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
@@ -60,7 +60,7 @@ class FileStoreTest {
 
     @Test
     @ExperimentalUnsignedTypes
-    fun nonConsecutiveIndexTest(@TempDir cacheDir: File) {
+    fun `Throws exception when indexes are non consecutive`(@TempDir cacheDir: File) {
         FileStore(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}

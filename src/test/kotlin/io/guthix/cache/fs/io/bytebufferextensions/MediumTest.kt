@@ -30,18 +30,18 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MediumTest {
     @ParameterizedTest
-    @MethodSource("mediumTestArgs")
+    @MethodSource("mediumTestValues")
     @ExperimentalUnsignedTypes
-    fun mediumPutGetTest(input: Int, expected: Int) {
+    fun `medium put get`(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.medium
         Assertions.assertEquals(expected, mediumNumber)
     }
 
     @ParameterizedTest
-    @MethodSource("unsignedMediumTestArgs")
+    @MethodSource("unsignedMediumTestValues")
     @ExperimentalUnsignedTypes
-    fun unsignedMediumPutGetTest(input: Int, expected: Int) {
+    fun `unsigned medium put get`(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.uMedium
         Assertions.assertEquals(expected, mediumNumber)
@@ -49,7 +49,7 @@ class MediumTest {
 
     companion object {
         @JvmStatic
-        fun mediumTestArgs() = listOf(
+        fun mediumTestValues() = listOf(
             Arguments.of(0, 0),
             Arguments.of(10, 10),
             Arguments.of(16777215, -1),
@@ -59,7 +59,7 @@ class MediumTest {
         )
 
         @JvmStatic
-        fun unsignedMediumTestArgs() = listOf(
+        fun unsignedMediumTestValues() = listOf(
             Arguments.of(0, 0),
             Arguments.of(10, 10),
             Arguments.of(16777215, 16777215),

@@ -29,15 +29,15 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SkipTest {
     @ParameterizedTest
-    @MethodSource("writeAfterSkipArgs")
-    fun writeAfterSkipTest(amount: Int, value: Byte, writable: ByteBuffer, expected: ByteBuffer) {
+    @MethodSource("testBuffers")
+    fun `skip amount`(amount: Int, value: Byte, writable: ByteBuffer, expected: ByteBuffer) {
         writable.skip(amount).put(value)
         Assertions.assertEquals(expected, writable)
     }
 
     companion object {
         @JvmStatic
-        fun writeAfterSkipArgs(): List<Arguments> {
+        fun testBuffers(): List<Arguments> {
             val testValue = 93.toByte()
             return listOf(
                 Arguments.of(3, testValue,

@@ -28,9 +28,9 @@ import java.math.BigInteger
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CacheChecksumTest {
     @ParameterizedTest
-    @MethodSource("encodeDecodeNoWPTestArgs", "encodeDecodeWPTestArgs")
+    @MethodSource("testChecksumsNoWhirlpool", "testChecksumsWhirlpool")
     @ExperimentalUnsignedTypes
-    fun encodeDecodeTest(
+    fun `Encode and decode compare checksum`(
         whirlpool: Boolean,
         cacheCheckSum: CacheChecksum,
         mod: BigInteger?,
@@ -49,7 +49,7 @@ class CacheChecksumTest {
 
     companion object {
         @JvmStatic
-        fun encodeDecodeNoWPTestArgs() = listOf(
+        fun testChecksumsNoWhirlpool() = listOf(
             Arguments.of(
                 true,
                 CacheChecksum(
@@ -75,7 +75,7 @@ class CacheChecksumTest {
         )
 
         @JvmStatic
-        fun encodeDecodeWPTestArgs() = listOf(
+        fun testChecksumsWhirlpool() = listOf(
             Arguments.of(
                 false,
                 CacheChecksum(

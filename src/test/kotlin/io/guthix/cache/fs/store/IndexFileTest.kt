@@ -24,17 +24,17 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class IndexTest {
+class IndexFileTest {
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testIndexes")
     @ExperimentalUnsignedTypes
-    internal fun encodeDecodeTest(index: Index) =
+    internal fun `Encode and decode compare index`(index: Index) =
             assertEquals(index, Index.decode(index.encode()))
 
     companion object {
         @JvmStatic
         @ExperimentalUnsignedTypes
-        fun encodeDecodeTestArgs() = listOf(
+        fun testIndexes() = listOf(
             Arguments.of(Index(dataSize = 10, segmentPos = 1)),
             Arguments.of(Index(dataSize = 3, segmentPos = 20))
         )

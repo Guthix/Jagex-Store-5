@@ -28,65 +28,60 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContainerTest {
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun compNoneEncodeDecodeTest(container: Container) =
+    internal fun `Encode and decode container no encryption no compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.NONE)))
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun compGZIPEncodeDecodeTest(container: Container) =
+    internal fun `Encode and decode container no encryption GZIP compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.GZIP)))
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun compBZIP2EncodeDecodeTest(container: Container) =
+    internal fun `Encode and decode container no encryption BZIP compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.BZIP2)))
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun compLZMAEncodeDecodeTest(container: Container) =
+    internal fun `Encode and decode container no encryption LZMA compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.LZMA)))
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun encNoneEncodeDecodeTest(container: Container) {
-        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
+    internal fun `Encode and decode container XTEA encryption no compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.NONE, xteaKey), xteaKey))
-    }
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun encGZIPEncodeDecodeTest(container: Container) {
-        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
+    internal fun `Encode and decode container XTEA encryption GZIP compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.GZIP, xteaKey), xteaKey))
-    }
+
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun encBZIP2EncodeDecodeTest(container: Container) {
-        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
+    internal fun `Encode and decode container XTEA encryption BZIP compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.BZIP2, xteaKey), xteaKey))
-    }
 
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
-    internal fun encLZMAEncodeDecodeTest(container: Container) {
-        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
+    internal fun `Encode and decode container XTEA encryption LZMA compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Compression.LZMA, xteaKey), xteaKey))
-    }
 
     companion object {
+        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
+
         @JvmStatic
         @ExperimentalUnsignedTypes
-        fun encodeDecodeTestArgs() = listOf(
+        fun testContainer() = listOf(
             Arguments.of(Container(-1, ByteBuffer.allocate(8).apply {
                 put(8)
                 put(3)

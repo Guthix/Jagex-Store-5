@@ -29,46 +29,46 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PeakTest {
     @ParameterizedTest
-    @MethodSource("signedPeakTestEquals")
+    @MethodSource("signedTestValues")
     @ExperimentalUnsignedTypes
-    fun signedPeakTestEquals(peakValue: Int) {
+    fun `signed peak for correct inputs`(peakValue: Int) {
         val buffer = ByteBuffer.allocate(1).apply { put(peakValue.toByte()) }.flip()
         Assertions.assertEquals(peakValue, buffer.peak().toInt())
     }
 
     @ParameterizedTest
-    @MethodSource("signedPeakTestNotEquals")
+    @MethodSource("signedFailTestValues")
     @ExperimentalUnsignedTypes
-    fun signedPeakTestNotEquals(peakValue: Int) {
+    fun `signed peak for signed overflow inputs`(peakValue: Int) {
         val buffer = ByteBuffer.allocate(1).apply { put(peakValue.toByte()) }.flip()
         Assertions.assertNotEquals(peakValue, buffer.peak().toInt())
     }
 
     @ParameterizedTest
-    @MethodSource("unsignedPeakTestEquals")
+    @MethodSource("unsignedTestValues")
     @ExperimentalUnsignedTypes
-    fun unsignedPeakTestEquals(peakValue: Int) {
+    fun `unsigned peak for correct inputs`(peakValue: Int) {
         val buffer = ByteBuffer.allocate(1).apply { put(peakValue.toByte()) }.flip()
         Assertions.assertEquals(peakValue, buffer.uPeak().toInt())
     }
 
     companion object {
         @JvmStatic
-        fun signedPeakTestEquals() = listOf(
+        fun signedTestValues() = listOf(
             Arguments.of(3),
             Arguments.of(0),
             Arguments.of(127)
         )
 
         @JvmStatic
-        fun signedPeakTestNotEquals() = listOf(
+        fun signedFailTestValues() = listOf(
             Arguments.of(129),
             Arguments.of(30578),
             Arguments.of(288)
         )
 
         @JvmStatic
-        fun unsignedPeakTestEquals() = listOf(
+        fun unsignedTestValues() = listOf(
             Arguments.of(3),
             Arguments.of(0),
             Arguments.of(127),

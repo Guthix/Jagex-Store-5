@@ -26,9 +26,9 @@ import org.junit.jupiter.params.provider.MethodSource
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AttributesTest {
     @ParameterizedTest
-    @MethodSource("encodeDecodeTestArgs")
+    @MethodSource("testAttributes")
     @ExperimentalUnsignedTypes
-    fun encodeDecodeTest(dictAttr: DictionaryAttributes, containerVersion: Int) {
+    fun `Encode and decode compare dictionary attributes`(dictAttr: DictionaryAttributes, containerVersion: Int) {
         Assertions.assertEquals(
             dictAttr,
             DictionaryAttributes.decode(
@@ -39,7 +39,7 @@ class AttributesTest {
 
     companion object {
         @JvmStatic
-        fun encodeDecodeTestArgs() = listOf(
+        fun testAttributes() = listOf(
             Arguments.of(
                 DictionaryAttributes(
                     version = 10,
