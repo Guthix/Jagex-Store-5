@@ -31,13 +31,13 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
         val data = ByteBuffer.allocate(index.dataSize)
         var segmentPart = 0
         var dataToRead = index.dataSize
-        var readPointer = index.segmentPos.toLong() * Segment.SIZE.toLong()
+        var readPointer = index.segmentNumber.toLong() * Segment.SIZE.toLong()
         do {
             val dataSegment = readSegment(readPointer)
             if (dataToRead > dataSegment.data.size) {
                 dataSegment.validate(indexFileId, containerId, segmentPart)
                 data.put(dataSegment.data, 0, dataSegment.data.size)
-                readPointer = dataSegment.nextSegmentPos.toLong() * Segment.SIZE.toLong()
+                readPointer = dataSegment.nextSegmentNumber.toLong() * Segment.SIZE.toLong()
                 dataToRead -= dataSegment.data.size
                 segmentPart++
 
@@ -59,7 +59,7 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
         }
         var segmentPart = 0
         var dataToWrite = index.dataSize
-        var ptr = index.segmentPos.toLong() * Segment.SIZE.toLong()
+        var ptr = index.segmentNumber.toLong() * Segment.SIZE.toLong()
         do {
             val overwrite = containsSegment(ptr)
             val segmentDataSize = if(dataToWrite < segmentData.size) dataToWrite else segmentData.size
@@ -69,8 +69,8 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
                 Segment(
                     rSeg.indexFileId,
                     rSeg.containerId,
-                    rSeg.segmentPart,
-                    rSeg.nextSegmentPos,
+                    rSeg.position,
+                    rSeg.nextSegmentNumber,
                     segmentData
                 )
             } else {
@@ -86,7 +86,7 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
             writeSegment(ptr, segment)
             dataToWrite -= segmentDataSize
             segmentPart++
-            ptr = segment.nextSegmentPos * Segment.SIZE.toLong()
+            ptr = segment.nextSegmentNumber * Segment.SIZE.toLong()
         } while (dataToWrite > 0)
     }
 
@@ -113,8 +113,8 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
         if (this.containerId != containerId) throw IOException(
             "Container id mismatch expected ${this.containerId} was $containerId."
         )
-        if (this.segmentPart.toInt() != segmentPos) throw IOException(
-            "Segment position mismatch expected ${this.segmentPart} was $segmentPos."
+        if (this.position.toInt() != segmentPos) throw IOException(
+            "Segment position mismatch expected ${this.position} was $segmentPos."
         )
         return this
     }
@@ -125,8 +125,8 @@ internal class DataChannel(private val fileChannel: FileChannel) : AutoCloseable
 data class Segment @ExperimentalUnsignedTypes constructor(
     val indexFileId: UByte,
     val containerId: Int,
-    val segmentPart: UShort,
-    val nextSegmentPos: Int,
+    val position: UShort,
+    val nextSegmentNumber: Int,
     val data: ByteArray
 ) {
     @ExperimentalUnsignedTypes
@@ -139,8 +139,8 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         } else {
             buffer.putShort(containerId.toShort())
         }
-        buffer.putShort(segmentPart.toShort())
-        buffer.putMedium(nextSegmentPos)
+        buffer.putShort(position.toShort())
+        buffer.putMedium(nextSegmentNumber)
         buffer.put(indexFileId.toByte())
         buffer.put(data)
         return buffer.flip()
@@ -153,8 +153,8 @@ data class Segment @ExperimentalUnsignedTypes constructor(
 
         if (indexFileId != other.indexFileId) return false
         if (containerId != other.containerId) return false
-        if (segmentPart != other.segmentPart) return false
-        if (nextSegmentPos != other.nextSegmentPos) return false
+        if (position != other.position) return false
+        if (nextSegmentNumber != other.nextSegmentNumber) return false
         if (!data.contentEquals(other.data)) return false
 
         return true
@@ -164,8 +164,8 @@ data class Segment @ExperimentalUnsignedTypes constructor(
     override fun hashCode(): Int {
         var result = indexFileId.hashCode()
         result = 31 * result + containerId
-        result = 31 * result + segmentPart.hashCode()
-        result = 31 * result + nextSegmentPos
+        result = 31 * result + position.hashCode()
+        result = 31 * result + nextSegmentNumber
         result = 31 * result + data.contentHashCode()
         return result
     }
@@ -194,23 +194,23 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         @ExperimentalUnsignedTypes
         internal fun decode(buffer: ByteBuffer): Segment {
             val containerId = buffer.uShort.toInt()
-            val segmentPart = buffer.uShort
-            val nextSegmentPos = buffer.uMedium
-            val indexId = buffer.uByte
+            val position = buffer.uShort
+            val nextSegmentNumber = buffer.uMedium
+            val indexFileId = buffer.uByte
             val data = ByteArray(DATA_SIZE)
             buffer.get(data)
-            return Segment(indexId, containerId, segmentPart, nextSegmentPos, data)
+            return Segment(indexFileId, containerId, position, nextSegmentNumber, data)
         }
 
         @ExperimentalUnsignedTypes
         internal fun decodeExtended(buffer: ByteBuffer): Segment {
             val containerId = buffer.int
-            val segmentPart = buffer.uShort
-            val nextSegmentPos = buffer.uMedium
-            val indexId = buffer.uByte
+            val position = buffer.uShort
+            val nextSegmentNumber = buffer.uMedium
+            val indexFileId = buffer.uByte
             val data = ByteArray(EXTENDED_DATA_SIZE)
             buffer.get(data)
-            return Segment(indexId, containerId, segmentPart, nextSegmentPos, data)
+            return Segment(indexFileId, containerId, position, nextSegmentNumber, data)
         }
     }
 }

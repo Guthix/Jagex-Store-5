@@ -45,8 +45,8 @@ class DataFileTest {
                 Segment(
                     indexFileId = 1.toUByte(),
                     containerId = 1,
-                    segmentPart = 1.toUShort(),
-                    nextSegmentPos = 2,
+                    position = 1.toUShort(),
+                    nextSegmentNumber = 2,
                     data = ByteArray(Segment.DATA_SIZE)
                 )
             )
@@ -59,8 +59,8 @@ class DataFileTest {
                 Segment(
                     indexFileId = 1.toUByte(),
                     containerId = UShort.MAX_VALUE.toInt() + 1,
-                    segmentPart = 1.toUShort(),
-                    nextSegmentPos = 2,
+                    position = 1.toUShort(),
+                    nextSegmentNumber = 2,
                     data = ByteArray(Segment.EXTENDED_DATA_SIZE)
                 )
             )

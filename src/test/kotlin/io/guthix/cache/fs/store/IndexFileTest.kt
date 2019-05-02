@@ -35,8 +35,8 @@ class IndexFileTest {
         @JvmStatic
         @ExperimentalUnsignedTypes
         fun testIndexes() = listOf(
-            Arguments.of(Index(dataSize = 10, segmentPos = 1)),
-            Arguments.of(Index(dataSize = 3, segmentPos = 20))
+            Arguments.of(Index(dataSize = 10, segmentNumber = 1)),
+            Arguments.of(Index(dataSize = 3, segmentNumber = 20))
         )
     }
 }
