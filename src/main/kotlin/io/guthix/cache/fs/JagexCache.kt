@@ -48,17 +48,17 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    fun archiveIds(dictionaryId: Int) = getDictAttributes(dictionaryId).archiveAttributes.keys
+    public fun archiveIds(dictionaryId: Int) = getDictAttributes(dictionaryId).archiveAttributes.keys
 
     @ExperimentalUnsignedTypes
-    fun fileIds(dictionaryId: Int, archiveId: Int) =
+    public fun fileIds(dictionaryId: Int, archiveId: Int) =
         getDictAttributes(dictionaryId).archiveAttributes[archiveId]?.fileAttributes?.keys
 
     @ExperimentalUnsignedTypes
-    open fun readData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
+    public open fun readData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
 
     @ExperimentalUnsignedTypes
-    open fun readArchive(
+    public open fun readArchive(
         dictionaryId: Int,
         archiveId: Int,
         xteaKey: IntArray = XTEA_ZERO_KEY
@@ -72,7 +72,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    open fun readArchive(
+    public open fun readArchive(
         dictionaryId: Int,
         archiveName: String,
         xteaKey: IntArray = XTEA_ZERO_KEY
@@ -86,7 +86,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    open fun readArchives(
+    public open fun readArchives(
         dictionaryId: Int,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Map<Int, Archive> {
@@ -102,7 +102,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    open fun writeArchive(
+    public open fun writeArchive(
         dictionaryId: Int,
         archive: Archive,
         archiveGroupCount: Int = 1,
@@ -188,7 +188,7 @@ open class JagexCache(directory: File, val attributeXteas: MutableMap<Int, IntAr
     }
 
     @ExperimentalUnsignedTypes
-    fun generateChecksum(): CacheChecksum {
+    public fun generateChecksum(): CacheChecksum {
         logger.info("Generating cache checksum")
         return CacheChecksum(
             Array(dictionaryAttributes.size) { dictionaryId ->
