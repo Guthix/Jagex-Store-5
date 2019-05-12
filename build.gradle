@@ -20,7 +20,7 @@ plugins {
     id 'io.gitlab.arturbosch.detekt' version '1.0.0-RC14'
 }
 
-group 'io.guthix.cache.fs'
+group 'io.guthix.cache.js5'
 version '0.1-SNAPSHOT'
 
 repositories {

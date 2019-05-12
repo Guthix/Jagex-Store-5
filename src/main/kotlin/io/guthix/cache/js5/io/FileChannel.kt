@@ -15,5 +15,20 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-rootProject.name = 'Jagex Store 5'
+package io.guthix.cache.js5.io
 
+import java.io.EOFException
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
+
+fun FileChannel.readFully(buffer: ByteBuffer, ptr: Long) {
+    var pointer = ptr
+    while (buffer.remaining() > 0) {
+        val read = read(buffer, pointer).toLong()
+        if (read < -1) {
+            throw EOFException()
+        } else {
+            pointer += read
+        }
+    }
+}

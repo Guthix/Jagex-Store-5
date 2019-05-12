@@ -1,39 +1,39 @@
 # File Store
 
-The file store describes how the archives an files are stored on disk.
+The file store describes how the groups and files are stored on disk.
 The structure of the files on disk looks as follows: 
 
 ![Cache stored on disk](images/FileOverview.svg)
 
-A cache should always have at least 1 data file(.dat2), 1 attributes 
-file(.idx255) and 1 dictionary(.idxi) file. There can be multiple 
-dictionary files in one cache. Each dictionary file represents a type of
+A cache should always have at least 1 data file(.dat2), 1 settings 
+file(.idx255) and 1 archive(.idxi) file. There can be multiple 
+archive files in one cache. Each archive file represents a type of
 data. Examples of data types are models, compiled scripts, configuration
-data, songs. The amount of dictionaries in a cache depends on the game.
-Dictionary files should always be sequential and can go from .idx0 up to
+data, songs. The amount of archives in a cache depends on the game.
+Archive files should always be sequential and can go from .idx0 up to
 .idx254. It is thus not possible to have an .idx0 file and an .idx2 file
 without an .idx1 file.
 
 When looking at the size of the cache you might notice that the .idx 
 files are really small. This is because all cache data is stored in the
-data file. The dictionary and attributes files just contain references
+data file. The archive and settings files just contain references
 to the data stored in the data file. Every .idx file including the 
-attributes file contains a list of pointers which points to locations
+settings file contains a list of pointers which points to locations
 in the data file.
 
 ## Index files
 
-Index files contain pointers to data in the data files. Both dictionary
-files and attributes files are considered index files. Index files have
+Index files contain pointers to data in the data files. Both archive
+files and settings files are considered index files. Index files have
 the .idxi file extension where is the a number ranging from 0 up to 255.
 Index files have the following structure:
 
 ![Index File](images/IndexFile.svg)
 
 An index file contains a list of indexes. Each index represents a pointer
-to container data in the data file. For dictionary index files an index
-points to an archive. For attribute index file s an index points to 
-dictionary attribute data. An index contains the data size of the container
+to container data in the data file. For archive index files an index
+points to a group. For the master index file an index points to 
+archive settings data. An index contains the data size of the container
 and the first segment that it should start reading from the data file.
 It looks as follows:
 
