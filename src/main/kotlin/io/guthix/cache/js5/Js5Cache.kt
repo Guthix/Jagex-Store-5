@@ -17,7 +17,6 @@
  */
 package io.guthix.cache.js5
 
-import java.io.File
 import io.guthix.cache.js5.store.FileSystem
 import io.guthix.cache.js5.util.*
 import mu.KotlinLogging
@@ -27,14 +26,16 @@ import java.nio.ByteBuffer
 private val logger = KotlinLogging.logger {}
 
 @ExperimentalUnsignedTypes
-open class Js5Cache(directory: File, val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()) : AutoCloseable {
-    private val fileStore = FileSystem(directory)
-
+open class Js5Cache(
+    val reader: FileSystem,
+    val writer: FileSystem,
+    val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
+) : AutoCloseable {
     @ExperimentalUnsignedTypes
-    protected val archiveSettings = MutableList(fileStore.archiveCount) {
+    protected val archiveSettings = MutableList(reader.archiveCount) {
         Js5ArchiveSettings.decode(
             Js5Container.decode(
-                fileStore.read(
+                reader.read(
                     FileSystem.MASTER_INDEX,
                     it
                 ),
@@ -55,7 +56,7 @@ open class Js5Cache(directory: File, val settingsXtea: MutableMap<Int, IntArray>
         getArchiveSettings(archiveId).js5GroupSettings[groupId]?.fileSettings?.keys
 
     @ExperimentalUnsignedTypes
-    public open fun readData(indexId: Int, containerId: Int): ByteBuffer = fileStore.read(indexId, containerId)
+    public open fun readData(indexId: Int, containerId: Int): ByteBuffer = reader.read(indexId, containerId)
 
     @ExperimentalUnsignedTypes
     public open fun readGroup(
@@ -142,7 +143,7 @@ open class Js5Cache(directory: File, val settingsXtea: MutableMap<Int, IntArray>
         logger.info("Writing group data for group ${group.id} from archive $archiveId")
         val versionedData = group.encode(segmentCount, dataVersion)
         val data = versionedData.encode(compression, xteaKey)
-        fileStore.write(archiveId, group.id, data)
+        writer.write(archiveId, group.id, data)
         return data.limit()
     }
 
@@ -179,7 +180,7 @@ open class Js5Cache(directory: File, val settingsXtea: MutableMap<Int, IntArray>
             group.version,
             fileSettings
         )
-        fileStore.write(
+        writer.write(
             FileSystem.MASTER_INDEX,
             archiveId,
             archiveSettings.encode(containerVersion).encode(compression, xteaKey)
@@ -192,7 +193,7 @@ open class Js5Cache(directory: File, val settingsXtea: MutableMap<Int, IntArray>
         return Js5CacheChecksum(
             Array(archiveSettings.size) { archiveId ->
                 val archiveSettings = archiveSettings[archiveId]
-                val settingsData = fileStore.read(FileSystem.MASTER_INDEX, archiveId)
+                val settingsData = reader.read(FileSystem.MASTER_INDEX, archiveId)
                 ArchiveChecksum(
                     crc(settingsData),
                     archiveSettings.version,
@@ -211,5 +212,8 @@ open class Js5Cache(directory: File, val settingsXtea: MutableMap<Int, IntArray>
         return archiveSettings[archiveId]
     }
 
-    override fun close()  = fileStore.close()
+    override fun close() {
+        reader.close()
+        writer.close()
+    }
 }

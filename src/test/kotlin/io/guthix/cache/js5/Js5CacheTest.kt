@@ -17,6 +17,7 @@
  */
 package io.guthix.cache.js5
 
+import io.guthix.cache.js5.store.FileSystem
 import io.guthix.cache.js5.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -132,14 +133,16 @@ class Js5CacheTest {
             groupVersion,
             filesToWrite
         )
-        Js5Cache(cacheDir).use { cache ->
+        val fs = FileSystem(cacheDir)
+        Js5Cache(reader = fs, writer = fs).use { cache ->
             cache.writeGroup(
                 archiveId, archive, groupSegmentCount, settingsVersion, groupContainerVersion,
                 settingsContainerVersion, groupXteaKey, settingsXteaKey, groupJs5Compression, settingsJs5Compression
             )
         }
+        val fs2 = FileSystem(cacheDir)
         // create new cache to remove settings from memory and read them in again
-        Js5Cache(cacheDir, mutableMapOf(archiveId to settingsXteaKey)).use { cache ->
+        Js5Cache(reader = fs2, writer = fs2, settingsXtea = mutableMapOf(archiveId to settingsXteaKey)).use { cache ->
             val readArchive = cache.readGroup(archiveId, groupId, groupXteaKey)
             archive.files.values.forEach { it.data.flip() }
             assertEquals(archive, readArchive)
