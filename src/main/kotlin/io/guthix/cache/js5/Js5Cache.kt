@@ -17,9 +17,11 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.store.ContainerReader
-import io.guthix.cache.js5.store.ContainerWriter
-import io.guthix.cache.js5.store.filesystem.Js5FileSystem
+import io.guthix.cache.js5.container.ContainerReader
+import io.guthix.cache.js5.container.ContainerWriter
+import io.guthix.cache.js5.container.Container
+import io.guthix.cache.js5.container.ContainerReaderWriter
+import io.guthix.cache.js5.container.filesystem.Js5FileSystem
 import io.guthix.cache.js5.util.*
 import mu.KotlinLogging
 import java.io.IOException
@@ -31,12 +33,17 @@ private val logger = KotlinLogging.logger {}
 open class Js5Cache(
     val reader: ContainerReader,
     val writer: ContainerWriter,
-    val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
+    private val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
 ) : AutoCloseable {
+    constructor(
+        readerWriter: ContainerReaderWriter,
+        settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
+    ) : this(reader = readerWriter, writer = readerWriter, settingsXtea = settingsXtea)
+
     @ExperimentalUnsignedTypes
     protected val archiveSettings = MutableList(reader.archiveCount) {
         Js5ArchiveSettings.decode(
-            Js5Container.decode(
+            Container.decode(
                 reader.read(
                     Js5FileSystem.MASTER_INDEX,
                     it
@@ -68,7 +75,7 @@ open class Js5Cache(
     ): Js5Group {
         val archiveSettings = getArchiveSettings(archiveId)
         val groupSettings = archiveSettings.js5GroupSettings[groupId] ?: throw IOException("Js5Group does not exist.")
-        val groupContainer = Js5Container.decode(readData(archiveId, groupId), xteaKey)
+        val groupContainer = Container.decode(readData(archiveId, groupId), xteaKey)
         logger.info("Reading archive $groupId from archive $archiveId")
         return Js5Group.decode(groupContainer, groupSettings)
     }
@@ -83,7 +90,7 @@ open class Js5Cache(
         val nameHash = groupName.hashCode()
         val groupSettings =  archiveSettings.js5GroupSettings.values.first { it.nameHash == nameHash }
         logger.info("Reading archive ${groupSettings.id} from archive $archiveId")
-        val groupContainer = Js5Container.decode(readData(archiveId, groupSettings.id), xteaKey)
+        val groupContainer = Container.decode(readData(archiveId, groupSettings.id), xteaKey)
         return Js5Group.decode(groupContainer, groupSettings)
     }
 
@@ -97,7 +104,7 @@ open class Js5Cache(
         archiveSettings.js5GroupSettings.forEach { (groupId, groupSettings) ->
             val xtea = xteaKeys[groupId] ?: XTEA_ZERO_KEY
             logger.info("Reading group ${groupSettings.id} from archive $groupId")
-            val archiveContainer = Js5Container.decode(readData(groupId, groupId), xtea)
+            val archiveContainer = Container.decode(readData(groupId, groupId), xtea)
             groups[groupId] = Js5Group.decode(archiveContainer, groupSettings)
         }
         return groups

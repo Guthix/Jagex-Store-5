@@ -19,6 +19,7 @@ package io.guthix.cache.js5
 
 import io.guthix.cache.js5.io.getUByte
 import io.guthix.cache.js5.io.splitOf
+import io.guthix.cache.js5.container.Container
 import java.nio.Buffer
 
 import java.nio.ByteBuffer
@@ -33,7 +34,7 @@ data class Js5Group(
     val version: Int,
     val files: Map<Int, File>
 ) {
-    internal fun encode(chunkCount: Int = 1, containerVersion: Int = -1): Js5Container {
+    internal fun encode(chunkCount: Int = 1, containerVersion: Int = -1): Container {
         val fileBuffers = files.values.map { it.data }.toTypedArray()
         val buffer = ByteBuffer.allocate(
             fileBuffers.sumBy { it.limit() } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
@@ -53,7 +54,7 @@ data class Js5Group(
             }
         }
         buffer.put(chunkCount.toByte())
-        return Js5Container(containerVersion, buffer)
+        return Container(containerVersion, buffer)
     }
 
     private fun splitIntoChunks(
@@ -100,11 +101,11 @@ data class Js5Group(
 
     companion object {
         @ExperimentalUnsignedTypes
-        internal fun decode(js5Container: Js5Container, groupSettings: Js5GroupSettings): Js5Group {
+        internal fun decode(container: Container, groupSettings: Js5GroupSettings): Js5Group {
             val fileBuffers = if(groupSettings.fileSettings.size == 1) {
-                arrayOf(js5Container.data)
+                arrayOf(container.data)
             } else {
-                decodeMultiFileContainer(js5Container, groupSettings.fileSettings.size)
+                decodeMultiFileContainer(container, groupSettings.fileSettings.size)
             }
             val files = mutableMapOf<Int, File>()
             var index = 0
@@ -120,8 +121,8 @@ data class Js5Group(
 
 
         @ExperimentalUnsignedTypes
-        internal fun decodeMultiFileContainer(js5Container: Js5Container, fileCount: Int): Array<ByteBuffer> {
-            val buffer = js5Container.data
+        internal fun decodeMultiFileContainer(container: Container, fileCount: Int): Array<ByteBuffer> {
+            val buffer = container.data
             val fileSizes = IntArray(fileCount)
             val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
             val chunkFileSizes = Array(chunkCount) { IntArray(fileCount) }

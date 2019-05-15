@@ -21,6 +21,7 @@ import io.guthix.cache.js5.io.largeSmart
 import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.io.uShort
 import io.guthix.cache.js5.io.writeLargeSmart
+import io.guthix.cache.js5.container.Container
 import io.guthix.cache.js5.util.WP_HASH_BYTE_COUNT
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -31,7 +32,7 @@ data class Js5ArchiveSettings(
     val js5GroupSettings: MutableMap<Int, Js5GroupSettings>
 ) {
     @ExperimentalUnsignedTypes
-    internal fun encode(containerVersion: Int): Js5Container {
+    internal fun encode(containerVersion: Int): Container {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
             val format = if(version == -1) {
@@ -116,7 +117,7 @@ data class Js5ArchiveSettings(
                 }
             }
         }
-        return Js5Container(containerVersion, ByteBuffer.wrap(byteStr.toByteArray()))
+        return Container(containerVersion, ByteBuffer.wrap(byteStr.toByteArray()))
     }
 
     enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONEDLARGE(7) }
@@ -128,8 +129,8 @@ data class Js5ArchiveSettings(
         private const val MASK_UNKNOWN_HASH = 0x08
 
         @ExperimentalUnsignedTypes
-        internal fun decode(js5Container: Js5Container): Js5ArchiveSettings {
-            val buffer = js5Container.data
+        internal fun decode(container: Container): Js5ArchiveSettings {
+            val buffer = container.data
             val formatOpcode = buffer.uByte.toInt()
             val format = Format.values().find { it.opcode == formatOpcode }
             require(format != null)

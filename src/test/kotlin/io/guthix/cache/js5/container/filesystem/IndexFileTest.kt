@@ -15,9 +15,8 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.store
+package io.guthix.cache.js5.container.filesystem
 
-import io.guthix.cache.js5.store.filesystem.Index
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest

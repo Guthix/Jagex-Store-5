@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5
+package io.guthix.cache.js5.container
 
 import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.util.*
@@ -24,7 +24,21 @@ import io.guthix.cache.js5.util.xteaEncrypt
 import java.io.IOException
 import java.nio.ByteBuffer
 
-data class Js5Container(var version: Int = -1, val data: ByteBuffer) {
+interface ContainerReaderWriter : ContainerReader, ContainerWriter
+
+interface ContainerReader : AutoCloseable {
+    val archiveCount: Int
+
+    fun read(indexFileId: Int, containerId: Int): ByteBuffer
+}
+
+interface ContainerWriter : AutoCloseable {
+    val archiveCount: Int
+
+    fun write(indexFileId: Int, containerId: Int, data: ByteBuffer)
+}
+
+data class Container(var version: Int = -1, val data: ByteBuffer) {
     fun encode(js5Compression: Js5Compression, xteaKey: IntArray = XTEA_ZERO_KEY): ByteBuffer {
         require(xteaKey.size == XTEA_KEY_SIZE)
         val compressedData = js5Compression.compress(data.array())
@@ -55,7 +69,7 @@ data class Js5Container(var version: Int = -1, val data: ByteBuffer) {
         private const val ENC_HEADER_SIZE = 5
 
         @ExperimentalUnsignedTypes
-        fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Container {
+        fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA_ZERO_KEY): Container {
             require(xteaKey.size == XTEA_KEY_SIZE)
             val compression = Js5Compression.getByOpcode(buffer.uByte.toInt())
             val compressedSize = buffer.int
@@ -79,7 +93,7 @@ data class Js5Container(var version: Int = -1, val data: ByteBuffer) {
             ))
             buffer.position(ENC_HEADER_SIZE + compression.headerSize + compressedSize)
             val version = if(buffer.remaining() >= 2) buffer.short.toInt() else -1
-            return Js5Container(version, dataBuffer)
+            return Container(version, dataBuffer)
         }
     }
 }

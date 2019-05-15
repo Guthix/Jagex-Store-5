@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SettingsTest {
+class Js5MasterTest {
     @ParameterizedTest
     @MethodSource("testSettings")
     @ExperimentalUnsignedTypes

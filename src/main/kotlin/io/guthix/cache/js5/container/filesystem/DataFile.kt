@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.store.filesystem
+package io.guthix.cache.js5.container.filesystem
 
 import io.guthix.cache.js5.io.*
 import java.io.IOException
@@ -111,7 +111,7 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
             "Index id mismatch expected ${this.indexFileId} was $indexFileId."
         )
         if (this.containerId != containerId) throw IOException(
-            "Js5Container id mismatch expected ${this.containerId} was $containerId."
+            "Container id mismatch expected ${this.containerId} was $containerId."
         )
         if (this.position.toInt() != segmentPos) throw IOException(
             "Segment position mismatch expected ${this.position} was $segmentPos."

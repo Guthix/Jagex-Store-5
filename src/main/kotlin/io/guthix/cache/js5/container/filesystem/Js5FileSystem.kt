@@ -15,10 +15,9 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.store.filesystem
+package io.guthix.cache.js5.container.filesystem
 
-import io.guthix.cache.js5.store.ContainerReader
-import io.guthix.cache.js5.store.ContainerWriter
+import io.guthix.cache.js5.container.ContainerReaderWriter
 import mu.KotlinLogging
 import java.io.File
 import java.io.IOException
@@ -27,7 +26,7 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
-class Js5FileSystem(private val directory: File) : ContainerReader, ContainerWriter {
+class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
     private val dataChannel: Dat2Channel
 
     private val archiveIndexChannels: MutableList<IDXChannel> = mutableListOf()
