@@ -31,8 +31,8 @@ private val logger = KotlinLogging.logger {}
 
 @ExperimentalUnsignedTypes
 open class Js5Cache(
-    val reader: ContainerReader,
-    val writer: ContainerWriter,
+    private val reader: ContainerReader,
+    private val writer: ContainerWriter,
     private val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
 ) : AutoCloseable {
     constructor(
