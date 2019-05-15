@@ -15,8 +15,10 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.store
+package io.guthix.cache.js5.store.filesystem
 
+import io.guthix.cache.js5.store.ContainerReader
+import io.guthix.cache.js5.store.ContainerWriter
 import mu.KotlinLogging
 import java.io.File
 import java.io.IOException
@@ -25,14 +27,14 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
-class FileSystem(val directory: File) : AutoCloseable {
+class Js5FileSystem(private val directory: File) : ContainerReader, ContainerWriter {
     private val dataChannel: Dat2Channel
 
     private val archiveIndexChannels: MutableList<IDXChannel> = mutableListOf()
 
     private val masterIndexChannels: IDXChannel
 
-    internal val archiveCount get() = archiveIndexChannels.size
+    override val archiveCount get() = archiveIndexChannels.size
 
     init {
         if(!directory.isDirectory) throw IOException("$directory is not a directory or doesn't exist.")
@@ -43,14 +45,26 @@ class FileSystem(val directory: File) : AutoCloseable {
             logger.info("Could not find .dat2 file")
             logger.info("Created empty .dat2 file")
         }
-        dataChannel = Dat2Channel(RandomAccessFile(dataFile, accessMode).channel)
+        dataChannel = Dat2Channel(
+            RandomAccessFile(
+                dataFile,
+                accessMode
+            ).channel
+        )
         for (indexFileId in 0 until MASTER_INDEX) {
             val indexFile = directory.resolve("$FILE_NAME.$IDX_FILE_EXTENSION$indexFileId")
             if(!indexFile.isFile)  {
                 logger.info("Found $indexFileId index ${if(indexFileId == 1) "file." else "files"}")
                 break
             }
-            archiveIndexChannels.add(IDXChannel(RandomAccessFile(indexFile, accessMode).channel))
+            archiveIndexChannels.add(
+                IDXChannel(
+                    RandomAccessFile(
+                        indexFile,
+                        accessMode
+                    ).channel
+                )
+            )
         }
         val masterIndexFile = directory.resolve("$FILE_NAME.$IDX_FILE_EXTENSION$MASTER_INDEX")
         if(!masterIndexFile.createNewFile()) {
@@ -59,11 +73,16 @@ class FileSystem(val directory: File) : AutoCloseable {
             logger.info("Could not find .idx255 file")
             logger.info("Created empty .idx255 file")
         }
-        masterIndexChannels = IDXChannel(RandomAccessFile(masterIndexFile, accessMode).channel)
+        masterIndexChannels = IDXChannel(
+            RandomAccessFile(
+                masterIndexFile,
+                accessMode
+            ).channel
+        )
     }
 
     @ExperimentalUnsignedTypes
-    internal fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+    override fun read(indexFileId: Int, containerId: Int): ByteBuffer {
         logger.info("Reading index file $indexFileId container $containerId")
         if((indexFileId < 0 || indexFileId >= archiveIndexChannels.size) && indexFileId != MASTER_INDEX) {
             throw IOException("Index file does not exist.")
@@ -77,13 +96,20 @@ class FileSystem(val directory: File) : AutoCloseable {
     }
 
     @ExperimentalUnsignedTypes
-    internal fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
+    override fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
         logger.info("Writing index file $indexFileId container $containerId")
         if(indexFileId < 0 || indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {
             if(indexFileId == archiveIndexChannels.size) {
                 val indexFile = directory.resolve("$FILE_NAME.$IDX_FILE_EXTENSION$indexFileId")
                 indexFile.createNewFile()
-                archiveIndexChannels.add(IDXChannel(RandomAccessFile(indexFile, accessMode).channel))
+                archiveIndexChannels.add(
+                    IDXChannel(
+                        RandomAccessFile(
+                            indexFile,
+                            accessMode
+                        ).channel
+                    )
+                )
                 logger.info("Created empty .idx$indexFileId file")
             } else {
                 throw IOException("Index file with id $indexFileId does not exist and could not be created.")

@@ -17,7 +17,9 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.store.FileSystem
+import io.guthix.cache.js5.store.ContainerReader
+import io.guthix.cache.js5.store.ContainerWriter
+import io.guthix.cache.js5.store.filesystem.Js5FileSystem
 import io.guthix.cache.js5.util.*
 import mu.KotlinLogging
 import java.io.IOException
@@ -27,8 +29,8 @@ private val logger = KotlinLogging.logger {}
 
 @ExperimentalUnsignedTypes
 open class Js5Cache(
-    val reader: FileSystem,
-    val writer: FileSystem,
+    val reader: ContainerReader,
+    val writer: ContainerWriter,
     val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
 ) : AutoCloseable {
     @ExperimentalUnsignedTypes
@@ -36,7 +38,7 @@ open class Js5Cache(
         Js5ArchiveSettings.decode(
             Js5Container.decode(
                 reader.read(
-                    FileSystem.MASTER_INDEX,
+                    Js5FileSystem.MASTER_INDEX,
                     it
                 ),
                 settingsXtea[it] ?: XTEA_ZERO_KEY
@@ -181,7 +183,7 @@ open class Js5Cache(
             fileSettings
         )
         writer.write(
-            FileSystem.MASTER_INDEX,
+            Js5FileSystem.MASTER_INDEX,
             archiveId,
             archiveSettings.encode(containerVersion).encode(compression, xteaKey)
         )
@@ -193,7 +195,7 @@ open class Js5Cache(
         return Js5CacheChecksum(
             Array(archiveSettings.size) { archiveId ->
                 val archiveSettings = archiveSettings[archiveId]
-                val settingsData = reader.read(FileSystem.MASTER_INDEX, archiveId)
+                val settingsData = reader.read(Js5FileSystem.MASTER_INDEX, archiveId)
                 ArchiveChecksum(
                     crc(settingsData),
                     archiveSettings.version,

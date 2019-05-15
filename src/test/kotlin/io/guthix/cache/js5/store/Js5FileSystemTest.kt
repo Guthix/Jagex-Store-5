@@ -17,6 +17,7 @@
  */
 package io.guthix.cache.js5.store
 
+import io.guthix.cache.js5.store.filesystem.Js5FileSystem
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -27,11 +28,11 @@ import java.io.IOException
 import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class FileSystemTest {
+class Js5FileSystemTest {
     @Test
     @ExperimentalUnsignedTypes
     fun `Write and read compare file`(@TempDir cacheDir: File) {
-        FileSystem(cacheDir).use { fs ->
+        Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
             }.flip()
@@ -44,7 +45,7 @@ class FileSystemTest {
     @Test
     @ExperimentalUnsignedTypes
     fun `Write, overwrite and read compare file`(@TempDir cacheDir: File) {
-        FileSystem(cacheDir).use { fs ->
+        Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
             }.flip()
@@ -61,7 +62,7 @@ class FileSystemTest {
     @Test
     @ExperimentalUnsignedTypes
     fun `Throws exception when indexes are non consecutive`(@TempDir cacheDir: File) {
-        FileSystem(cacheDir).use { fs ->
+        Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
             }.flip()

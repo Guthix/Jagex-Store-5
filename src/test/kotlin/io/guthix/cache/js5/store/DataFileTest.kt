@@ -17,6 +17,7 @@
  */
 package io.guthix.cache.js5.store
 
+import io.guthix.cache.js5.store.filesystem.Segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest

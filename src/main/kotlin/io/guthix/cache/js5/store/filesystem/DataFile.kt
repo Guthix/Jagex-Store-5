@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.store
+package io.guthix.cache.js5.store.filesystem
 
 import io.guthix.cache.js5.io.*
 import java.io.IOException
@@ -185,7 +185,10 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         internal fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
 
         @ExperimentalUnsignedTypes
-        internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(containerId)) {
+        internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(
+                containerId
+            )
+        ) {
             decodeExtended(buffer)
         } else {
             decode(buffer)
@@ -199,7 +202,13 @@ data class Segment @ExperimentalUnsignedTypes constructor(
             val indexFileId = buffer.uByte
             val data = ByteArray(DATA_SIZE)
             buffer.get(data)
-            return Segment(indexFileId, containerId, position, nextSegmentNumber, data)
+            return Segment(
+                indexFileId,
+                containerId,
+                position,
+                nextSegmentNumber,
+                data
+            )
         }
 
         @ExperimentalUnsignedTypes
@@ -210,7 +219,13 @@ data class Segment @ExperimentalUnsignedTypes constructor(
             val indexFileId = buffer.uByte
             val data = ByteArray(EXTENDED_DATA_SIZE)
             buffer.get(data)
-            return Segment(indexFileId, containerId, position, nextSegmentNumber, data)
+            return Segment(
+                indexFileId,
+                containerId,
+                position,
+                nextSegmentNumber,
+                data
+            )
         }
     }
 }
