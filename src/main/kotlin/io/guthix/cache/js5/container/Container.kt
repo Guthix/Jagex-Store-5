@@ -39,13 +39,14 @@ interface ContainerWriter : AutoCloseable {
 }
 
 data class Container(var version: Int = -1, val data: ByteBuffer) {
+    @ExperimentalUnsignedTypes
     fun encode(js5Compression: Js5Compression, xteaKey: IntArray = XTEA_ZERO_KEY): ByteBuffer {
         require(xteaKey.size == XTEA_KEY_SIZE)
         val compressedData = js5Compression.compress(data.array())
         val buffer = ByteBuffer.allocate(
             ENC_HEADER_SIZE + js5Compression.headerSize + compressedData.size + if(isVersioned) 2 else 0
         )
-        buffer.put(js5Compression.opcode)
+        buffer.put(js5Compression.opcode.toByte())
         buffer.putInt(compressedData.size)
         if(js5Compression != Js5Compression.NONE) buffer.putInt(data.limit())
         buffer.put(compressedData)
@@ -66,7 +67,8 @@ data class Container(var version: Int = -1, val data: ByteBuffer) {
     }
 
     companion object {
-        private const val ENC_HEADER_SIZE = 5
+        const val ENC_HEADER_SIZE = Int.SIZE_BYTES + Byte.SIZE_BYTES
+        const val COMPRESSION_HEADER_SIZE = Int.SIZE_BYTES
 
         @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA_ZERO_KEY): Container {
@@ -83,8 +85,8 @@ data class Container(var version: Int = -1, val data: ByteBuffer) {
             val dataBuffer = if(compression != Js5Compression.NONE) {
                 val uncompressedSize = buffer.int
                 val headerLength = ENC_HEADER_SIZE + compression.headerSize
-                val uncompressed = compression.decompress(buffer.array().sliceArray(
-                    headerLength until headerLength + compressedSize), uncompressedSize
+                val uncompressed = compression.decompress(
+                    buffer.array().sliceArray(headerLength until headerLength + compressedSize), uncompressedSize
                 )
                 if (uncompressed.size != uncompressedSize) throw IOException("Compression size mismatch.")
                 ByteBuffer.wrap(uncompressed)

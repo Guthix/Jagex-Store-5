@@ -28,13 +28,14 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
-enum class Js5Compression(val opcode: Byte, val headerSize: Int) {
-    NONE(opcode = 0, headerSize = 0) {
+@ExperimentalUnsignedTypes
+enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
+    NONE(opcode = 0u, headerSize = 0) {
         override fun compress(input: ByteArray) = input
         override fun decompress(input: ByteArray, decompressedSize: Int) = input
     },
 
-    BZIP2(opcode = 1, headerSize = Int.SIZE_BYTES) {
+    BZIP2(opcode = 1u, headerSize = Int.SIZE_BYTES) {
         val blockSize = 1
 
         val header = "BZh$blockSize".toByteArray(StandardCharsets.US_ASCII)
@@ -59,7 +60,7 @@ enum class Js5Compression(val opcode: Byte, val headerSize: Int) {
         }
     },
 
-    GZIP(opcode = 2, headerSize = Int.SIZE_BYTES) {
+    GZIP(opcode = 2u, headerSize = Int.SIZE_BYTES) {
         override fun compress(input: ByteArray): ByteArray {
             ByteArrayInputStream(input).use { inStream ->
                 val bout = ByteArrayOutputStream()
@@ -79,7 +80,7 @@ enum class Js5Compression(val opcode: Byte, val headerSize: Int) {
         }
     },
 
-    LZMA(opcode = 3, headerSize = Int.SIZE_BYTES) {
+    LZMA(opcode = 3u, headerSize = Int.SIZE_BYTES) {
         override fun compress(input: ByteArray): ByteArray {
             ByteArrayInputStream(input).use { inStream ->
                 val bout = ByteArrayOutputStream()

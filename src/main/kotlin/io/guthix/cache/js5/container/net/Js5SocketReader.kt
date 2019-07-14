@@ -17,7 +17,14 @@
  */
 package io.guthix.cache.js5.container.net
 
+import io.guthix.cache.js5.container.Container
 import io.guthix.cache.js5.container.ContainerReader
+import io.guthix.cache.js5.container.filesystem.Segment
+import io.guthix.cache.js5.io.uByte
+import io.guthix.cache.js5.io.uInt
+import io.guthix.cache.js5.io.uShort
+import io.guthix.cache.js5.util.Js5Compression
+import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.SocketChannel
 
@@ -34,12 +41,12 @@ internal enum class Js5Request(val opcode: Int) {
 class Js5SocketReader constructor(
     private val socketChannel: SocketChannel,
     private var xorKey: UByte = 0u,
-    var priorityMode: Boolean = false
+    var priorityMode: Boolean = false,
+    override val archiveCount: Int
 ) : ContainerReader {
-    override val archiveCount: Int get() = TODO() // Need to find a better way than brute forcing master index requests
-
     init {
-        socketChannel.configureBlocking(true)
+        socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
+        socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         if(xorKey.toInt() != 0) {
             updateEncryptionKey(xorKey)
         }
@@ -47,9 +54,61 @@ class Js5SocketReader constructor(
 
     override fun read(indexFileId: Int, containerId: Int): ByteBuffer {
         sendFileRequest(indexFileId, containerId, priorityMode)
-        val buffer = ByteBuffer.allocate(1024)
-        socketChannel.read(buffer)
-        return buffer
+        return readFileResponse()
+    }
+
+    private fun readFileResponse(): ByteBuffer {
+        val headerBuffer = ByteBuffer.allocate(8)
+        while(headerBuffer.remaining() > 0) {
+            socketChannel.read(headerBuffer)
+        }
+        headerBuffer.flip()
+        headerBuffer.uByte // index file id
+        headerBuffer.uShort // group id
+        val compression = Js5Compression.getByOpcode(headerBuffer.uByte.toInt())
+        val compressedSize = headerBuffer.uInt
+
+        // Create container and add meta-data
+        val containerBuffer = ByteBuffer.allocate(Container.ENC_HEADER_SIZE + compression.headerSize + compressedSize)
+        containerBuffer.put(compression.opcode.toByte())
+        containerBuffer.putInt(compressedSize)
+
+        // Read response data
+        val dataResponseBuffer = ByteBuffer.allocate(
+            compression.headerSize + compressedSize + Math.ceil(
+                (compressedSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()
+            ).toInt()
+        )
+        while(dataResponseBuffer.remaining() > 0) {
+            socketChannel.read(dataResponseBuffer)
+        }
+        dataResponseBuffer.flip()
+
+        // write all data after header
+        val headerBytesLeft = dataResponseBuffer.limit() - dataResponseBuffer.position()
+        val headerDataSize = if(headerBytesLeft < BYTES_AFTER_HEADER) {
+            headerBytesLeft
+        } else {
+            BYTES_AFTER_HEADER
+        }
+        containerBuffer.put(dataResponseBuffer.array().sliceArray(0 until headerDataSize))
+
+        // write other data
+        var i = 0
+        while(dataResponseBuffer.position() < dataResponseBuffer.limit()) {
+            var start = BYTES_AFTER_HEADER + i * (Segment.DATA_SIZE)
+            start += 1 //skip 255
+            val blockBytesLeft = dataResponseBuffer.limit() - start
+            val blockDataSize = if(blockBytesLeft < BYTES_AFTER_BLOCK) {
+                blockBytesLeft
+            } else {
+                BYTES_AFTER_BLOCK
+            }
+            containerBuffer.put(dataResponseBuffer.array().sliceArray(start until start + blockDataSize))
+            dataResponseBuffer.position(start + blockDataSize)
+            i++
+        }
+        return containerBuffer.flip()
     }
 
     fun updateEncryptionKey(key: UByte) {
@@ -62,6 +121,7 @@ class Js5SocketReader constructor(
         buffer.put(Js5Request.ENCRYPTION_KEY_UPDATE.opcode.toByte())
         buffer.put(key.toByte())
         buffer.putShort(0)
+        buffer.flip()
         socketChannel.write(buffer)
     }
 
@@ -74,6 +134,7 @@ class Js5SocketReader constructor(
         }
         buffer.put(indexFileId.toByte())
         buffer.putShort(containerId.toShort())
+        buffer.flip()
         socketChannel.write(buffer)
     }
 
@@ -83,5 +144,8 @@ class Js5SocketReader constructor(
 
     companion object {
         const val REQUEST_PACKET_SIZE = 4
+        private const val BYTES_AFTER_HEADER = Segment.DATA_SIZE - 8
+        private const val BYTES_AFTER_BLOCK = Segment.DATA_SIZE - 1
+
     }
 }
