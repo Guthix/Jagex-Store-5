@@ -19,6 +19,7 @@ package io.guthix.cache.js5.io
 
 import io.guthix.cache.js5.util.nextPowerOfTwo
 import io.guthix.cache.js5.util.toJagexChar
+import java.io.IOException
 import java.nio.ByteBuffer
 
 fun ByteBuffer.skip(amount: Int): ByteBuffer = position(position() + amount)
@@ -126,6 +127,13 @@ val ByteBuffer.string get(): String {
 
 @ExperimentalUnsignedTypes
 val ByteBuffer.nullableString get(): String? = if(peak().toInt() != 0) string else { get(); null }
+
+@ExperimentalUnsignedTypes
+val ByteBuffer.prefixedString get(): String = if(get().toInt() != 0) {
+    throw IOException("Error reading prefixed string, first byte should be 0.")
+} else {
+    string
+}
 
 @ExperimentalUnsignedTypes
 val ByteBuffer.params get(): HashMap<Int, Any> {
