@@ -104,7 +104,7 @@ open class Js5Cache(
         archiveSettings.js5GroupSettings.forEach { (groupId, groupSettings) ->
             val xtea = xteaKeys[groupId] ?: XTEA_ZERO_KEY
             logger.info("Reading group ${groupSettings.id} from archive $groupId")
-            val archiveContainer = Container.decode(readData(groupId, groupId), xtea)
+            val archiveContainer = Container.decode(readData(archiveId, groupId), xtea)
             groups[groupId] = Js5Group.decode(archiveContainer, groupSettings)
         }
         return groups
