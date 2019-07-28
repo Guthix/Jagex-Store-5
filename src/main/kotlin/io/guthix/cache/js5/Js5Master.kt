@@ -32,7 +32,7 @@ data class Js5ArchiveSettings(
     val js5GroupSettings: MutableMap<Int, Js5GroupSettings>
 ) {
     @ExperimentalUnsignedTypes
-    internal fun encode(containerVersion: Int): Container {
+    fun encode(containerVersion: Int): Container {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
             val format = if(version == -1) {
@@ -129,7 +129,7 @@ data class Js5ArchiveSettings(
         private const val MASK_UNKNOWN_HASH = 0x08
 
         @ExperimentalUnsignedTypes
-        internal fun decode(container: Container): Js5ArchiveSettings {
+        fun decode(container: Container): Js5ArchiveSettings {
             val buffer = container.data
             val formatOpcode = buffer.uByte.toInt()
             val format = Format.values().find { it.opcode == formatOpcode }
