@@ -27,7 +27,7 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Js5GroupTest {
     @ParameterizedTest
-    @MethodSource("testArchives")
+    @MethodSource("testGroups")
     @ExperimentalUnsignedTypes
     fun `Encode and decode compare group`(group: Js5Group, segmentCount: Int, containerVersion: Int) {
         val fileSettings = mutableMapOf<Int, Js5FileSettings>()
@@ -53,7 +53,7 @@ class Js5GroupTest {
 
     companion object {
         @JvmStatic
-        fun testArchives(): List<Arguments> {
+        fun testGroups(): List<Arguments> {
             val buffer1 = ByteBuffer.allocate(8).apply {
                 put(8)
                 put(3)

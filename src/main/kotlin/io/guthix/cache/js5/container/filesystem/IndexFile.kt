@@ -45,6 +45,8 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
         return ptr < fileChannel.size()
     }
 
+    val size get() = fileChannel.size()
+
     override fun close() =  fileChannel.close()
 }
 

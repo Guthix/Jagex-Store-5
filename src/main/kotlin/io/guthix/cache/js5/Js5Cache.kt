@@ -58,7 +58,7 @@ open class Js5Cache(
     }
 
     @ExperimentalUnsignedTypes
-    public fun archiveIds(archiveId: Int) = getArchiveSettings(archiveId).js5GroupSettings.keys
+    public fun groupIds(archiveId: Int) = getArchiveSettings(archiveId).js5GroupSettings.keys
 
     @ExperimentalUnsignedTypes
     public fun fileIds(archiveId: Int, groupId: Int) =
@@ -76,7 +76,7 @@ open class Js5Cache(
         val archiveSettings = getArchiveSettings(archiveId)
         val groupSettings = archiveSettings.js5GroupSettings[groupId] ?: throw IOException("Js5Group does not exist.")
         val groupContainer = Container.decode(readData(archiveId, groupId), xteaKey)
-        logger.info("Reading archive $groupId from archive $archiveId")
+        logger.info("Reading group $groupId from archive $archiveId")
         return Js5Group.decode(groupContainer, groupSettings)
     }
 
@@ -89,7 +89,7 @@ open class Js5Cache(
         val archiveSettings = getArchiveSettings(archiveId)
         val nameHash = groupName.hashCode()
         val groupSettings =  archiveSettings.js5GroupSettings.values.first { it.nameHash == nameHash }
-        logger.info("Reading archive ${groupSettings.id} from archive $archiveId")
+        logger.info("Reading group ${groupSettings.id} from archive $archiveId")
         val groupContainer = Container.decode(readData(archiveId, groupSettings.id), xteaKey)
         return Js5Group.decode(groupContainer, groupSettings)
     }
@@ -123,13 +123,16 @@ open class Js5Cache(
         groupCompression: Js5Compression = Js5Compression.NONE,
         groupSettingsCompression: Js5Compression = Js5Compression.NONE
     ) {
-        if(archiveId > archiveSettings.size) throw IOException(
-            "Can not create archive with id $archiveId, expected: ${archiveSettings.size}"
+        if(archiveId > writer.archiveCount) throw IOException(
+            "Can not create archive with id $archiveId expected: ${writer.archiveCount}."
         )
         logger.info("Writing group ${group.id} from archive $archiveId")
-        group.sizes?.compressed = writeGroupData(
+        val compressedSize = writeGroupData(
             archiveId, group, groupSegmentCount, groupContainerVersion, groupXteaKey, groupCompression
         )
+        if(group.sizes == null) {
+            group.sizes = Js5GroupSettings.Size(compressedSize, group.files.values.sumBy { it.data.limit() })
+        }
         writeGroupSettings(
             archiveId,
             group,

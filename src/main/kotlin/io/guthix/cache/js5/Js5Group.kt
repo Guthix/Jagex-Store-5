@@ -30,11 +30,14 @@ data class Js5Group(
     val crc: Int,
     val unknownHash: Int?,
     val whirlpoolHash: ByteArray?,
-    val sizes: Js5GroupSettings.Size?,
+    var sizes: Js5GroupSettings.Size?,
     val version: Int,
     val files: Map<Int, File>
 ) {
     internal fun encode(chunkCount: Int = 1, containerVersion: Int = -1): Container {
+        if(files.values.size == 1) {
+            return Container(containerVersion, files.values.first().data)
+        }
         val fileBuffers = files.values.map { it.data }.toTypedArray()
         val buffer = ByteBuffer.allocate(
             fileBuffers.sumBy { it.limit() } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
@@ -69,7 +72,6 @@ data class Js5Group(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Js5Group) return false
-
         if (id != other.id) return false
         if (nameHash != other.nameHash) return false
         if (crc != other.crc) return false
@@ -81,7 +83,6 @@ data class Js5Group(
         if (sizes != other.sizes) return false
         if (version != other.version) return false
         if (files != other.files) return false
-
         return true
     }
 

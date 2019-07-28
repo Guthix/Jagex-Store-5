@@ -247,7 +247,7 @@ data class Js5GroupSettings(
         return result
     }
 
-    data class Size(var compressed: Int?, val uncompressed: Int?)
+    data class Size(var compressed: Int, var uncompressed: Int)
 }
 
 data class Js5FileSettings(val id: Int, val nameHash: Int?)

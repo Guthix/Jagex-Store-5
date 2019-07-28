@@ -129,7 +129,7 @@ class Js5CacheTest {
             crc(archiveBuffer),
             null,
             whirlPoolHash(archiveBuffer.array()),
-            Js5GroupSettings.Size(null, archiveBuffer.limit()),
+            Js5GroupSettings.Size(0, archiveBuffer.limit()),
             groupVersion,
             filesToWrite
         )

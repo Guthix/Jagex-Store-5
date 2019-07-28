@@ -31,7 +31,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
 
     private val archiveIndexChannels: MutableList<IDXChannel> = mutableListOf()
 
-    private val masterIndexChannels: IDXChannel
+    private val masterIndexChannel: IDXChannel
 
     override val archiveCount get() = archiveIndexChannels.size
 
@@ -72,7 +72,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
             logger.info("Could not find .idx255 file")
             logger.info("Created empty .idx255 file")
         }
-        masterIndexChannels = IDXChannel(
+        masterIndexChannel = IDXChannel(
             RandomAccessFile(
                 masterIndexFile,
                 accessMode
@@ -87,7 +87,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
             throw IOException("Index file does not exist.")
         }
         val index = if(indexFileId == MASTER_INDEX) {
-            masterIndexChannels.read(containerId)
+            masterIndexChannel.read(containerId)
         } else {
             archiveIndexChannels[indexFileId].read(containerId)
         }
@@ -97,7 +97,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
     @ExperimentalUnsignedTypes
     override fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
         logger.info("Writing index file $indexFileId container $containerId")
-        if(indexFileId < 0 || indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {
+        if(indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {
             if(indexFileId == archiveIndexChannels.size) {
                 val indexFile = directory.resolve("$FILE_NAME.$IDX_FILE_EXTENSION$indexFileId")
                 indexFile.createNewFile()
@@ -114,7 +114,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
                 throw IOException("Index file with id $indexFileId does not exist and could not be created.")
             }
         }
-        val indexChannel = if(indexFileId == MASTER_INDEX) masterIndexChannels else archiveIndexChannels[indexFileId]
+        val indexChannel = if(indexFileId == MASTER_INDEX) masterIndexChannel else archiveIndexChannels[indexFileId]
         val shouldOverwrite = indexChannel.containsIndex(containerId)
         val firstSegmentPos = if(shouldOverwrite) {
             indexChannel.read(containerId).segmentNumber
@@ -129,7 +129,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
     override fun close() {
         dataChannel.close()
         archiveIndexChannels.forEach { it.close() }
-        masterIndexChannels.close()
+        masterIndexChannel.close()
     }
 
     companion object {
