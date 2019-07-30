@@ -32,10 +32,10 @@ data class Js5ArchiveSettings(
     val js5GroupSettings: MutableMap<Int, Js5GroupSettings>
 ) {
     @ExperimentalUnsignedTypes
-    fun encode(containerVersion: Int): Container {
+    fun encode(): Container {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
-            val format = if(version == -1) {
+            val format = if(this.version == -1) {
                 Format.UNVERSIONED
             } else {
                 if(js5GroupSettings.size <= UShort.MAX_VALUE.toInt()) {
@@ -45,7 +45,7 @@ data class Js5ArchiveSettings(
                 }
             }
             os.writeByte(format.opcode)
-            if(format != Format.UNVERSIONED) os.writeInt(version)
+            if(format != Format.UNVERSIONED) os.writeInt(this.version)
             var flags = 0
             val hasNameHashes = js5GroupSettings.values.any { attr ->
                 attr.nameHash != null || attr.fileSettings.values.any { file -> file.nameHash != null }
@@ -117,7 +117,7 @@ data class Js5ArchiveSettings(
                 }
             }
         }
-        return Container(containerVersion, ByteBuffer.wrap(byteStr.toByteArray()))
+        return Container(-1, ByteBuffer.wrap(byteStr.toByteArray())) // container version is always -1
     }
 
     enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONEDLARGE(7) }

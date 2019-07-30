@@ -57,6 +57,17 @@ open class Js5Cache(
         logger.info("Loaded cache with ${archiveSettings.size} archives")
     }
 
+    fun check() {
+        var i = 0
+        for (setting in archiveSettings) {
+            val container =  Container.decode(reader.read(Js5FileSystem.MASTER_INDEX, i)).version
+            if(setting.version != container) {
+                println("archive ${setting.version} container $container")
+            }
+            i++
+        }
+    }
+
     @ExperimentalUnsignedTypes
     public fun groupIds(archiveId: Int) = getArchiveSettings(archiveId).js5GroupSettings.keys
 
@@ -103,7 +114,7 @@ open class Js5Cache(
         val groups = mutableMapOf<Int, Js5Group>()
         archiveSettings.js5GroupSettings.forEach { (groupId, groupSettings) ->
             val xtea = xteaKeys[groupId] ?: XTEA_ZERO_KEY
-            logger.info("Reading group ${groupSettings.id} from archive $groupId")
+            logger.info("Reading group ${groupSettings.id} from archive $archiveId")
             val groupContainer = Container.decode(readData(archiveId, groupId), xtea)
             groups[groupId] = Js5Group.decode(groupContainer, groupSettings)
         }
@@ -115,9 +126,8 @@ open class Js5Cache(
         archiveId: Int,
         group: Js5Group,
         groupSegmentCount: Int = 1,
-        groupSettingsVersion: Int? = null,
-        groupContainerVersion: Int = -1,
-        groupSettingsContainerVersion: Int = -1,
+        groupVersion: Int = -1,
+        groupArchiveSettingsVersion: Int = -1,
         groupXteaKey: IntArray = XTEA_ZERO_KEY,
         groupSettingsXteaKey: IntArray = XTEA_ZERO_KEY,
         groupCompression: Js5Compression = Js5Compression.NONE,
@@ -128,7 +138,7 @@ open class Js5Cache(
         )
         logger.info("Writing group ${group.id} from archive $archiveId")
         val compressedSize = writeGroupData(
-            archiveId, group, groupSegmentCount, groupContainerVersion, groupXteaKey, groupCompression
+            archiveId, group, groupSegmentCount, groupVersion, groupXteaKey, groupCompression
         )
         if(group.sizes == null) {
             group.sizes = Js5GroupSettings.Size(compressedSize, group.files.values.sumBy { it.data.limit() })
@@ -136,8 +146,7 @@ open class Js5Cache(
         writeGroupSettings(
             archiveId,
             group,
-            groupSettingsVersion,
-            groupSettingsContainerVersion,
+            groupArchiveSettingsVersion,
             groupSettingsXteaKey,
             groupSettingsCompression
         )
@@ -163,8 +172,7 @@ open class Js5Cache(
     private fun writeGroupSettings(
         archiveId: Int,
         group: Js5Group,
-        settingsVersion: Int? = null,
-        containerVersion: Int = -1,
+        archiveSettingsVersion: Int = -1,
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Js5Compression.NONE
     ) {
@@ -176,12 +184,12 @@ open class Js5Cache(
         } else {
             getArchiveSettings(archiveId)
         }
-        if(settingsVersion == null) archiveSettings.version++ else archiveSettings.version = settingsVersion
         val fileSettings = mutableMapOf<Int, Js5FileSettings>()
         group.files.forEach { (id, file) ->
             fileSettings[id] = Js5FileSettings(id, file.nameHash)
         }
         if(!xteaKey.contentEquals(XTEA_ZERO_KEY)) settingsXtea[archiveId] = xteaKey
+        archiveSettings.version = archiveSettingsVersion
         archiveSettings.js5GroupSettings[group.id] = Js5GroupSettings(
             group.id,
             group.nameHash,
@@ -195,7 +203,7 @@ open class Js5Cache(
         writer.write(
             Js5FileSystem.MASTER_INDEX,
             archiveId,
-            archiveSettings.encode(containerVersion).encode(compression, xteaKey)
+            archiveSettings.encode().encode(compression, xteaKey)
         )
     }
 
@@ -211,7 +219,7 @@ open class Js5Cache(
                     archiveSettings.version,
                     archiveSettings.js5GroupSettings.size,
                     archiveSettings.js5GroupSettings.values
-                        .sumBy { if(it.sizes?.compressed != null) it.sizes.uncompressed!! else 0 },
+                        .sumBy { if(it.sizes?.compressed != null) it.sizes.uncompressed else 0 },
                     whirlPoolHash(settingsData.array())
                 )
             }

@@ -72,13 +72,13 @@ class Js5CacheTest {
     @Test
     @ExperimentalUnsignedTypes
     fun `Read write compare group with manually providing versions`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles, groupVersion = 3, settingsVersion = 8)
+        readWriteTest(cacheDir, testFiles, groupVersion = 3, archiveSettingsVersion = 8)
     }
 
     @Test
     @ExperimentalUnsignedTypes
     fun `Read write compare group with manually providing container versions`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles, groupContainerVersion = 3, settingsContainerVersion = 8)
+        readWriteTest(cacheDir, testFiles, groupContainerVersion = 3)
     }
 
     @Test
@@ -113,9 +113,8 @@ class Js5CacheTest {
         nameHash: Int? = null,
         groupSegmentCount: Int = 1,
         groupVersion: Int = -1,
-        settingsVersion: Int? = null,
+        archiveSettingsVersion: Int = -1,
         groupContainerVersion: Int = -1,
-        settingsContainerVersion: Int = -1,
         groupXteaKey: IntArray = XTEA_ZERO_KEY,
         settingsXteaKey: IntArray = XTEA_ZERO_KEY,
         groupJs5Compression: Js5Compression = Js5Compression.NONE,
@@ -136,8 +135,8 @@ class Js5CacheTest {
         val fs = Js5FileSystem(cacheDir)
         Js5Cache(readerWriter = fs).use { cache ->
             cache.writeGroup(
-                archiveId, archive, groupSegmentCount, settingsVersion, groupContainerVersion,
-                settingsContainerVersion, groupXteaKey, settingsXteaKey, groupJs5Compression, settingsJs5Compression
+                archiveId, archive, groupSegmentCount, archiveSettingsVersion, groupContainerVersion, groupXteaKey,
+                settingsXteaKey, groupJs5Compression, settingsJs5Compression
             )
         }
         val fs2 = Js5FileSystem(cacheDir) // need to create a new filesystem because fs closed
