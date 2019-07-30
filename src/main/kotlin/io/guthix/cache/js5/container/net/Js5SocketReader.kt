@@ -27,6 +27,7 @@ import io.guthix.cache.js5.util.Js5Compression
 import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.SocketChannel
+import kotlin.math.ceil
 
 internal enum class Js5Request(val opcode: Int) {
     NORMAL_FILE_REQUEST(0),
@@ -74,10 +75,9 @@ class Js5SocketReader constructor(
         containerBuffer.putInt(compressedSize)
 
         // Read response data
+        val containerSize = compression.headerSize + compressedSize
         val dataResponseBuffer = ByteBuffer.allocate(
-            compression.headerSize + compressedSize + Math.ceil(
-                (compressedSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()
-            ).toInt()
+            containerSize + ceil((containerSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()).toInt()
         )
         while(dataResponseBuffer.remaining() > 0) {
             socketChannel.read(dataResponseBuffer)
