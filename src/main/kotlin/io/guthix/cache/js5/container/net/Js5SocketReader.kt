@@ -58,7 +58,7 @@ class Js5SocketReader constructor(
         return readFileResponse()
     }
 
-    private fun readFileResponse(): ByteBuffer {
+    fun readFileResponse(): ByteBuffer {
         val headerBuffer = ByteBuffer.allocate(8)
         while(headerBuffer.remaining() > 0) {
             socketChannel.read(headerBuffer)
@@ -125,7 +125,7 @@ class Js5SocketReader constructor(
         socketChannel.write(buffer)
     }
 
-    private fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean) {
+    fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean) {
         val buffer = ByteBuffer.allocate(REQUEST_PACKET_SIZE)
         if(priority) {
             buffer.put(Js5Request.PRIORITY_FILE_REQUEST.opcode.toByte())

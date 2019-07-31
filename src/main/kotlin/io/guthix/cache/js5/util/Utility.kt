@@ -24,9 +24,9 @@ import java.security.MessageDigest
 import java.security.Security
 import java.util.zip.CRC32
 
-internal fun crc(buffer: ByteBuffer): Int {
+fun ByteBuffer.crc(): Int {
     val crc = CRC32()
-    crc.update(buffer.array())
+    crc.update(array())
     return crc.value.toInt()
 }
 
