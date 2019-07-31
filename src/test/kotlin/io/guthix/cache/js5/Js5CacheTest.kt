@@ -125,7 +125,7 @@ class Js5CacheTest {
         val archive = Js5Group(
             groupId,
             nameHash,
-            crc(archiveBuffer),
+            archiveBuffer.crc(),
             null,
             whirlPoolHash(archiveBuffer.array()),
             Js5GroupSettings.Size(0, archiveBuffer.limit()),

@@ -215,7 +215,7 @@ open class Js5Cache(
                 val archiveSettings = archiveSettings[archiveId]
                 val settingsData = reader.read(Js5FileSystem.MASTER_INDEX, archiveId)
                 ArchiveChecksum(
-                    crc(settingsData),
+                    settingsData.crc(),
                     archiveSettings.version,
                     archiveSettings.js5GroupSettings.size,
                     archiveSettings.js5GroupSettings.values

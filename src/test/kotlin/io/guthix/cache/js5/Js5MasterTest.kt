@@ -28,11 +28,11 @@ class Js5MasterTest {
     @ParameterizedTest
     @MethodSource("testSettings")
     @ExperimentalUnsignedTypes
-    fun `Encode and decode compare archive settings`(archiveSettings: Js5ArchiveSettings, containerVersion: Int) {
+    fun `Encode and decode compare archive settings`(archiveSettings: Js5ArchiveSettings) {
         Assertions.assertEquals(
             archiveSettings,
             Js5ArchiveSettings.decode(
-                archiveSettings.encode(containerVersion)
+                archiveSettings.encode()
             )
         )
     }
@@ -71,8 +71,7 @@ class Js5MasterTest {
                             )
                         )
                     )
-                ),
-                3
+                )
             )
         )
     }
