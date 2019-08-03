@@ -57,17 +57,6 @@ open class Js5Cache(
         logger.info("Loaded cache with ${archiveSettings.size} archives")
     }
 
-    fun check() {
-        var i = 0
-        for (setting in archiveSettings) {
-            val container =  Container.decode(reader.read(Js5FileSystem.MASTER_INDEX, i)).version
-            if(setting.version != container) {
-                println("archive ${setting.version} container $container")
-            }
-            i++
-        }
-    }
-
     @ExperimentalUnsignedTypes
     public fun groupIds(archiveId: Int) = getArchiveSettings(archiveId).js5GroupSettings.keys
 
@@ -106,7 +95,7 @@ open class Js5Cache(
     }
 
     @ExperimentalUnsignedTypes
-    public open fun readGroups(
+    public open fun readArchive(
         archiveId: Int,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Map<Int, Js5Group> {

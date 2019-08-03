@@ -24,10 +24,18 @@ import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.io.uInt
 import io.guthix.cache.js5.io.uShort
 import io.guthix.cache.js5.util.Js5Compression
+import mu.KotlinLogging
+import java.io.IOException
+import java.net.InetSocketAddress
 import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.SocketChannel
+import kotlin.experimental.xor
 import kotlin.math.ceil
+
+private val logger = KotlinLogging.logger {}
+
+const val JS5_CONNECTION_TYPE: Byte = 15
 
 internal enum class Js5Request(val opcode: Int) {
     NORMAL_FILE_REQUEST(0),
@@ -37,35 +45,54 @@ internal enum class Js5Request(val opcode: Int) {
     ENCRYPTION_KEY_UPDATE(4);
 }
 
+data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteBuffer)
+
 /** Do not use! This reader has not been tested and is not fully implemented yet. */
 @ExperimentalUnsignedTypes
-class Js5SocketReader constructor(
-    private val socketChannel: SocketChannel,
-    private var xorKey: UByte = 0u,
+class Js5SocketReader(
+    sockAddr: InetSocketAddress,
+    revision: Int,
+    private var xorKey: Byte = 0,
     var priorityMode: Boolean = false,
     override val archiveCount: Int
 ) : ContainerReader {
+    private val socketChannel = SocketChannel.open(sockAddr)
+
     init {
         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
         socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         if(xorKey.toInt() != 0) {
             updateEncryptionKey(xorKey)
         }
+        logger.info("Initializing JS5 connection to ${sockAddr.address} revision $revision")
+        socketChannel.write(ByteBuffer.allocate(5).apply {
+            put(JS5_CONNECTION_TYPE)
+            putInt(revision)
+        }.flip())
+        val buffer = ByteBuffer.allocate(1)
+        while(socketChannel.read(buffer) > 0) { // read response
+            buffer.flip()
+            val statusCode = buffer.uByte.toInt()
+            if(statusCode != 0) throw IOException(
+                "Could not establish connection withg JS5 Server error code $statusCode."
+            )
+        }
     }
 
     override fun read(indexFileId: Int, containerId: Int): ByteBuffer {
         sendFileRequest(indexFileId, containerId, priorityMode)
-        return readFileResponse()
+        return readFileResponse().data
     }
 
-    fun readFileResponse(): ByteBuffer {
-        val headerBuffer = ByteBuffer.allocate(8)
+    fun readFileResponse(): FileResponse {
+        var headerBuffer = ByteBuffer.allocate(8)
         while(headerBuffer.remaining() > 0) {
             socketChannel.read(headerBuffer)
         }
-        headerBuffer.flip()
-        headerBuffer.uByte // index file id
-        headerBuffer.uShort // group id
+        headerBuffer = ByteBuffer.wrap(headerBuffer.array().map {it xor xorKey}.toByteArray())
+        val indexFileId = headerBuffer.uByte.toInt()
+        val containerId = headerBuffer.uShort.toInt()
+        logger.info("Reading index file $indexFileId container $containerId")
         val compression = Js5Compression.getByOpcode(headerBuffer.uByte.toInt())
         val compressedSize = headerBuffer.uInt
 
@@ -76,13 +103,13 @@ class Js5SocketReader constructor(
 
         // Read response data
         val containerSize = compression.headerSize + compressedSize
-        val dataResponseBuffer = ByteBuffer.allocate(
+        var dataResponseBuffer = ByteBuffer.allocate(
             containerSize + ceil((containerSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()).toInt()
         )
         while(dataResponseBuffer.remaining() > 0) {
             socketChannel.read(dataResponseBuffer)
         }
-        dataResponseBuffer.flip()
+        dataResponseBuffer = ByteBuffer.wrap(dataResponseBuffer.array().map {it xor xorKey}.toByteArray())
 
         // write all data after header
         val headerBytesLeft = dataResponseBuffer.limit() - dataResponseBuffer.position()
@@ -104,28 +131,30 @@ class Js5SocketReader constructor(
             } else {
                 BYTES_AFTER_BLOCK
             }
-            containerBuffer.put(dataResponseBuffer.array().sliceArray(start until start + blockDataSize))
+            val data = dataResponseBuffer.array().sliceArray(start until start + blockDataSize)
+            containerBuffer.put(data)
             dataResponseBuffer.position(start + blockDataSize)
             i++
         }
-        return containerBuffer.flip()
+        return FileResponse(indexFileId, containerId, containerBuffer.flip())
     }
 
-    fun updateEncryptionKey(key: UByte) {
+    fun updateEncryptionKey(key: Byte) {
         xorKey = key
         sendEncryptionKeyChange(key)
     }
 
-    private fun sendEncryptionKeyChange(key: UByte) {
+    private fun sendEncryptionKeyChange(key: Byte) {
         val buffer =ByteBuffer.allocate(REQUEST_PACKET_SIZE)
         buffer.put(Js5Request.ENCRYPTION_KEY_UPDATE.opcode.toByte())
-        buffer.put(key.toByte())
+        buffer.put(key)
         buffer.putShort(0)
         buffer.flip()
         socketChannel.write(buffer)
     }
 
-    fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean) {
+    fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
+        logger.info("Requesting index file $indexFileId container $containerId")
         val buffer = ByteBuffer.allocate(REQUEST_PACKET_SIZE)
         if(priority) {
             buffer.put(Js5Request.PRIORITY_FILE_REQUEST.opcode.toByte())
