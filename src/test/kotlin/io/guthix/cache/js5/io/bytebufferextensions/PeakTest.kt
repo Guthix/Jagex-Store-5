@@ -30,7 +30,6 @@ import java.nio.ByteBuffer
 class PeakTest {
     @ParameterizedTest
     @MethodSource("signedTestValues")
-    @ExperimentalUnsignedTypes
     fun `signed peak for correct inputs`(peakValue: Int) {
         val buffer = ByteBuffer.allocate(1).apply { put(peakValue.toByte()) }.flip()
         Assertions.assertEquals(peakValue, buffer.peak().toInt())
@@ -38,7 +37,6 @@ class PeakTest {
 
     @ParameterizedTest
     @MethodSource("signedFailTestValues")
-    @ExperimentalUnsignedTypes
     fun `signed peak for signed overflow inputs`(peakValue: Int) {
         val buffer = ByteBuffer.allocate(1).apply { put(peakValue.toByte()) }.flip()
         Assertions.assertNotEquals(peakValue, buffer.peak().toInt())
@@ -46,7 +44,6 @@ class PeakTest {
 
     @ParameterizedTest
     @MethodSource("unsignedTestValues")
-    @ExperimentalUnsignedTypes
     fun `unsigned peak for correct inputs`(peakValue: Int) {
         val buffer = ByteBuffer.allocate(1).apply { put(peakValue.toByte()) }.flip()
         Assertions.assertEquals(peakValue, buffer.uPeak().toInt())

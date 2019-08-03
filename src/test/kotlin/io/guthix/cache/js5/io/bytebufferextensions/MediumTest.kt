@@ -31,7 +31,6 @@ import java.nio.ByteBuffer
 class MediumTest {
     @ParameterizedTest
     @MethodSource("mediumTestValues")
-    @ExperimentalUnsignedTypes
     fun `medium put get`(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.medium
@@ -40,7 +39,6 @@ class MediumTest {
 
     @ParameterizedTest
     @MethodSource("unsignedMediumTestValues")
-    @ExperimentalUnsignedTypes
     fun `unsigned medium put get`(input: Int, expected: Int) {
         val buffer = ByteBuffer.allocate(3).putMedium(input).flip() as ByteBuffer
         val mediumNumber = buffer.uMedium

@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
-@ExperimentalUnsignedTypes
 enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
     NONE(opcode = 0u, headerSize = 0) {
         override fun compress(input: ByteArray) = input
@@ -105,6 +104,6 @@ enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
     abstract fun decompress(input: ByteArray, decompressedSize: Int): ByteArray
 
     companion object {
-        fun getByOpcode(opcode: Int) = Js5Compression.values().first{ opcode == it.opcode.toInt() }
+        fun getByOpcode(opcode: Int) = values().first{ opcode == it.opcode.toInt() }
     }
 }

@@ -28,7 +28,6 @@ import java.nio.ByteBuffer
 class Js5GroupTest {
     @ParameterizedTest
     @MethodSource("testGroups")
-    @ExperimentalUnsignedTypes
     fun `Encode and decode compare group`(group: Js5Group, segmentCount: Int, containerVersion: Int) {
         val fileSettings = mutableMapOf<Int, Js5FileSettings>()
         group.files.forEach { (fileId, file) ->

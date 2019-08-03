@@ -27,19 +27,16 @@ import org.junit.jupiter.params.provider.MethodSource
 class DataFileTest {
     @ParameterizedTest
     @MethodSource("testNormalSegment")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode compare normal segment`(segment: Segment) =
         assertEquals(segment, Segment.decode(segment.encode()))
 
     @ParameterizedTest
     @MethodSource("testExtendedSegment")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode compare extended segment`(segment: Segment) =
         assertEquals(segment, Segment.decodeExtended(segment.encode()))
 
     companion object {
         @JvmStatic
-        @ExperimentalUnsignedTypes
         fun testNormalSegment() = listOf(
             Arguments.of(
                 Segment(
@@ -53,7 +50,6 @@ class DataFileTest {
         )
 
         @JvmStatic
-        @ExperimentalUnsignedTypes
         fun testExtendedSegment() = listOf(
             Arguments.of(
                 Segment(

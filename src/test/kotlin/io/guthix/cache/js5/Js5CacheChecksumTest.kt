@@ -29,7 +29,6 @@ import java.math.BigInteger
 class Js5CacheChecksumTest {
     @ParameterizedTest
     @MethodSource("testChecksumsNoWhirlpool", "testChecksumsWhirlpool")
-    @ExperimentalUnsignedTypes
     fun `Encode and decode compare checksum`(
         whirlpool: Boolean,
         js5CacheCheckSum: Js5CacheChecksum,

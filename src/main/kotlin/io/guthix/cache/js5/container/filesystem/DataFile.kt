@@ -26,7 +26,6 @@ import java.nio.channels.FileChannel
 internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable {
     val size get() = fileChannel.size()
 
-    @ExperimentalUnsignedTypes
     internal fun read(indexFileId: Int, index: Index, containerId: Int): ByteBuffer {
         val data = ByteBuffer.allocate(index.dataSize)
         var segmentPart = 0
@@ -49,7 +48,6 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
         return (data as Buffer).flip() as ByteBuffer
     }
 
-    @ExperimentalUnsignedTypes
     internal fun write(indexFileId: Int, containerId: Int, index: Index, buffer: ByteBuffer) {
         val isExtended = Segment.isExtended(containerId)
         val segmentData = if(isExtended) {
@@ -92,20 +90,17 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
 
     private fun containsSegment(ptr: Long) = ptr < fileChannel.size()
 
-    @ExperimentalUnsignedTypes
     private fun readSegment(ptr: Long): Segment {
         val buffer = ByteBuffer.allocate(Segment.SIZE)
         fileChannel.readFully(buffer, ptr)
         return Segment.decode(buffer.flip())
     }
 
-    @ExperimentalUnsignedTypes
     private fun writeSegment(ptr: Long, segment: Segment) {
         fileChannel.position(ptr)
         fileChannel.write(segment.encode())
     }
 
-    @ExperimentalUnsignedTypes
     private fun Segment.validate(indexFileId: Int, containerId: Int, segmentPos: Int): Segment {
         if (this.indexFileId.toInt() != indexFileId) throw IOException(
             "Index id mismatch expected ${this.indexFileId} was $indexFileId."
@@ -122,17 +117,15 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
     override fun close() =  fileChannel.close()
 }
 
-data class Segment @ExperimentalUnsignedTypes constructor(
+data class Segment(
     val indexFileId: UByte,
     val containerId: Int,
     val position: UShort,
     val nextSegmentNumber: Int,
     val data: ByteArray
 ) {
-    @ExperimentalUnsignedTypes
     val isExtended get() = isExtended(containerId)
 
-    @ExperimentalUnsignedTypes
     internal fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
         if (isExtended) {
             buffer.putInt(containerId)
@@ -146,7 +139,6 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         return buffer.flip()
     }
 
-    @ExperimentalUnsignedTypes
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Segment) return false
@@ -160,7 +152,6 @@ data class Segment @ExperimentalUnsignedTypes constructor(
         return true
     }
 
-    @ExperimentalUnsignedTypes
     override fun hashCode(): Int {
         var result = indexFileId.hashCode()
         result = 31 * result + containerId
@@ -181,10 +172,8 @@ data class Segment @ExperimentalUnsignedTypes constructor(
 
         const val SIZE = HEADER_SIZE + DATA_SIZE
 
-        @ExperimentalUnsignedTypes
         internal fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
 
-        @ExperimentalUnsignedTypes
         internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(
                 containerId
             )
@@ -194,7 +183,6 @@ data class Segment @ExperimentalUnsignedTypes constructor(
             decode(buffer)
         }
 
-        @ExperimentalUnsignedTypes
         internal fun decode(buffer: ByteBuffer): Segment {
             val containerId = buffer.uShort.toInt()
             val position = buffer.uShort
@@ -211,7 +199,6 @@ data class Segment @ExperimentalUnsignedTypes constructor(
             )
         }
 
-        @ExperimentalUnsignedTypes
         internal fun decodeExtended(buffer: ByteBuffer): Segment {
             val containerId = buffer.int
             val position = buffer.uShort

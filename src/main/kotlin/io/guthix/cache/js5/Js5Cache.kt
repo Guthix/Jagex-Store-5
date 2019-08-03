@@ -29,7 +29,6 @@ import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
-@ExperimentalUnsignedTypes
 open class Js5Cache(
     private val reader: ContainerReader,
     private val writer: ContainerWriter,
@@ -40,7 +39,6 @@ open class Js5Cache(
         settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
     ) : this(reader = readerWriter, writer = readerWriter, settingsXtea = settingsXtea)
 
-    @ExperimentalUnsignedTypes
     protected val archiveSettings = MutableList(reader.archiveCount) {
         Js5ArchiveSettings.decode(
             Container.decode(
@@ -57,18 +55,14 @@ open class Js5Cache(
         logger.info("Loaded cache with ${archiveSettings.size} archives")
     }
 
-    @ExperimentalUnsignedTypes
-    public fun groupIds(archiveId: Int) = getArchiveSettings(archiveId).js5GroupSettings.keys
+    fun groupIds(archiveId: Int) = getArchiveSettings(archiveId).js5GroupSettings.keys
 
-    @ExperimentalUnsignedTypes
-    public fun fileIds(archiveId: Int, groupId: Int) =
+    fun fileIds(archiveId: Int, groupId: Int) =
         getArchiveSettings(archiveId).js5GroupSettings[groupId]?.fileSettings?.keys
 
-    @ExperimentalUnsignedTypes
-    public open fun readData(indexId: Int, containerId: Int): ByteBuffer = reader.read(indexId, containerId)
+    open fun readData(indexId: Int, containerId: Int): ByteBuffer = reader.read(indexId, containerId)
 
-    @ExperimentalUnsignedTypes
-    public open fun readGroup(
+    open fun readGroup(
         archiveId: Int,
         groupId: Int,
         xteaKey: IntArray = XTEA_ZERO_KEY
@@ -80,8 +74,7 @@ open class Js5Cache(
         return Js5Group.decode(groupContainer, groupSettings)
     }
 
-    @ExperimentalUnsignedTypes
-    public open fun readGroup(
+    open fun readGroup(
         archiveId: Int,
         groupName: String,
         xteaKey: IntArray = XTEA_ZERO_KEY
@@ -94,8 +87,7 @@ open class Js5Cache(
         return Js5Group.decode(groupContainer, groupSettings)
     }
 
-    @ExperimentalUnsignedTypes
-    public open fun readArchive(
+    open fun readArchive(
         archiveId: Int,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Map<Int, Js5Group> {
@@ -110,8 +102,7 @@ open class Js5Cache(
         return groups
     }
 
-    @ExperimentalUnsignedTypes
-    public open fun writeGroup(
+    open fun writeGroup(
         archiveId: Int,
         group: Js5Group,
         groupSegmentCount: Int = 1,
@@ -141,7 +132,6 @@ open class Js5Cache(
         )
     }
 
-    @ExperimentalUnsignedTypes
     private fun writeGroupData(
         archiveId: Int,
         group: Js5Group,
@@ -157,7 +147,6 @@ open class Js5Cache(
         return data.limit()
     }
 
-    @ExperimentalUnsignedTypes
     private fun writeGroupSettings(
         archiveId: Int,
         group: Js5Group,
@@ -196,8 +185,7 @@ open class Js5Cache(
         )
     }
 
-    @ExperimentalUnsignedTypes
-    public fun generateChecksum(): Js5CacheChecksum {
+    fun generateChecksum(): Js5CacheChecksum {
         logger.info("Generating cache checksum")
         return Js5CacheChecksum(
             Array(archiveSettings.size) { archiveId ->
@@ -215,7 +203,6 @@ open class Js5Cache(
         )
     }
 
-    @ExperimentalUnsignedTypes
     private fun getArchiveSettings(archiveId: Int): Js5ArchiveSettings {
         if(archiveId !in 0..archiveSettings.size) throw IOException("Archive does not exist.")
         return archiveSettings[archiveId]

@@ -27,7 +27,6 @@ import org.junit.jupiter.params.provider.MethodSource
 class Js5MasterTest {
     @ParameterizedTest
     @MethodSource("testSettings")
-    @ExperimentalUnsignedTypes
     fun `Encode and decode compare archive settings`(archiveSettings: Js5ArchiveSettings) {
         Assertions.assertEquals(
             archiveSettings,

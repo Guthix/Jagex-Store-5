@@ -80,7 +80,6 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
         )
     }
 
-    @ExperimentalUnsignedTypes
     override fun read(indexFileId: Int, containerId: Int): ByteBuffer {
         logger.info("Reading index file $indexFileId container $containerId")
         if((indexFileId < 0 || indexFileId >= archiveIndexChannels.size) && indexFileId != MASTER_INDEX) {
@@ -94,7 +93,6 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
         return dataChannel.read(indexFileId, index, containerId)
     }
 
-    @ExperimentalUnsignedTypes
     override fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
         logger.info("Writing index file $indexFileId container $containerId")
         if(indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {

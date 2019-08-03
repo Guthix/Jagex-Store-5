@@ -72,8 +72,12 @@ data class Js5CacheChecksum(val archiveChecksums: Array<ArchiveChecksum>) {
     companion object {
         const val WP_ENCODED_SIZE = WP_HASH_BYTE_COUNT + 1
 
-        @ExperimentalUnsignedTypes
-        fun decode(buffer: ByteBuffer, whirlpool: Boolean, mod: BigInteger?, privateKey: BigInteger?): Js5CacheChecksum {
+        fun decode(
+            buffer: ByteBuffer,
+            whirlpool: Boolean,
+            mod: BigInteger?,
+            privateKey: BigInteger?
+        ): Js5CacheChecksum {
             val indexFileCount = if (whirlpool) {
                 buffer.uByte.toInt()
             } else {
@@ -86,7 +90,9 @@ data class Js5CacheChecksum(val archiveChecksums: Array<ArchiveChecksum>) {
             }
             val indexFileEncodedStart = if (whirlpool) 1 else 0
             val calculatedDigest = whirlPoolHash(
-                buffer.array().sliceArray(indexFileEncodedStart until indexFileEncodedStart + indexFileEncodedSize)
+                buffer.array().sliceArray(
+                    indexFileEncodedStart until indexFileEncodedStart + indexFileEncodedSize
+                )
             )
             val indexFileChecksums = Array(indexFileCount) {
                 val crc = buffer.int
@@ -103,9 +109,9 @@ data class Js5CacheChecksum(val archiveChecksums: Array<ArchiveChecksum>) {
             if (whirlpool) {
                 val hash= if (mod != null && privateKey != null) {
                     rsaCrypt(
-                        buffer.array().sliceArray(buffer.position() until buffer.position() + buffer.remaining()),
-                        mod,
-                        privateKey
+                        buffer.array().sliceArray(
+                            buffer.position() until buffer.position() + buffer.remaining()
+                        ), mod, privateKey
                     )
                 } else {
                     buffer.array().sliceArray(buffer.position() until buffer.position() + buffer.remaining())

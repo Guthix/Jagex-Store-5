@@ -39,7 +39,6 @@ interface ContainerWriter : AutoCloseable {
 }
 
 data class Container(var version: Int = -1, val data: ByteBuffer) {
-    @ExperimentalUnsignedTypes
     fun encode(js5Compression: Js5Compression, xteaKey: IntArray = XTEA_ZERO_KEY): ByteBuffer {
         require(xteaKey.size == XTEA_KEY_SIZE)
         val compressedData = js5Compression.compress(data.array())
@@ -70,7 +69,6 @@ data class Container(var version: Int = -1, val data: ByteBuffer) {
         const val ENC_HEADER_SIZE = Int.SIZE_BYTES + Byte.SIZE_BYTES
         const val COMPRESSION_HEADER_SIZE = Int.SIZE_BYTES
 
-        @ExperimentalUnsignedTypes
         fun decode(buffer: ByteBuffer, xteaKey: IntArray = XTEA_ZERO_KEY): Container {
             require(xteaKey.size == XTEA_KEY_SIZE)
             val compression = Js5Compression.getByOpcode(buffer.uByte.toInt())

@@ -29,13 +29,11 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Js5CacheTest {
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare group with sequential file ids`(@TempDir cacheDir: File) {
         readWriteTest(cacheDir, testFiles)
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare group with non sequential file ids`(@TempDir cacheDir: File) {
         val nonSeqTestFiles = mapOf(
             1 to Js5Group.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
@@ -46,7 +44,6 @@ class Js5CacheTest {
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare group with named archive and files`(@TempDir cacheDir: File) {
         val seqNameTestFiles = mapOf(
             1 to Js5Group.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} },
@@ -63,26 +60,22 @@ class Js5CacheTest {
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare group in multiple segments`(@TempDir cacheDir: File) {
         val testSegments = listOf(1, 3, 8, 10, 20)
         testSegments.forEach { readWriteTest(cacheDir, testFiles, groupSegmentCount = it) }
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare group with manually providing versions`(@TempDir cacheDir: File) {
         readWriteTest(cacheDir, testFiles, groupVersion = 3, archiveSettingsVersion = 8)
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare group with manually providing container versions`(@TempDir cacheDir: File) {
         readWriteTest(cacheDir, testFiles, groupContainerVersion = 3)
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare encrypted group`(@TempDir cacheDir: File) {
         val groupXteaKey = intArrayOf(3028, 1, 759, 43945)
         val settingsXteaKey = intArrayOf(895, 3458790, 4358976, 32470)
@@ -90,7 +83,6 @@ class Js5CacheTest {
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Read write compare compressed group`(@TempDir cacheDir: File) {
         Js5Compression.values().forEach { groupCompression ->
             Js5Compression.values().forEach { settingsCompression ->
@@ -104,7 +96,6 @@ class Js5CacheTest {
         }
     }
 
-    @ExperimentalUnsignedTypes
     private fun readWriteTest(
         cacheDir: File,
         filesToWrite: Map<Int, Js5Group.File>,

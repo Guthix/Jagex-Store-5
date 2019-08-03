@@ -29,31 +29,26 @@ import java.nio.ByteBuffer
 class Js5ContainerTest {
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container no encryption no compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Js5Compression.NONE)))
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container no encryption GZIP compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Js5Compression.GZIP)))
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container no encryption BZIP compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Js5Compression.BZIP2)))
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container no encryption LZMA compression`(container: Container) =
         Assertions.assertEquals(container, Container.decode(container.encode(Js5Compression.LZMA)))
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container XTEA encryption no compression`(container: Container) =
         Assertions.assertEquals(container,
             Container.decode(container.encode(Js5Compression.NONE,
@@ -64,7 +59,6 @@ class Js5ContainerTest {
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container XTEA encryption GZIP compression`(container: Container) =
         Assertions.assertEquals(container,
             Container.decode(container.encode(Js5Compression.GZIP,
@@ -76,7 +70,6 @@ class Js5ContainerTest {
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container XTEA encryption BZIP compression`(container: Container) =
         Assertions.assertEquals(container,
             Container.decode(container.encode(Js5Compression.BZIP2,
@@ -87,7 +80,6 @@ class Js5ContainerTest {
 
     @ParameterizedTest
     @MethodSource("testContainer")
-    @ExperimentalUnsignedTypes
     internal fun `Encode and decode container XTEA encryption LZMA compression`(container: Container) =
         Assertions.assertEquals(container,
             Container.decode(container.encode(Js5Compression.LZMA,
@@ -100,7 +92,6 @@ class Js5ContainerTest {
         val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
 
         @JvmStatic
-        @ExperimentalUnsignedTypes
         fun testContainer() = listOf(
             Arguments.of(Container(-1, ByteBuffer.allocate(8).apply {
                 put(8)

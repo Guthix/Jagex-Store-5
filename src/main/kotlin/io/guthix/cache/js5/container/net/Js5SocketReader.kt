@@ -48,7 +48,6 @@ internal enum class Js5Request(val opcode: Int) {
 data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteBuffer)
 
 /** Do not use! This reader has not been tested and is not fully implemented yet. */
-@ExperimentalUnsignedTypes
 class Js5SocketReader(
     sockAddr: InetSocketAddress,
     revision: Int,

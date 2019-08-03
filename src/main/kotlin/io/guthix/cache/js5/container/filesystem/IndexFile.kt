@@ -24,7 +24,6 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
 internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable {
-    @ExperimentalUnsignedTypes
     internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size()) {
@@ -61,7 +60,6 @@ internal data class Index(val dataSize: Int, val segmentNumber: Int) {
     companion object {
         const val SIZE = 6
 
-        @ExperimentalUnsignedTypes
         internal fun decode(buffer: ByteBuffer): Index {
             require(buffer.remaining() >= SIZE)
             val dataSize = buffer.uMedium

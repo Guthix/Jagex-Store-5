@@ -101,7 +101,6 @@ data class Js5Group(
     data class File(val data: ByteBuffer, val nameHash: Int?)
 
     companion object {
-        @ExperimentalUnsignedTypes
         internal fun decode(container: Container, groupSettings: Js5GroupSettings): Js5Group {
             val fileBuffers = if(groupSettings.fileSettings.size == 1) {
                 arrayOf(container.data)
@@ -120,8 +119,6 @@ data class Js5Group(
             )
         }
 
-
-        @ExperimentalUnsignedTypes
         internal fun decodeMultiFileContainer(container: Container, fileCount: Int): Array<ByteBuffer> {
             val buffer = container.data
             val fileSizes = IntArray(fileCount)

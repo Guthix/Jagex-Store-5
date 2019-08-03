@@ -29,7 +29,6 @@ import java.nio.ByteBuffer
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Js5FileSystemTest {
     @Test
-    @ExperimentalUnsignedTypes
     fun `Write and read compare file`(@TempDir cacheDir: File) {
         Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
@@ -42,7 +41,6 @@ class Js5FileSystemTest {
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Write, overwrite and read compare file`(@TempDir cacheDir: File) {
         Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
@@ -59,7 +57,6 @@ class Js5FileSystemTest {
     }
 
     @Test
-    @ExperimentalUnsignedTypes
     fun `Throws exception when indexes are non consecutive`(@TempDir cacheDir: File) {
         Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {

@@ -24,28 +24,20 @@ import java.nio.ByteBuffer
 
 fun ByteBuffer.skip(amount: Int): ByteBuffer = position(position() + amount)
 
-@ExperimentalUnsignedTypes
 fun ByteBuffer.peak() = get(position())
 
-@ExperimentalUnsignedTypes
 fun ByteBuffer.uPeak() = getUByte(position())
 
-@ExperimentalUnsignedTypes
 fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.uByte get() = get().toUByte()
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.uShort get() = short.toUShort()
 
-@ExperimentalUnsignedTypes
 fun ByteBuffer.getUShort(pos: Int) = getShort(pos).toUShort()
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.uMedium get() = (short.toUShort().toInt() shl 8) or get().toUByte().toInt()
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.medium get() = (short.toInt() shl 8) or get().toUByte().toInt()
 
 fun ByteBuffer.putMedium(value: Int): ByteBuffer {
@@ -55,7 +47,6 @@ fun ByteBuffer.putMedium(value: Int): ByteBuffer {
     return this
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.uInt get() = int and Int.MAX_VALUE
 
 val ByteBuffer.varInt get(): Int {
@@ -85,28 +76,24 @@ fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
     return this
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.smallSmart get() = if(uPeak().toInt() < 128) {
     (uByte.toInt() - 64).toUShort()
 } else {
     (uShort.toInt() - 49152).toUShort()
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.smallUSmart get() = if(uPeak().toInt() < 128) {
     uByte.toUShort()
 } else {
     (uShort.toInt()- 32768).toUShort()
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.largeSmart get() = if (peak() < 0) {
     uInt
 } else {
     uShort.toInt()
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.nullableLargeSmart get() = if (peak() < 0) {
     uInt
 } else {
@@ -114,7 +101,6 @@ val ByteBuffer.nullableLargeSmart get() = if (peak() < 0) {
     if(temp == Short.MAX_VALUE.toInt()) null else temp
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.string get(): String {
     val bldr = StringBuilder()
     var encodedByte: Int = uByte.toInt()
@@ -125,17 +111,14 @@ val ByteBuffer.string get(): String {
     return bldr.toString()
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.nullableString get(): String? = if(peak().toInt() != 0) string else { get(); null }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.prefixedString get(): String = if(get().toInt() != 0) {
     throw IOException("Error reading prefixed string, first byte should be 0.")
 } else {
     string
 }
 
-@ExperimentalUnsignedTypes
 val ByteBuffer.params get(): HashMap<Int, Any> {
     val amount = uByte.toInt()
     val params = HashMap<Int, Any>(nextPowerOfTwo(amount))
