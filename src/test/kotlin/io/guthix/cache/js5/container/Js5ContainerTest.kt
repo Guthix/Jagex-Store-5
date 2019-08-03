@@ -26,7 +26,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ContainerTest {
+class Js5ContainerTest {
     @ParameterizedTest
     @MethodSource("testContainer")
     @ExperimentalUnsignedTypes
