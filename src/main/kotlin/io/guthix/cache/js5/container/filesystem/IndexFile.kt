@@ -23,7 +23,24 @@ import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
+/**
+ * An index file channel for writing and reading indices.
+ *
+ * An index is a pointer to a file in a [Dat2Channel]. They are sequentially stored in index files.
+ *
+ * @property fileChannel The [FileChannel] to read the indices from.
+ */
 internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable {
+    /**
+     * The size of the file.
+     */
+    val size get() = fileChannel.size()
+
+    /**
+     * Reads an index from the [fileChannel].
+     *
+     * @param containerId The container to read.
+     */
     internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size()) {
@@ -31,36 +48,63 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
         }
         val buffer = ByteBuffer.allocate(Index.SIZE)
         fileChannel.read(buffer, ptr)
-        return Index.decode(buffer.flip())
+        return Index.decode(buffer.array())
     }
 
+    /**
+     * Writes an index to the [fileChannel].
+     *
+     * @param containerId The container to write.
+     * @param index The index to write.
+     */
     internal fun write(containerId: Int, index: Index) {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
-        fileChannel.write(index.encode(), ptr)
+        fileChannel.write(ByteBuffer.wrap(index.encode()), ptr)
     }
 
+    /**
+     * Checks whether an index exists in this file.
+     *
+     * @param containerId The container to check.
+     */
     internal fun containsIndex(containerId: Int): Boolean {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         return ptr < fileChannel.size()
     }
 
-    val size get() = fileChannel.size()
-
     override fun close() =  fileChannel.close()
 }
 
+/**
+ * An index in an [IDXChannel].
+ *
+ * @property dataSize The size of the data of which the index points to.
+ * @property segmentNumber The relative position of this index compared to other index that point to the same file.
+ */
 internal data class Index(val dataSize: Int, val segmentNumber: Int) {
-    internal fun encode(): ByteBuffer {
+    /**
+     * Encodes the index.
+     */
+    internal fun encode(): ByteArray {
         val buffer = ByteBuffer.allocate(SIZE)
         buffer.putMedium(dataSize)
         buffer.putMedium(segmentNumber)
-        return buffer.flip()
+        return buffer.array()
     }
 
     companion object {
+        /**
+         * Byte size of the index.
+         */
         const val SIZE = 6
 
-        internal fun decode(buffer: ByteBuffer): Index {
+        /**
+         * Decodes an index.
+         *
+         * @param data The data to decode.
+         */
+        internal fun decode(data: ByteArray): Index {
+            val buffer = ByteBuffer.wrap(data)
             require(buffer.remaining() >= SIZE)
             val dataSize = buffer.uMedium
             val segmentPos = buffer.uMedium

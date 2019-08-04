@@ -21,13 +21,18 @@ import io.guthix.cache.js5.util.toEncodedChar
 import java.io.DataOutputStream
 import java.io.IOException
 
+/**
+ * Writes a tri-byte to the [DataOutputStream].
+ */
 fun DataOutputStream.writeMedium(value: Int): DataOutputStream {
-    require(value <= 16777215)
     writeShort((value shr 8))
     writeByte(value)
     return this
 }
 
+/**
+ * Writes a [Short] value if the data fits into a short, if not it writes an [Int] value.
+ */
 fun DataOutputStream.writeLargeSmart(value: Int): DataOutputStream {
     if(value <= Short.MAX_VALUE) {
         writeShort(value)
@@ -37,6 +42,10 @@ fun DataOutputStream.writeLargeSmart(value: Int): DataOutputStream {
     return this
 }
 
+/**
+ * Writes a [Short] value if the data fits into a short, if not it writes an [Int] value. If the value is null it writes
+ * -1 to the [DataOutputStream].
+ */
 fun DataOutputStream.writeNullableLargeSmart(value: Int?): DataOutputStream {
     when {
         value == Short.MAX_VALUE.toInt() || value == null -> writeShort(-1)
@@ -46,6 +55,9 @@ fun DataOutputStream.writeNullableLargeSmart(value: Int?): DataOutputStream {
     return this
 }
 
+/**
+ * Writes a [String] to the [DataOutputStream].
+ */
 fun DataOutputStream.writeString(string: String): DataOutputStream {
     string.forEach { char ->
         writeByte(toEncodedChar(char))
@@ -54,6 +66,9 @@ fun DataOutputStream.writeString(string: String): DataOutputStream {
     return this
 }
 
+/**
+ * Writes [Int] and [String] parameters to the [DataOutputStream].
+ */
 fun DataOutputStream.writeParams(params: HashMap<Int, Any>): DataOutputStream {
     writeByte(params.size)
     params.forEach { key, value ->

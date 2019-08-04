@@ -28,14 +28,14 @@ import java.nio.ByteBuffer
 class Js5GroupTest {
     @ParameterizedTest
     @MethodSource("testGroups")
-    fun `Encode and decode compare group`(group: Js5Group, segmentCount: Int, containerVersion: Int) {
+    fun `Encode and decode compare group`(group: Js5Group, segmentCount: Int) {
         val fileSettings = mutableMapOf<Int, Js5FileSettings>()
         group.files.forEach { (fileId, file) ->
             fileSettings[fileId] = Js5FileSettings(fileId, file.nameHash)
         }
         Assertions.assertEquals(group,
             Js5Group.decode(
-                group.encode(segmentCount, containerVersion),
+                group.encode(segmentCount),
                 Js5GroupSettings(
                     group.id,
                     group.nameHash,
@@ -53,21 +53,21 @@ class Js5GroupTest {
     companion object {
         @JvmStatic
         fun testGroups(): List<Arguments> {
-            val buffer1 = ByteBuffer.allocate(8).apply {
+            val data1 = ByteBuffer.allocate(8).apply {
                 put(8)
                 put(3)
                 putShort(4)
                 putInt(8)
-            }.flip()
-            val buffer2 = ByteBuffer.allocate(8).apply {
+            }.array()
+            val data2 = ByteBuffer.allocate(8).apply {
                 put(20)
                 put(0)
                 putShort(24854)
                 putInt(93432)
-            }.flip()
+            }.array()
             val encodeData = mapOf(
-                1 to Js5Group.File(buffer1, null),
-                2 to Js5Group.File(buffer2, null)
+                1 to Js5Group.File(null, data1),
+                2 to Js5Group.File(null, data2)
             )
             return listOf(
                 Arguments.of( // group = 1 test
@@ -81,8 +81,7 @@ class Js5GroupTest {
                         version = 10,
                         files = encodeData
                     ),
-                    1, // groupCount
-                    1 // containerVersion
+                    1 // groupCount
                 ),
                 Arguments.of( // group = 8 test
                     Js5Group(
@@ -95,8 +94,7 @@ class Js5GroupTest {
                         version = 10,
                         files = encodeData
                     ),
-                    8, // groupCount
-                    1 // containerVersion
+                    8 // groupCount
                 ),
                 Arguments.of( // version = -1 test
                     Js5Group(
@@ -109,8 +107,7 @@ class Js5GroupTest {
                         version = 10,
                         files = encodeData
                     ),
-                    1, // groupCount
-                    -1 // containerVersion
+                    1 // groupCount
                 )
             )
         }

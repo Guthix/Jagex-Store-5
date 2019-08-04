@@ -19,11 +19,28 @@ package io.guthix.cache.js5
 
 import io.guthix.cache.js5.io.getUByte
 import io.guthix.cache.js5.io.splitOf
-import io.guthix.cache.js5.container.Container
-import java.nio.Buffer
+import io.guthix.cache.js5.container.Js5Container
 
 import java.nio.ByteBuffer
 
+/**
+ * A collection of [File]s that can be read from a cache.
+ *
+ * A [Js5Group] is a collection of [File]s where each file is accompanied an ID. The [Js5Group] group also has its own
+ * ID. Multiple [Js5Group]s can form an archive. The [Js5Group] is the smallest set of files that can be read/written
+ * from/to the cache and can be encoded/decoded from/to a [Js5Container]. Thus a request for a single file in the
+ * [Js5Group] requires the whole group to be read. Each [Js5Group] can also contain other meta-data that is loaded from
+ * the [Js5GroupSettings].
+ *
+ * @property id The unique identifier in the archive of this group.
+ * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
+ * @property crc The [java.util.zip.CRC32] value of the encoded [Js5Group] data.
+ * @property unknownHash (Optional) Its purpose and type is unknown as of yet.
+ * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
+ * @property sizes (Optional) The [Js5GroupSettings.Size] of this [Js5Group].
+ * @property version The version of this group.
+ * @property files The [File]s in a map, indexed by their [id].
+ */
 data class Js5Group(
     val id: Int,
     val nameHash: Int?,
@@ -34,13 +51,22 @@ data class Js5Group(
     val version: Int,
     val files: Map<Int, File>
 ) {
-    internal fun encode(chunkCount: Int = 1, containerVersion: Int = -1): Container {
+    /**
+     * Encodes a [Js5Group] into a [Js5Container]. If the [Js5Group] contains a single file the data of that file will
+     * be used as the [Js5Group] encoding. If the [Js5Group] contains more than 1 file the files can be split up in
+     * chunks of data.
+     *
+     * @see [decode] for doing the reverse operation.
+     *
+     * @param chunkCount The amount of chunks used to split the files when there is more than 1 file.
+     */
+    fun encode(chunkCount: Int = 1): Js5Container {
         if(files.values.size == 1) {
-            return Container(containerVersion, files.values.first().data)
+            return Js5Container(version, files.values.first().data)
         }
         val fileBuffers = files.values.map { it.data }.toTypedArray()
         val buffer = ByteBuffer.allocate(
-            fileBuffers.sumBy { it.limit() } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
+            fileBuffers.sumBy { it.size } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
         )
         val chunks = splitIntoChunks(fileBuffers, chunkCount)
         for(group in chunks) {
@@ -49,23 +75,29 @@ data class Js5Group(
             }
         }
         for(group in chunks) {
-            var lastWrittenSize = group[0].limit()
+            var lastWrittenSize = group[0].size
             buffer.putInt(lastWrittenSize)
             for(i in 1 until group.size) {
-                buffer.putInt(group[i].limit() - lastWrittenSize) // write delta
-                lastWrittenSize = group[i].limit()
+                buffer.putInt(group[i].size - lastWrittenSize) // write delta
+                lastWrittenSize = group[i].size
             }
         }
         buffer.put(chunkCount.toByte())
-        return Container(containerVersion, buffer)
+        return Js5Container(version, buffer.array())
     }
 
+    /**
+     * Splits a set of [ByteArray]s int [chunkCount] chunks.
+     *
+     * @param fileData The data do split
+     * @param chunkCount The amount of chunks to split the data into
+     */
     private fun splitIntoChunks(
-        fileBuffers: Array<ByteBuffer>,
-        groupCount: Int
-    ): Array<Array<ByteBuffer>> = Array(groupCount) { group ->
-        Array(fileBuffers.size) { file ->
-            fileBuffers[file].splitOf(group + 1, groupCount)
+        fileData: Array<ByteArray>,
+        chunkCount: Int
+    ): Array<Array<ByteArray>> = Array(chunkCount) { group ->
+        Array(fileData.size) { file ->
+            fileData[file].splitOf(group + 1, chunkCount)
         }
     }
 
@@ -93,24 +125,58 @@ data class Js5Group(
         result = 31 * result + (unknownHash ?: 0)
         result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
         result = 31 * result + (sizes?.hashCode() ?: 0)
-        result = 31 * result + version
+        result = 31 * result + (version)
         result = 31 * result + files.hashCode()
         return result
     }
 
-    data class File(val data: ByteBuffer, val nameHash: Int?)
+    /**
+     * The smallest data unit in a [Js5Cache]. Each file contains data and optionally has a [nameHash].
+     *
+     * @property nameHash (Optional) The unique string identifier in the [Js5Group] stored as a [java.lang.String.hashCode].
+     * @property data The data of the file.
+     */
+    data class File(val nameHash: Int?, val data: ByteArray) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as File
+
+            if (nameHash != other.nameHash) return false
+            if (!data.contentEquals(other.data)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = nameHash ?: 0
+            result = 31 * result + data.contentHashCode()
+            return result
+        }
+    }
 
     companion object {
-        internal fun decode(container: Container, groupSettings: Js5GroupSettings): Js5Group {
+        /**
+         * Decodes a [Js5Container] into a [Js5Group]. If the [Js5Group] contains a single file the whole [Js5Container]
+         * data is used as [File] data. If the [Js5Group] contains more than 1 file the files could be split up in
+         * multiple chunks of data
+         *
+         * @see [encode] for doing the reverse operation.
+         *
+         * @param js5Container The container to decode from.
+         * @param groupSettings The [Js5GroupSettings] from the master index belonging to this group.
+         */
+        fun decode(js5Container: Js5Container, groupSettings: Js5GroupSettings): Js5Group {
             val fileBuffers = if(groupSettings.fileSettings.size == 1) {
-                arrayOf(container.data)
+                arrayOf(js5Container.data)
             } else {
-                decodeMultiFileContainer(container, groupSettings.fileSettings.size)
+                decodeMultiFileContainer(js5Container, groupSettings.fileSettings.size)
             }
             val files = mutableMapOf<Int, File>()
             var index = 0
-            groupSettings.fileSettings.forEach { fileId, attribute ->
-                files[fileId] = File(fileBuffers[index], attribute.nameHash)
+            groupSettings.fileSettings.forEach { (fileId, attribute) ->
+                files[fileId] = File(attribute.nameHash, fileBuffers[index])
                 index++
             }
             return Js5Group(
@@ -119,8 +185,14 @@ data class Js5Group(
             )
         }
 
-        internal fun decodeMultiFileContainer(container: Container, fileCount: Int): Array<ByteBuffer> {
-            val buffer = container.data
+        /**
+         * Decodes a [Js5Container] when the container contains multiple [File]s.
+         *
+         * @param js5Container The container to decode from.
+         * @param fileCount The amount of files to decode.
+         */
+        private fun decodeMultiFileContainer(js5Container: Js5Container, fileCount: Int): Array<ByteArray> {
+            val buffer = ByteBuffer.wrap(js5Container.data)
             val fileSizes = IntArray(fileCount)
             val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
             val chunkFileSizes = Array(chunkCount) { IntArray(fileCount) }
@@ -147,8 +219,7 @@ data class Js5Group(
                     buffer.position(buffer.position() + groupFileSize)
                 }
             }
-            fileData.forEach { (it as Buffer).flip() as ByteBuffer }
-            return fileData
+            return fileData.map { it.array() }.toTypedArray()
         }
     }
 }

@@ -33,10 +33,10 @@ class Js5FileSystemTest {
         Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
-            }.flip()
+            }.array()
             fs.write(0, 1, dataToWrite)
             val readData = fs.read(0, 1)
-            assertEquals(dataToWrite.flip(), readData)
+            assert(dataToWrite.contentEquals(readData))
         }
     }
 
@@ -45,14 +45,14 @@ class Js5FileSystemTest {
         Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
-            }.flip()
+            }.array()
             val dataToOverWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put((2 * it).toByte())}
-            }.flip()
+            }.array()
             fs.write(0, 1, dataToWrite)
             fs.write(0, 1, dataToOverWrite)
             val readData = fs.read(0, 1)
-            assertEquals(dataToOverWrite.flip(), readData)
+            assert(dataToOverWrite.contentEquals(readData))
         }
     }
 
@@ -61,7 +61,7 @@ class Js5FileSystemTest {
         Js5FileSystem(cacheDir).use { fs ->
             val dataToWrite = ByteBuffer.allocate(20).apply {
                 repeat(20) { put(it.toByte())}
-            }.flip()
+            }.array()
             Assertions.assertThrows(IOException::class.java) {
                 fs.write(1, 1, dataToWrite)
             }

@@ -17,22 +17,45 @@
  */
 package io.guthix.cache.js5.container.filesystem
 
-import io.guthix.cache.js5.container.ContainerReaderWriter
 import mu.KotlinLogging
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
-import java.nio.ByteBuffer
+import io.guthix.cache.js5.container.Js5ContainerReaderWriter
+import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.Js5Group
+import io.guthix.cache.js5.Js5ArchiveSettings
 
 private val logger = KotlinLogging.logger {}
 
-class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
+/**
+ * A JS5 filesystem on disk for reading [Js5Container]s.
+ *
+ * Each filesystem contains of 1 data file 0 or more archive index files and a master index. The actually data is stored
+ * in the data file. The index files serve as pointers to data in the data file. The master index is a special index
+ * pointing to meta data of archives. The archive indices should be sequentially numbered starting from 0.
+ *
+ * @property directory root directory where the files are stored.
+ */
+class Js5FileSystem(private val directory: File) : Js5ContainerReaderWriter {
+    /**
+     * The data channel where all the data is stored.
+     */
     private val dataChannel: Dat2Channel
 
+    /**
+     * The archive index channels where pointers are stored to [Js5Group] data.
+     */
     private val archiveIndexChannels: MutableList<IDXChannel> = mutableListOf()
 
+    /**
+     * The master index channel where pointers to [Js5ArchiveSettings] are stored.
+     */
     private val masterIndexChannel: IDXChannel
 
+    /**
+     * The amount of archives in this filesystem.
+     */
     override val archiveCount get() = archiveIndexChannels.size
 
     init {
@@ -80,7 +103,13 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
         )
     }
 
-    override fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+    /**
+     * Reads container data from the filesystem.
+     *
+     * @param indexFileId The index file to read from.
+     * @param containerId The container to read.
+     */
+    override fun read(indexFileId: Int, containerId: Int): ByteArray {
         logger.info("Reading index file $indexFileId container $containerId")
         if((indexFileId < 0 || indexFileId >= archiveIndexChannels.size) && indexFileId != MASTER_INDEX) {
             throw IOException("Index file does not exist.")
@@ -90,10 +119,16 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
         } else {
             archiveIndexChannels[indexFileId].read(containerId)
         }
-        return dataChannel.read(indexFileId, index, containerId)
+        return dataChannel.read(indexFileId, containerId, index)
     }
 
-    override fun write(indexFileId: Int, containerId: Int, data: ByteBuffer) {
+    /**
+     * Writes container data to the filesystem.
+     *
+     * @param indexFileId The index file id to write to.
+     * @param containerId The container id to write to.
+     */
+    override fun write(indexFileId: Int, containerId: Int, data: ByteArray) {
         logger.info("Writing index file $indexFileId container $containerId")
         if(indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {
             if(indexFileId == archiveIndexChannels.size) {
@@ -119,7 +154,7 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
         } else {
             (dataChannel.size / Segment.SIZE).toInt()
         }
-        val index = Index(data.limit(), firstSegmentPos)
+        val index = Index(data.size, firstSegmentPos)
         indexChannel.write(containerId, index)
         dataChannel.write(indexFileId, containerId, index, data)
     }
@@ -131,10 +166,29 @@ class Js5FileSystem(private val directory: File) : ContainerReaderWriter {
     }
 
     companion object {
+        /**
+         * The accessMode for the file channels.
+         */
         private const val accessMode = "rw"
+
+        /**
+         * The data file extensions.
+         */
         private const val DAT2_FILE_EXTENSION = "dat2"
+
+        /**
+         * The index file extensions.
+         */
         private const val IDX_FILE_EXTENSION = "idx"
+
+        /**
+         * The default cache file name.
+         */
         private const val FILE_NAME = "main_file_cache"
+
+        /**
+         * The master index.
+         */
         const val MASTER_INDEX = 255
     }
 }

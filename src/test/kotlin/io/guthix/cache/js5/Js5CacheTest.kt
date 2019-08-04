@@ -36,9 +36,15 @@ class Js5CacheTest {
     @Test
     fun `Read write compare group with non sequential file ids`(@TempDir cacheDir: File) {
         val nonSeqTestFiles = mapOf(
-            1 to Js5Group.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
-            6 to Js5Group.File(ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
-            10 to Js5Group.File(ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }, null)
+            1 to Js5Group.File(null,
+                ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }.array()
+            ),
+            6 to Js5Group.File(null,
+                ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }.array()
+            ),
+            10 to Js5Group.File(null,
+                ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }.array()
+            )
         )
         readWriteTest(cacheDir, nonSeqTestFiles)
     }
@@ -46,17 +52,18 @@ class Js5CacheTest {
     @Test
     fun `Read write compare group with named archive and files`(@TempDir cacheDir: File) {
         val seqNameTestFiles = mapOf(
-            1 to Js5Group.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} },
-                "SeqTest1".hashCode()
+            1 to Js5Group.File("SeqTest1".hashCode(),
+                ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }.array()
             ),
-            2 to Js5Group.File(ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} },
-                "SeqTest2".hashCode()
+            2 to Js5Group.File("SeqTest2".hashCode(),
+                ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }.array()
+
             ),
-            3 to Js5Group.File(ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} },
-                "SeqTest3".hashCode()
+            3 to Js5Group.File("SeqTest3".hashCode(),
+                ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }.array()
             )
         )
-        readWriteTest(cacheDir, seqNameTestFiles, nameHash = "Hello World!".hashCode())
+        readWriteTest(cacheDir, seqNameTestFiles, nameHash = "SeqTest0".hashCode())
     }
 
     @Test
@@ -67,12 +74,12 @@ class Js5CacheTest {
 
     @Test
     fun `Read write compare group with manually providing versions`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles, groupVersion = 3, archiveSettingsVersion = 8)
+        readWriteTest(cacheDir, testFiles, groupVersion = 3, archiveVersion = 8)
     }
 
     @Test
     fun `Read write compare group with manually providing container versions`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles, groupContainerVersion = 3)
+        readWriteTest(cacheDir, testFiles)
     }
 
     @Test
@@ -104,46 +111,50 @@ class Js5CacheTest {
         nameHash: Int? = null,
         groupSegmentCount: Int = 1,
         groupVersion: Int = -1,
-        archiveSettingsVersion: Int = -1,
-        groupContainerVersion: Int = -1,
+        archiveVersion: Int = -1,
         groupXteaKey: IntArray = XTEA_ZERO_KEY,
         settingsXteaKey: IntArray = XTEA_ZERO_KEY,
         groupJs5Compression: Js5Compression = Js5Compression.NONE,
         settingsJs5Compression: Js5Compression = Js5Compression.NONE
     ) {
-        val archiveBuffer = ByteBuffer.allocate(filesToWrite.values.sumBy { it.data.limit() })
+        val archiveBuffer = ByteBuffer.allocate(filesToWrite.values.sumBy { it.data.size })
         filesToWrite.values.map { it.data }.forEach { archiveBuffer.put(it) }
-        val archive = Js5Group(
+        val group = Js5Group(
             groupId,
             nameHash,
-            archiveBuffer.crc(),
+            archiveBuffer.array().crc(),
             null,
-            whirlPoolHash(archiveBuffer.array()),
+            archiveBuffer.array().whirlPoolHash(),
             Js5GroupSettings.Size(0, archiveBuffer.limit()),
             groupVersion,
             filesToWrite
         )
         val fs = Js5FileSystem(cacheDir)
-        Js5Cache(readerWriter = fs).use { cache ->
+        Js5Cache(readerWriterJs5 = fs).use { cache ->
             cache.writeGroup(
-                archiveId, archive, groupSegmentCount, archiveSettingsVersion, groupContainerVersion, groupXteaKey,
-                settingsXteaKey, groupJs5Compression, settingsJs5Compression
+                archiveId, archiveVersion, group, groupSegmentCount, groupXteaKey, settingsXteaKey, groupJs5Compression,
+                settingsJs5Compression
             )
         }
         val fs2 = Js5FileSystem(cacheDir) // need to create a new filesystem because fs closed
         // create new cache to remove settings from memory and read them in again
-        Js5Cache(readerWriter = fs2, settingsXtea = mutableMapOf(archiveId to settingsXteaKey)).use { cache ->
+        Js5Cache(readerWriterJs5 = fs2, settingsXtea = mutableMapOf(archiveId to settingsXteaKey)).use { cache ->
             val readArchive = cache.readGroup(archiveId, groupId, groupXteaKey)
-            archive.files.values.forEach { it.data.flip() }
-            assertEquals(archive, readArchive)
+            assertEquals(group, readArchive)
         }
     }
 
     companion object {
         private val testFiles = mapOf(
-            1 to Js5Group.File(ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }, null),
-            2 to Js5Group.File(ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }, null),
-            3 to Js5Group.File(ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }, null)
+            1 to Js5Group.File(null,
+                ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }.array()
+            ),
+            2 to Js5Group.File(null,
+                ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }.array()
+            ),
+            3 to Js5Group.File(null,
+                ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }.array()
+            )
         )
     }
 }

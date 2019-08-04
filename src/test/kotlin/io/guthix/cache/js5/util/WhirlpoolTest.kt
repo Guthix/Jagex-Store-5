@@ -28,7 +28,7 @@ class WhirlpoolTest {
     @ParameterizedTest
     @MethodSource("hashTestArgs")
     fun `Whirlpoool hash`(string: String, expededHash: String) {
-        val hash1 = whirlPoolHash(string.toByteArray())
+        val hash1 = string.toByteArray().whirlPoolHash()
         val expecedHash =  Hex.decode(expededHash)
         assert(hash1.contentEquals(expecedHash))
     }

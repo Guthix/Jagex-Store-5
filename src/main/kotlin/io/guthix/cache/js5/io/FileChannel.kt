@@ -21,12 +21,18 @@ import java.io.EOFException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
+/**
+ * Reads from the [FileChannel] until the [buffer] is full.
+ *
+ * @param buffer The buffer to write to.
+ * @param ptr The position in the [FileChannel] to start reading.
+ */
 fun FileChannel.readFully(buffer: ByteBuffer, ptr: Long) {
     var pointer = ptr
     while (buffer.remaining() > 0) {
         val read = read(buffer, pointer).toLong()
         if (read < -1) {
-            throw EOFException()
+            throw EOFException("Reached the end of the file while the buffer is still not full.")
         } else {
             pointer += read
         }

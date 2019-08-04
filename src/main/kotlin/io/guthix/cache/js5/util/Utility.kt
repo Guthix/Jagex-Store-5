@@ -24,29 +24,53 @@ import java.security.MessageDigest
 import java.security.Security
 import java.util.zip.CRC32
 
-fun ByteBuffer.crc(): Int {
+/**
+ * Calculates the [java.util.zip.CRC32] of a [ByteArray].
+ */
+fun ByteArray.crc(): Int {
     val crc = CRC32()
-    crc.update(array())
+    crc.update(this)
     return crc.value.toInt()
 }
 
-internal const val WP_HASH_BYTE_COUNT = 64
+/**
+ * The amount of bytes in a whirlpool hash.
+ */
+internal const val WHIRLPOOL_HASH_SIZE = 64
 
-internal fun whirlPoolHash(data: ByteArray): ByteArray {
+/**
+ * Calculates the whirlpool hash for a [ByteArray].
+ */
+internal fun ByteArray.whirlPoolHash(): ByteArray {
     Security.addProvider(BouncyCastleProvider())
-    return MessageDigest.getInstance("Whirlpool").digest(data)
+    return MessageDigest.getInstance("Whirlpool").digest(this)
 }
 
+/**
+ * The amount of [Int] keys in a XTEA key.
+ */
 const val XTEA_KEY_SIZE = 4
 
+/**
+ * An XTEA key filled with 0s.
+ */
 val XTEA_ZERO_KEY = IntArray(XTEA_KEY_SIZE)
 
+/**
+ * The XTEA golden ratio.
+ */
 private const val XTEA_GOLDEN_RATIO = -0x61c88647
 
+/**
+ * Amount of encryption rounds.
+ */
 private const val XTEA_ROUNDS = 32
 
+/**
+ * XTEA encrypts a [ByteBuffer].
+ */
 @Suppress("MagicNumber")
-internal fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteBuffer {
+internal fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteArray {
     require(key.size == XTEA_KEY_SIZE)
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
@@ -61,9 +85,13 @@ internal fun ByteBuffer.xteaEncrypt(key: IntArray, start: Int, end: Int): ByteBu
         putInt(start + i * 8, v0)
         putInt(start + i * 8 + 4, v1)
     }
-    return this
+    return array()
 }
 
+
+/**
+ * XTEA decrypts a [ByteBuffer].
+ */
 @Suppress("INTEGER_OVERFLOW")
 internal fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = limit()): ByteBuffer {
     require(key.size == XTEA_KEY_SIZE)
@@ -83,13 +111,22 @@ internal fun ByteBuffer.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = li
     return this
 }
 
+/**
+ * Textbook/Plain RSA encryption/decryption.
+ */
 internal fun rsaCrypt(data: ByteArray, mod: BigInteger, key: BigInteger) =
     BigInteger(data).modPow(key, mod).toByteArray()
 
+/**
+ * Custom character set used in the RuneTek engine.
+ */
 val charset = charArrayOf('€', '\u0000', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u0000',
     'Ž', '\u0000', '\u0000', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u0000', 'ž', 'Ÿ'
 )
 
+/**
+ * Rounds a value to the next power of 2.
+ */
 fun nextPowerOfTwo(value: Int): Int {
     var result = value
     --result
@@ -101,6 +138,9 @@ fun nextPowerOfTwo(value: Int): Int {
     return result + 1
 }
 
+/**
+ * Transform a character to a character used in the RuneTek engine.
+ */
 fun toJagexChar(char: Int): Char = if (char in 128..159) {
     var curChar = charset[char - 128]
     if (curChar.toInt() == 0) {
@@ -111,6 +151,9 @@ fun toJagexChar(char: Int): Char = if (char in 128..159) {
     char.toChar()
 }
 
+/**
+ * Transform a character from the RuneTek engine to an encoded character.
+ */
 fun toEncodedChar(char: Char): Int = if(charset.contains(char)) {
     if(char.toInt() == 63) {
         128

@@ -17,7 +17,7 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.util.WP_HASH_BYTE_COUNT
+import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
@@ -58,14 +58,14 @@ class Js5CacheChecksumTest {
                             version = 1,
                             fileCount = 0,
                             size = 12,
-                            whirlpoolDigest = ByteArray(WP_HASH_BYTE_COUNT)
+                            whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE)
                         ),
                         ArchiveChecksum(
                             crc = 3331,
                             version = 3,
                             fileCount = 3,
                             size = 12,
-                            whirlpoolDigest = ByteArray(WP_HASH_BYTE_COUNT)
+                            whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE)
                         )
                     )
                 ),

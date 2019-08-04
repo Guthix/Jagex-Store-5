@@ -21,17 +21,29 @@ import io.guthix.cache.js5.io.largeSmart
 import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.io.uShort
 import io.guthix.cache.js5.io.writeLargeSmart
-import io.guthix.cache.js5.container.Container
-import io.guthix.cache.js5.util.WP_HASH_BYTE_COUNT
+import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.nio.ByteBuffer
+import kotlin.math.abs
 
+/**
+ * The settings for an Archive.
+ *
+ * Archive settings are stored in the master index(.idx255) and contain meta-data about archives.
+ *
+ * @property version (Optional) The version of the archive settings.
+ * @property js5GroupSettings A map of [Js5GroupSettings] indexed by their id.
+ */
 data class Js5ArchiveSettings(
-    var version: Int,
+    var version: Int?,
     val js5GroupSettings: MutableMap<Int, Js5GroupSettings>
 ) {
-    fun encode(): Container {
+    /**
+     * Encodes the [Js5ArchiveSettings] into a [Js5Container].
+     */
+    fun encode(): Js5Container {
         val byteStr = ByteArrayOutputStream()
         DataOutputStream(byteStr).use { os ->
             val format = if(this.version == -1) {
@@ -44,7 +56,7 @@ data class Js5ArchiveSettings(
                 }
             }
             os.writeByte(format.opcode)
-            if(format != Format.UNVERSIONED) os.writeInt(this.version)
+            if(format != Format.UNVERSIONED) os.writeInt(this.version!!)
             var flags = 0
             val hasNameHashes = js5GroupSettings.values.any { attr ->
                 attr.nameHash != null || attr.fileSettings.values.any { file -> file.nameHash != null }
@@ -64,7 +76,7 @@ data class Js5ArchiveSettings(
             }
             var prevArchiveId = 0
             for(id in js5GroupSettings.keys) {
-                val delta = Math.abs(prevArchiveId - id)
+                val delta = abs(prevArchiveId - id)
                 if(format == Format.VERSIONEDLARGE) os.writeLargeSmart(delta) else os.writeShort(delta)
                 prevArchiveId = id
             }
@@ -77,7 +89,7 @@ data class Js5ArchiveSettings(
             }
             if(hasWhirlPoolHashes) {
                 for(attr in js5GroupSettings.values) {
-                    os.write(attr.whirlpoolHash ?: ByteArray(WP_HASH_BYTE_COUNT))
+                    os.write(attr.whirlpoolHash ?: ByteArray(WHIRLPOOL_HASH_SIZE))
                 }
             }
             if(hasSizes) {
@@ -99,7 +111,7 @@ data class Js5ArchiveSettings(
             for(attr in js5GroupSettings.values) {
                 var prevFileId = 0
                 for(id in attr.fileSettings.keys) {
-                    val delta = Math.abs(prevFileId - id)
+                    val delta = abs(prevFileId - id)
                     if(format == Format.VERSIONEDLARGE) {
                         os.writeLargeSmart(delta)
                     } else {
@@ -116,9 +128,14 @@ data class Js5ArchiveSettings(
                 }
             }
         }
-        return Container(-1, ByteBuffer.wrap(byteStr.toByteArray())) // container version is always -1
+        return Js5Container(-1, byteStr.toByteArray()) // container version is always -1
     }
 
+    /**
+     * Different types of [Js5ArchiveSettings]
+     *
+     * @property opcode The opcode used to encode the format.
+     */
     enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONEDLARGE(7) }
 
     companion object {
@@ -127,12 +144,15 @@ data class Js5ArchiveSettings(
         private const val MASK_SIZES = 0x04
         private const val MASK_UNKNOWN_HASH = 0x08
 
-        fun decode(container: Container): Js5ArchiveSettings {
-            val buffer = container.data
+        /**
+         * Decodes the [Js5Container] into a [Js5ArchiveSettings].
+         */
+        fun decode(js5Container: Js5Container): Js5ArchiveSettings {
+            val buffer = ByteBuffer.wrap(js5Container.data)
             val formatOpcode = buffer.uByte.toInt()
             val format = Format.values().find { it.opcode == formatOpcode }
             require(format != null)
-            val version = if (format == Format.UNVERSIONED) 0 else buffer.int
+            val version = if (format == Format.UNVERSIONED) null else buffer.int
             val flags = buffer.uByte.toInt()
             val groupCount = if (format == Format.VERSIONEDLARGE) buffer.largeSmart else buffer.uShort.toInt()
             val groupIds = IntArray(groupCount)
@@ -151,7 +171,7 @@ data class Js5ArchiveSettings(
                 buffer.int
             } else null
             val groupWhirlpoolHashes = if (flags and MASK_WHIRLPOOL_HASH != 0) Array(groupCount) {
-                ByteArray(WP_HASH_BYTE_COUNT) { buffer.get() }
+                ByteArray(WHIRLPOOL_HASH_SIZE) { buffer.get() }
             } else null
             val groupSizes = if(flags and MASK_SIZES != 0) Array(groupCount) {
                 Js5GroupSettings.Size(compressed = buffer.int, uncompressed = buffer.int)
@@ -203,6 +223,21 @@ data class Js5ArchiveSettings(
     }
 }
 
+/**
+ * The settings for a [Js5Group].
+ *
+ * The [Js5GroupSettings] contain meta-data about [Js5Group]s. The [Js5GroupSettings] are encoded in the
+ * [Js5ArchiveSettings].
+ *
+ * @property id The unique identifier in the archive of this group.
+ * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
+ * @property crc The [java.util.zip.CRC32] value of the encoded [Js5Group] data.
+ * @property unknownHash (Optional) Its purpose and type is unknown as of yet.
+ * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
+ * @property sizes (Optional) The [Js5GroupSettings.Size] of this [Js5Group].
+ * @property version The version of this group.
+ * @property fileSettings The [Js5FileSettings] for each file in a map indexed by their id.
+ */
 data class Js5GroupSettings(
     val id: Int,
     val nameHash: Int?,
@@ -245,7 +280,19 @@ data class Js5GroupSettings(
         return result
     }
 
+    /**
+     * The [compressed] and [uncompressed] sizes of a [Js5Group].
+     *
+     * @property compressed The compressed size of a [Js5Group].
+     * @property uncompressed The uncompressed size of a [Js5Group].
+     */
     data class Size(var compressed: Int, var uncompressed: Int)
 }
 
+/**
+ * The settings for a [Js5Group.File].
+ *
+ * @property id The unique identifier in the group of this file.
+ * @property nameHash (Optional) The unique string identifier in the group stored as a [java.lang.String.hashCode].
+ */
 data class Js5FileSettings(val id: Int, val nameHash: Int?)

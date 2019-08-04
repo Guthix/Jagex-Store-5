@@ -17,8 +17,8 @@
  */
 package io.guthix.cache.js5.container.net
 
-import io.guthix.cache.js5.container.Container
-import io.guthix.cache.js5.container.ContainerReader
+import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.container.Js5ContainerReader
 import io.guthix.cache.js5.container.filesystem.Segment
 import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.io.uInt
@@ -35,8 +35,14 @@ import kotlin.math.ceil
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Connection type used for establishing a JS5 connection.
+ */
 const val JS5_CONNECTION_TYPE: Byte = 15
 
+/**
+ * A Js5 request to the server.
+ */
 internal enum class Js5Request(val opcode: Int) {
     NORMAL_FILE_REQUEST(0),
     PRIORITY_FILE_REQUEST(1),
@@ -45,16 +51,27 @@ internal enum class Js5Request(val opcode: Int) {
     ENCRYPTION_KEY_UPDATE(4);
 }
 
-data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteBuffer)
+/**
+ * A file request response from the server.
+ */
+data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteArray)
 
-/** Do not use! This reader has not been tested and is not fully implemented yet. */
+/**
+ * A socket reader for reading [Js5Container]s.
+ *
+ * @param sockAddr Ine address to connect to.
+ * @param revision The current game version.
+ * @property xorKey XOR encryption key.
+ * @property priorityMode Whether to make priority file requests.
+ * @property archiveCount The amount of archives on the server.
+ */
 class Js5SocketReader(
     sockAddr: InetSocketAddress,
     revision: Int,
     private var xorKey: Byte = 0,
     var priorityMode: Boolean = false,
     override val archiveCount: Int
-) : ContainerReader {
+) : Js5ContainerReader {
     private val socketChannel = SocketChannel.open(sockAddr)
 
     init {
@@ -78,11 +95,20 @@ class Js5SocketReader(
         }
     }
 
-    override fun read(indexFileId: Int, containerId: Int): ByteBuffer {
+    /**
+     * Requests container data and blocks until the response arrives.
+     *
+     * @param indexFileId The index to request.
+     * @param containerId the container to request.
+     */
+    override fun read(indexFileId: Int, containerId: Int): ByteArray {
         sendFileRequest(indexFileId, containerId, priorityMode)
         return readFileResponse().data
     }
 
+    /**
+     * Reads the file response and blocks until it has been completely read.
+     */
     fun readFileResponse(): FileResponse {
         var headerBuffer = ByteBuffer.allocate(8)
         while(headerBuffer.remaining() > 0) {
@@ -96,7 +122,7 @@ class Js5SocketReader(
         val compressedSize = headerBuffer.uInt
 
         // Create container and add meta-data
-        val containerBuffer = ByteBuffer.allocate(Container.ENC_HEADER_SIZE + compression.headerSize + compressedSize)
+        val containerBuffer = ByteBuffer.allocate(Js5Container.ENC_HEADER_SIZE + compression.headerSize + compressedSize)
         containerBuffer.put(compression.opcode.toByte())
         containerBuffer.putInt(compressedSize)
 
@@ -135,14 +161,24 @@ class Js5SocketReader(
             dataResponseBuffer.position(start + blockDataSize)
             i++
         }
-        return FileResponse(indexFileId, containerId, containerBuffer.flip())
+        return FileResponse(indexFileId, containerId, containerBuffer.array())
     }
 
+    /**
+     * Updates the XOR encryption key.
+     *
+     * @param key The key to update.
+     */
     fun updateEncryptionKey(key: Byte) {
         xorKey = key
         sendEncryptionKeyChange(key)
     }
 
+    /**
+     * Sends the request to change the encryption key to the server.
+     *
+     * @param key The key to update.
+     */
     private fun sendEncryptionKeyChange(key: Byte) {
         val buffer =ByteBuffer.allocate(REQUEST_PACKET_SIZE)
         buffer.put(Js5Request.ENCRYPTION_KEY_UPDATE.opcode.toByte())
@@ -152,6 +188,13 @@ class Js5SocketReader(
         socketChannel.write(buffer)
     }
 
+    /**
+     * Sends a file request to the server.
+     *
+     * @param indexFileId The index id to request.
+     * @param containerId The container id to request.
+     * @param priority Whether to send a priority request.
+     */
     fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
         logger.info("Requesting index file $indexFileId container $containerId")
         val buffer = ByteBuffer.allocate(REQUEST_PACKET_SIZE)
@@ -171,8 +214,19 @@ class Js5SocketReader(
     }
 
     companion object {
-        const val REQUEST_PACKET_SIZE = 4
+        /**
+         * Request packet size for any request.
+         */
+        private const val REQUEST_PACKET_SIZE = 4
+
+        /**
+         * Amount of bytes to read after decoding the header.
+         */
         private const val BYTES_AFTER_HEADER = Segment.DATA_SIZE - 8
+
+        /**
+         * Amount of bytes to read per block.
+         */
         private const val BYTES_AFTER_BLOCK = Segment.DATA_SIZE - 1
 
     }

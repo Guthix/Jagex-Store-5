@@ -19,14 +19,29 @@ package io.guthix.cache.js5.container.filesystem
 
 import io.guthix.cache.js5.io.*
 import java.io.IOException
-import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import io.guthix.cache.js5.container.Js5Container
 
+/**
+ * The data channel containing all cache data.
+ *
+ * @property fileChannel The [FileChannel] to read the data from.
+ */
 internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable {
+    /**
+     * The size of the file.
+     */
     val size get() = fileChannel.size()
 
-    internal fun read(indexFileId: Int, index: Index, containerId: Int): ByteBuffer {
+    /**
+     * Reads the container data.
+     *
+     * @param indexFileId The index file id the [index] came from.
+     * @param containerId The container file to read.
+     * @param index The [Index] to read.
+     */
+    internal fun read(indexFileId: Int, containerId: Int, index: Index): ByteArray {
         val data = ByteBuffer.allocate(index.dataSize)
         var segmentPart = 0
         var dataToRead = index.dataSize
@@ -45,10 +60,19 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
                 dataToRead = 0
             }
         } while (dataToRead > 0)
-        return (data as Buffer).flip() as ByteBuffer
+        return data.array()
     }
 
-    internal fun write(indexFileId: Int, containerId: Int, index: Index, buffer: ByteBuffer) {
+    /**
+     * Write the container data.
+     *
+     * @param indexFileId The index id to write.
+     * @param containerId The container id to write.
+     * @param index The [Index] to write.
+     * @param data The data to write.
+     */
+    internal fun write(indexFileId: Int, containerId: Int, index: Index, data: ByteArray) {
+        val buffer = ByteBuffer.wrap(data)
         val isExtended = Segment.isExtended(containerId)
         val segmentData = if(isExtended) {
             ByteArray(Segment.EXTENDED_DATA_SIZE)
@@ -88,25 +112,48 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
         } while (dataToWrite > 0)
     }
 
+    /**
+     * Checks if data exists at [ptr].
+     *
+     * @param ptr The position in the [fileChannel] the check.
+     */
     private fun containsSegment(ptr: Long) = ptr < fileChannel.size()
 
+    /**
+     * Reads a [Segment] from the [fileChannel].
+     *
+     * @param ptr The position to start reading.
+     */
     private fun readSegment(ptr: Long): Segment {
         val buffer = ByteBuffer.allocate(Segment.SIZE)
         fileChannel.readFully(buffer, ptr)
         return Segment.decode(buffer.flip())
     }
 
+    /**
+     * Writes a [Segment] to the [fileChannel].
+     *
+     * @param ptr The position to start writing.
+     * @param segment The segment to write.
+     */
     private fun writeSegment(ptr: Long, segment: Segment) {
         fileChannel.position(ptr)
         fileChannel.write(segment.encode())
     }
 
+    /**
+     * Validates if the segment data matches the expected data.
+     *
+     * @param indexFileId The expected index file id.
+     * @param containerId The expected container id.
+     * @param segmentPos The expected position compared to all other [Segment]s of the same [Js5Container] data.
+     */
     private fun Segment.validate(indexFileId: Int, containerId: Int, segmentPos: Int): Segment {
         if (this.indexFileId.toInt() != indexFileId) throw IOException(
             "Index id mismatch expected ${this.indexFileId} was $indexFileId."
         )
         if (this.containerId != containerId) throw IOException(
-            "Container id mismatch expected ${this.containerId} was $containerId."
+            "Js5Container id mismatch expected ${this.containerId} was $containerId."
         )
         if (this.position.toInt() != segmentPos) throw IOException(
             "Segment position mismatch expected ${this.position} was $segmentPos."
@@ -117,6 +164,14 @@ internal class Dat2Channel(private val fileChannel: FileChannel) : AutoCloseable
     override fun close() =  fileChannel.close()
 }
 
+/**
+ * A part of container data stored on disk.
+ *
+ * Container data is stored in multiple Segments on disk. Segments have a fixed size and have a header containing
+ * meta-data about the segment for validation. There are 2 types of segments: normal and extended. Compared to the
+ * normal segments the extended segments have a longer header because their ids are higher than what can be stored in an
+ * unsigned short.
+ */
 data class Segment(
     val indexFileId: UByte,
     val containerId: Int,
@@ -124,8 +179,16 @@ data class Segment(
     val nextSegmentNumber: Int,
     val data: ByteArray
 ) {
+    /**
+     * Whether this segment is extended.
+     */
     val isExtended get() = isExtended(containerId)
 
+    /**
+     * Encodes the segment.
+     *
+     * @param buffer The buffer to encode the segment to.
+     */
     internal fun encode(buffer: ByteBuffer = ByteBuffer.allocate(SIZE)): ByteBuffer {
         if (isExtended) {
             buffer.putInt(containerId)
@@ -162,18 +225,44 @@ data class Segment(
     }
 
     companion object {
+        /**
+         * Size of the header in bytes for a normal segment.
+         */
         const val HEADER_SIZE = 8
 
+        /**
+         * Size of the container data in bytes for a normal segment.
+         */
         const val DATA_SIZE = 512
 
+        /**
+         * Size of the container data in bytes for an extended segment.
+         */
         const val EXTENDED_DATA_SIZE = 510
 
+        /**
+         * Size of the header in bytes for an extended segment.
+         */
         const val EXTENDED_HEADER_SIZE = 10
 
+        /**
+         * Total size of a segment.
+         */
         const val SIZE = HEADER_SIZE + DATA_SIZE
 
+        /**
+         * Whether a segment should be an extended segment.
+         *
+         * @param containerId The container id to check.
+         */
         internal fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
 
+        /**
+         * Decodes a segment.
+         *
+         * @param containerId The container id belonging to the segment to decode.
+         * @param buffer The buffer to decode.
+         */
         internal fun decode(containerId: Int, buffer: ByteBuffer): Segment = if(isExtended(
                 containerId
             )
@@ -183,6 +272,11 @@ data class Segment(
             decode(buffer)
         }
 
+        /**
+         * Decodes a normal segment.
+         *
+         * @param buffer The buffer to decode.
+         */
         internal fun decode(buffer: ByteBuffer): Segment {
             val containerId = buffer.uShort.toInt()
             val position = buffer.uShort
@@ -199,6 +293,11 @@ data class Segment(
             )
         }
 
+        /**
+         * Decodes an extended segment.
+         *
+         * @param buffer The buffer to decode.
+         */
         internal fun decodeExtended(buffer: ByteBuffer): Segment {
             val containerId = buffer.int
             val position = buffer.uShort

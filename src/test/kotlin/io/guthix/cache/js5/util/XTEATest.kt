@@ -30,7 +30,7 @@ class XTEATest {
     @MethodSource("testBuffers")
     fun `Encrypt and decrypt compare data`(data: ByteBuffer, keySet: IntArray) {
         val encrypted = data.xteaEncrypt(keySet,0, data.limit())
-        val decrypted = encrypted.xteaDecrypt(keySet, 0, data.limit())
+        val decrypted = ByteBuffer.wrap(encrypted).xteaDecrypt(keySet, 0, data.limit())
         Assertions.assertEquals(data, decrypted)
     }
 

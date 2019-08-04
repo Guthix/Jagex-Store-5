@@ -21,23 +21,51 @@ import io.guthix.cache.js5.util.nextPowerOfTwo
 import io.guthix.cache.js5.util.toJagexChar
 import java.io.IOException
 import java.nio.ByteBuffer
+import kotlin.math.ceil
 
+/**
+ * Sets the [ByteBuffer.position] [amount] of positions forward for this [ByteBuffer].
+ */
 fun ByteBuffer.skip(amount: Int): ByteBuffer = position(position() + amount)
 
+/**
+ * Looks 1 [Byte] ahead without changing the [ByteBuffer.position] of this [ByteBuffer].
+ */
 fun ByteBuffer.peak() = get(position())
 
+/**
+ * Looks 1 [UByte] ahead without changing the [ByteBuffer.position] of this [ByteBuffer].
+ */
 fun ByteBuffer.uPeak() = getUByte(position())
 
+/**
+ * Gets an [UByte] at [pos] without changing the [ByteBuffer.position] of this [ByteBuffer].
+ */
 fun ByteBuffer.getUByte(pos: Int) = get(pos).toUByte()
 
+/**
+ * Reads an [UByte] from the buffer.
+ */
 val ByteBuffer.uByte get() = get().toUByte()
 
+/**
+ * Reads an [UShort] from the buffer.
+ */
 val ByteBuffer.uShort get() = short.toUShort()
 
+/**
+ * Gets an [UShort] at [pos] without changing the [ByteBuffer.position] of this [ByteBuffer].
+ */
 fun ByteBuffer.getUShort(pos: Int) = getShort(pos).toUShort()
 
+/**
+ * Reads an unsigned tri-byte from the buffer.
+ */
 val ByteBuffer.uMedium get() = (short.toUShort().toInt() shl 8) or get().toUByte().toInt()
 
+/**
+ * Reads a tri-byte from the buffer.
+ */
 val ByteBuffer.medium get() = (short.toInt() shl 8) or get().toUByte().toInt()
 
 fun ByteBuffer.putMedium(value: Int): ByteBuffer {
@@ -47,6 +75,9 @@ fun ByteBuffer.putMedium(value: Int): ByteBuffer {
     return this
 }
 
+/**
+ * Reads an unsigned integer from the buffer.
+ */
 val ByteBuffer.uInt get() = int and Int.MAX_VALUE
 
 val ByteBuffer.varInt get(): Int {
@@ -59,6 +90,9 @@ val ByteBuffer.varInt get(): Int {
     return result or size
 }
 
+/**
+ * Writes a [value] based on its size.
+ */
 fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
     if (value and -0x80 != 0) {
         if (value and -0x4000 != 0) {
@@ -76,24 +110,36 @@ fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
     return this
 }
 
+/**
+ * Read a small smart value.
+ */
 val ByteBuffer.smallSmart get() = if(uPeak().toInt() < 128) {
     (uByte.toInt() - 64).toUShort()
 } else {
     (uShort.toInt() - 49152).toUShort()
 }
 
+/**
+ * Read a small unsigned smart value.
+ */
 val ByteBuffer.smallUSmart get() = if(uPeak().toInt() < 128) {
     uByte.toUShort()
 } else {
     (uShort.toInt()- 32768).toUShort()
 }
 
+/**
+ * Read a large smart value.
+ */
 val ByteBuffer.largeSmart get() = if (peak() < 0) {
     uInt
 } else {
     uShort.toInt()
 }
 
+/**
+ * Read a nullable large smart value.
+ */
 val ByteBuffer.nullableLargeSmart get() = if (peak() < 0) {
     uInt
 } else {
@@ -101,6 +147,9 @@ val ByteBuffer.nullableLargeSmart get() = if (peak() < 0) {
     if(temp == Short.MAX_VALUE.toInt()) null else temp
 }
 
+/**
+ * Read a string.
+ */
 val ByteBuffer.string get(): String {
     val bldr = StringBuilder()
     var encodedByte: Int = uByte.toInt()
@@ -111,14 +160,24 @@ val ByteBuffer.string get(): String {
     return bldr.toString()
 }
 
+/**
+ * Read a nullable string.
+ */
 val ByteBuffer.nullableString get(): String? = if(peak().toInt() != 0) string else { get(); null }
 
+
+/**
+ * Read a prefixed string.
+ */
 val ByteBuffer.prefixedString get(): String = if(get().toInt() != 0) {
     throw IOException("Error reading prefixed string, first byte should be 0.")
 } else {
     string
 }
 
+/**
+ * Read params.
+ */
 val ByteBuffer.params get(): HashMap<Int, Any> {
     val amount = uByte.toInt()
     val params = HashMap<Int, Any>(nextPowerOfTwo(amount))
@@ -129,9 +188,16 @@ val ByteBuffer.params get(): HashMap<Int, Any> {
     return params
 }
 
-fun ByteBuffer.splitOf(index: Int, splits: Int): ByteBuffer {
-    val start = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * (index - 1)
-    var end = Math.ceil(limit().toDouble() / splits.toDouble()).toInt() * index
-    if(end > limit()) end = limit()
-    return ByteBuffer.wrap(array().sliceArray(start until end))
+/**
+ * Takes a segment from a [ByteArray]. The [ByteArray] is split into [splits] amount of segments ad the split at [index]
+ * is returned.
+ *
+ * @param index The index in 0 until [splits] to return.
+ * @param splits The amount of splits that should be considered.
+ */
+fun ByteArray.splitOf(index: Int, splits: Int): ByteArray {
+    val start = ceil(size.toDouble() / splits.toDouble()).toInt() * (index - 1)
+    var end = ceil(size.toDouble() / splits.toDouble()).toInt() * index
+    if(end > size) end = size
+    return sliceArray(start until end)
 }

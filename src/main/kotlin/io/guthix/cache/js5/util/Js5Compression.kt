@@ -27,7 +27,14 @@ import java.io.SequenceInputStream
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
+import io.guthix.cache.js5.container.Js5Container
 
+/**
+ * Various compression algorithms used in the [Js5Container] encoding.
+ *
+ * @property opcode The opcode used to encode the compression.
+ * @property headerSize The header size for using the compression type.
+ */
 enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
     NONE(opcode = 0u, headerSize = 0) {
         override fun compress(input: ByteArray) = input
@@ -99,11 +106,20 @@ enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
         }
     };
 
+    /**
+     * Compresses a [ByteArray].
+     */
     abstract fun compress(input: ByteArray): ByteArray
 
+    /**
+     * Decompresses a [ByteArray].
+     */
     abstract fun decompress(input: ByteArray, decompressedSize: Int): ByteArray
 
     companion object {
+        /**
+         * Gets the compression type by the [opcode].
+         */
         fun getByOpcode(opcode: Int) = values().first{ opcode == it.opcode.toInt() }
     }
 }
