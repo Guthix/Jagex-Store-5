@@ -42,7 +42,7 @@ private val logger = KotlinLogging.logger {}
 */
 open class Js5Cache(
     private val reader: Js5ContainerReader,
-    private val writer: Js5ContainerWriter,
+    private val writer: Js5ContainerWriter?,
     private val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
 ) : AutoCloseable {
     constructor(
@@ -161,6 +161,7 @@ open class Js5Cache(
         groupCompression: Js5Compression = Js5Compression.NONE,
         groupSettingsCompression: Js5Compression = Js5Compression.NONE
     ) {
+        if(writer == null) throw IllegalCallerException("There is no writer specified for this cache.")
         if(archiveId > writer.archiveCount) throw IOException(
             "Can not create archive with id $archiveId expected: ${writer.archiveCount}."
         )
@@ -199,7 +200,7 @@ open class Js5Cache(
         logger.info("Writing group data for group ${group.id} from archive $archiveId")
         val groupContainer = group.encode(groupChunkCount)
         val data = groupContainer.encode(compression, xteaKey)
-        writer.write(archiveId, group.id, data)
+        writer!!.write(archiveId, group.id, data)
         return data.size
     }
 
@@ -243,7 +244,7 @@ open class Js5Cache(
             group.version,
             fileSettings
         )
-        writer.write(
+        writer!!.write(
             Js5FileSystem.MASTER_INDEX,
             archiveId,
             archiveSettings.encode().encode(compression, xteaKey)
@@ -273,6 +274,8 @@ open class Js5Cache(
 
     override fun close() {
         reader.close()
-        writer.close()
+        if(writer != null) {
+            writer.close()
+        }
     }
 }
