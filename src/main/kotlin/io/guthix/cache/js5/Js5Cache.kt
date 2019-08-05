@@ -42,7 +42,7 @@ private val logger = KotlinLogging.logger {}
 */
 open class Js5Cache(
     private val reader: Js5ContainerReader,
-    private val writer: Js5ContainerWriter?,
+    private val writer: Js5ContainerWriter? = null,
     private val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
 ) : AutoCloseable {
     constructor(
