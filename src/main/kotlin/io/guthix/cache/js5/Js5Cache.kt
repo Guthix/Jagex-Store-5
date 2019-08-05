@@ -46,9 +46,9 @@ open class Js5Cache(
     private val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
 ) : AutoCloseable {
     constructor(
-        readerWriterJs5: Js5ContainerReaderWriter,
+        readerWriter: Js5ContainerReaderWriter,
         settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
-    ) : this(reader = readerWriterJs5,  writer = readerWriterJs5, settingsXtea = settingsXtea)
+    ) : this(reader = readerWriter,  writer = readerWriter, settingsXtea = settingsXtea)
 
     /**
      * The [Js5ArchiveSettings] for all the archives in this [Js5Cache].
