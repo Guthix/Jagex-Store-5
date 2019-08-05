@@ -49,7 +49,7 @@ data class Js5Group(
     val whirlpoolHash: ByteArray?,
     var sizes: Js5GroupSettings.Size?,
     val version: Int,
-    val files: Map<Int, File>
+    val files: MutableMap<Int, File>
 ) {
     /**
      * Encodes a [Js5Group] into a [Js5Container]. If the [Js5Group] contains a single file the data of that file will
