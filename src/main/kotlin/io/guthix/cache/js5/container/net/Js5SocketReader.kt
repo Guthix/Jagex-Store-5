@@ -59,6 +59,10 @@ data class FileResponse(val indexFileId: Int, val containerId: Int, val data: By
 /**
  * A socket reader for reading [Js5Container]s.
  *
+ * Theere are 2 types of file requests which can be send using the socket reader. Prioritised requests and normal
+ * requests. Prioritised file requests are used by the client for requesting files that are required to render the game.
+ * The server prioritizes priority file requests over normal file requests when responding to requests.
+ *
  * @param sockAddr Ine address to connect to.
  * @param revision The current game version.
  * @property xorKey XOR encryption key.
