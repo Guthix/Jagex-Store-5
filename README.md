@@ -1,7 +1,7 @@
 # Jagex Store 5
 [![Build Status](https://img.shields.io/travis/com/guthix/Jagex-Store-5?style=flat-square)](https://travis-ci.com/guthix/Jagex-Store-5)
 [![GitHub](https://img.shields.io/github/license/guthix/Jagex-Store-5?style=flat-square)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
-[![Lang](https://img.shields.io/badge/lang-Java%209%2B-blue?style=flat-square)]()
+[![JDK](https://img.shields.io/badge/JDK-Java%209%2B-blue?style=flat-square)]()
 
 A library for reading Jagex Store 5 (JS5) game files. Jagex Store 5 is a 
 protocol used for storing game assets in the Runetek game engine made by
@@ -71,7 +71,7 @@ a JS5 server. Writing to a JS5 server is not possible.
 Here we show some examples of how the library could be used.
 
 #### Changing a game asset file
-```
+```kotlin
 val cacheRoot = File("path to the folder where the cache is stored")
 val fs = Js5FileSystem(cacheRoot) // create filesystem
 val cache = Js5Cache(fs) // create cache object that can both read and write
@@ -82,7 +82,7 @@ cache.writeGroup(3, group = group) // write group with new asset data to the cac
 ```
 
 #### Reading a group from a remote server
-```
+```kotlin
 val sock = Js5SocketReader(
     sockAddr = InetSocketAddress(REMOTE_ADDRESS, PORT), // the address of the server
     priorityMode = true, // whether to send priority request
@@ -98,7 +98,7 @@ When reading groups from the `Js5Cache` API we lose some of the
 information about how the group is stored like compression and chunk 
 count. To avoid this it is also possible to read the raw data and store
 it back without decoding/encoding and decompressing/compressing the data.
-```
+```kotlin
 val sock = Js5SocketReader(
     sockAddr = InetSocketAddress(REMOTE_ADDRESS, PORT), // the address of the server
     priorityMode = true, // whether to send priority request
@@ -126,7 +126,7 @@ only sends the requests and then later calling the
 It is possible to search for groups and files by their name. Not every
 group and or file have names. If the group however has a name all the 
 files in that group should also have names.
-```
+```kotlin
 val cacheRoot = File("[path to the folder where the cache is stored]")
 val fs = Js5FileSystem(cacheRoot) // create filesystem
 val cache = Js5Cache(fs) // create cache object that can both read and write
