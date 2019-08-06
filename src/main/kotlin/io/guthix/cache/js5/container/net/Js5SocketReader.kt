@@ -126,7 +126,9 @@ class Js5SocketReader(
         val compressedSize = headerBuffer.uInt
 
         // Create container and add meta-data
-        val containerBuffer = ByteBuffer.allocate(Js5Container.ENC_HEADER_SIZE + compression.headerSize + compressedSize)
+        val containerBuffer = ByteBuffer.allocate(
+            Js5Container.ENC_HEADER_SIZE + compression.headerSize + compressedSize
+        )
         containerBuffer.put(compression.opcode.toByte())
         containerBuffer.putInt(compressedSize)
 

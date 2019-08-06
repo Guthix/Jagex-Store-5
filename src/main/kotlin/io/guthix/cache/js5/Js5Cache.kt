@@ -74,8 +74,8 @@ open class Js5Cache(
      *
      * @param indexId The index id to read. For reading groups the index id is equivalent to the archive id and for the
      * settings the index id is equivalent to the [Js5FileSystem.MASTER_INDEX].
-     * @param containerId The container id to read which is equivalent to the archive id for reading [Js5ArchiveSettings]
-     * data and the group id for reading [Js5Group] data.
+     * @param containerId The container id to read which is equivalent to the archive id for reading
+     * [Js5ArchiveSettings] data and the group id for reading [Js5Group] data.
      */
     open fun readData(indexId: Int, containerId: Int): ByteArray = reader.read(indexId, containerId)
 
@@ -149,7 +149,8 @@ open class Js5Cache(
      * @param groupXteaKey (Optional) The XTEA key for encoding the [Js5Container] for the [Js5Group].
      * @param groupSettingsXteaKey (Optional) The XTEA key for encoding the [Js5Container] for the [Js5GroupSettings].
      * @param groupCompression (Optional) The compression for encoding the [Js5Container] for the [Js5Group].
-     * @param groupSettingsCompression (Optional) The compression for encoding the [Js5Container] for the [Js5GroupSettings].
+     * @param groupSettingsCompression (Optional) The compression for encoding the [Js5Container] for the
+     * [Js5GroupSettings].
      */
     open fun writeGroup(
         archiveId: Int,

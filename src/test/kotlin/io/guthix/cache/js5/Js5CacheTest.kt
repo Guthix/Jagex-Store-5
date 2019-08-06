@@ -127,7 +127,7 @@ class Js5CacheTest {
             archiveBuffer.array().whirlPoolHash(),
             Js5GroupSettings.Size(0, archiveBuffer.limit()),
             groupVersion,
-            filesToWrite
+            filesToWrite.toMutableMap()
         )
         val fs = Js5FileSystem(cacheDir)
         Js5Cache(readerWriter = fs).use { cache ->

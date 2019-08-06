@@ -65,7 +65,7 @@ class Js5GroupTest {
                 putShort(24854)
                 putInt(93432)
             }.array()
-            val encodeData = mapOf(
+            val encodeData = mutableMapOf(
                 1 to Js5Group.File(null, data1),
                 2 to Js5Group.File(null, data2)
             )

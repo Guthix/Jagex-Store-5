@@ -133,7 +133,8 @@ data class Js5Group(
     /**
      * The smallest data unit in a [Js5Cache]. Each file contains data and optionally has a [nameHash].
      *
-     * @property nameHash (Optional) The unique string identifier in the [Js5Group] stored as a [java.lang.String.hashCode].
+     * @property nameHash (Optional) The unique string identifier in the [Js5Group] stored as a
+     * [java.lang.String.hashCode].
      * @property data The data of the file.
      */
     data class File(val nameHash: Int?, val data: ByteArray) {
