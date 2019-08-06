@@ -131,7 +131,7 @@ val cacheRoot = File("[path to the folder where the cache is stored]")
 val fs = Js5FileSystem(cacheRoot) // create filesystem
 val cache = Js5Cache(fs) // create cache object that can both read and write
 val group = cache.readGroup(3, "group name") // read "group name" from archive 3
-val fileData = group.files.values.first { it.nameHash == "file name here".hashCode() } // search for file called "file name here"
+val fileData = group.files.values.first { it.nameHash == "file name here".hashCode() } // search file by name
 ```
 
 ## Group and file names
