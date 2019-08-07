@@ -39,7 +39,7 @@ private val logger = KotlinLogging.logger {}
  * @property reader The container reader.
  * @property writer The container writer.
  * @property settingsXtea (Optional) XTEA keys for decrypting the [Js5ArchiveSettings].
-*/
+ */
 open class Js5Cache(
     private val reader: Js5ContainerReader,
     private val writer: Js5ContainerWriter? = null,
