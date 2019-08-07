@@ -114,9 +114,9 @@ fun ByteBuffer.putVarInt(value: Int): ByteBuffer {
  * Read a small smart value.
  */
 val ByteBuffer.smallSmart get() = if(uPeak().toInt() < 128) {
-    (uByte.toInt() - 64).toUShort()
+    (uByte.toInt() - 64).toShort()
 } else {
-    (uShort.toInt() - 49152).toUShort()
+    (uShort.toInt() - 49152).toShort()
 }
 
 /**
