@@ -58,24 +58,21 @@ fun main(args: Array<String>) {
             arg.startsWith("-v") -> includeVersions = true
         }
     }
-    when {
-        outputDir == null -> throw IllegalArgumentException(
-            "No output directory specified to store the cache. Pass -o=DIR as an argument."
-        )
-        address == null -> throw IllegalArgumentException(
-            "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument."
-        )
-        port == null -> throw IllegalArgumentException(
-            "No port has been specified to download the cache from. Pass -p=PORT as an argument."
-        )
-        revision == null -> throw IllegalArgumentException(
-            "No game revision has been specified. Pass -r=REVISION as an argument."
-        )
-        archiveCount == null -> throw IllegalArgumentException(
-            "No archive count has been specified. Pass -c=ARCHIVECOUNT as an argument."
-        )
-    }
-    require(outputDir != null && address != null && port != null && revision != null && archiveCount != null)
+    if(outputDir == null) throw IllegalArgumentException(
+        "No output directory specified to store the cache. Pass -o=DIR as an argument."
+    )
+    if(address == null) throw IllegalArgumentException(
+        "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument."
+    )
+    if(port == null) throw IllegalArgumentException(
+        "No port has been specified to download the cache from. Pass -p=PORT as an argument."
+    )
+    if(revision == null) throw IllegalArgumentException(
+        "No game revision has been specified. Pass -r=REVISION as an argument."
+    )
+    if(archiveCount == null) throw IllegalArgumentException(
+        "No archive count has been specified. Pass -c=ARCHIVECOUNT as an argument."
+    )
     val js5FileSystem = Js5FileSystem(outputDir)
     val js5SocketReader = Js5SocketReader(
         sockAddr = InetSocketAddress(address, port),
