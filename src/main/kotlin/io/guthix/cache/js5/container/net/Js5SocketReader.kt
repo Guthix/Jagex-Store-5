@@ -79,12 +79,14 @@ class Js5SocketReader(
     private val socketChannel = SocketChannel.open(sockAddr)
 
     init {
+        logger.info("Initializing JS5 connection to ${sockAddr.address}")
         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
         socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
+        logger.info("Setting XOR encryption key to $xorKey")
         if(xorKey.toInt() != 0) {
             updateEncryptionKey(xorKey)
         }
-        logger.info("Initializing JS5 connection to ${sockAddr.address} revision $revision")
+        logger.info("Sending version handshake for revision $revision")
         socketChannel.write(ByteBuffer.allocate(5).apply {
             put(JS5_CONNECTION_TYPE)
             putInt(revision)
@@ -97,6 +99,7 @@ class Js5SocketReader(
                 "Could not establish connection withg JS5 Server error code $statusCode."
             )
         }
+        logger.info("JS5 connection successfully established")
     }
 
     /**
