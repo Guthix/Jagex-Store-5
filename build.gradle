@@ -23,9 +23,26 @@ plugins {
 group 'io.guthix.cache.js5'
 version '0.1-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-    jcenter()
+allprojects {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    compileKotlin {
+        sourceCompatibility = JavaVersion.VERSION_1_9
+        kotlinOptions {
+            jvmTarget = "1.8"
+            freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
+        }
+    }
+    compileTestKotlin {
+        sourceCompatibility = JavaVersion.VERSION_1_9
+        kotlinOptions {
+            jvmTarget = "1.8"
+            freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
+        }
+    }
 }
 
 detekt {
@@ -44,21 +61,6 @@ dependencies {
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junitVersion
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junitVersion
     testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junitVersion
-}
-
-compileKotlin {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    kotlinOptions {
-        jvmTarget = "1.8"
-        freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
-    }
-}
-compileTestKotlin {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    kotlinOptions {
-        jvmTarget = "1.8"
-        freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
-    }
 }
 
 test {

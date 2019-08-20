@@ -15,8 +15,13 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-rootProject.name = 'Jagex Store 5'
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
 
-include 'toolbox'
-include 'toolbox:downloader'
-
+dependencies {
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation group: 'org.slf4j', name: 'slf4j-simple', version: sl4jVersion
+    implementation rootProject
+}
