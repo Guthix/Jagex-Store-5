@@ -31,14 +31,15 @@ import java.nio.ByteBuffer
 private val logger = KotlinLogging.logger {}
 
 /**
- * Downloads the cache to a given directory.
- * Arguments:
- *  -o output directory
- *  -r revision
- *  -c archive count
- *  -a ip or dns to connect to
- *  -v to include versions
+ * Downloads a cache from a JS5 server.
  *
+ * Arguments:
+ *  -o= The location where the cache should be stored
+ *  -a= The address of the JS5 server
+ *  -r= The game revision of the JS5 server
+ *  -c= The amount of archives to download
+ *  -p= The port to connect to
+ *  -v  Whether to store versions at the end of every file
  */
 fun main(args: Array<String>) {
     var outputDir: File? = null
@@ -54,7 +55,7 @@ fun main(args: Array<String>) {
             arg.startsWith("-r=") -> revision = arg.substring(3).toInt()
             arg.startsWith("-c=") -> archiveCount = arg.substring(3).toInt()
             arg.startsWith("-p=") -> port =  arg.substring(3).toInt()
-            arg.startsWith("-v=") -> includeVersions = true
+            arg.startsWith("-v") -> includeVersions = true
         }
     }
     when {
