@@ -5,7 +5,7 @@
             <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
         </encoder>
     </appender>
-    <logger name="io.guthix" level="INFO"/>
+    <logger name="io.guthix" level="DEBUG"/>
     <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>
