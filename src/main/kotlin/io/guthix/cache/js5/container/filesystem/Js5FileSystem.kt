@@ -110,7 +110,7 @@ class Js5FileSystem(private val directory: File) : Js5ContainerReaderWriter {
      * @param containerId The container to read.
      */
     override fun read(indexFileId: Int, containerId: Int): ByteArray {
-        logger.info("Reading index file $indexFileId container $containerId")
+        logger.debug("Reading index file $indexFileId container $containerId")
         if((indexFileId < 0 || indexFileId >= archiveIndexChannels.size) && indexFileId != MASTER_INDEX) {
             throw IOException("Index file does not exist.")
         }
@@ -129,7 +129,7 @@ class Js5FileSystem(private val directory: File) : Js5ContainerReaderWriter {
      * @param containerId The container id to write to.
      */
     override fun write(indexFileId: Int, containerId: Int, data: ByteArray) {
-        logger.info("Writing index file $indexFileId container $containerId")
+        logger.debug("Writing index file $indexFileId container $containerId")
         if(indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {
             if(indexFileId == archiveIndexChannels.size) {
                 val indexFile = directory.resolve("$FILE_NAME.$IDX_FILE_EXTENSION$indexFileId")

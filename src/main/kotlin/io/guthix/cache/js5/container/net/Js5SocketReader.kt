@@ -205,7 +205,7 @@ class Js5SocketReader(
      * @param priority Whether to send a priority request.
      */
     fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
-        logger.info("Requesting index file $indexFileId container $containerId")
+        logger.debug("Requesting index file $indexFileId container $containerId")
         val buffer = ByteBuffer.allocate(REQUEST_PACKET_SIZE)
         if(priority) {
             buffer.put(Js5Request.PRIORITY_FILE_REQUEST.opcode.toByte())
