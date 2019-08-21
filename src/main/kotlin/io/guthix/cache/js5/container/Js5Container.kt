@@ -17,6 +17,7 @@
  */
 package io.guthix.cache.js5.container
 
+import io.guthix.cache.js5.Js5GroupSettings
 import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.util.*
 import io.guthix.cache.js5.util.xteaDecrypt
@@ -168,6 +169,25 @@ data class Js5Container(var version: Int = -1, val data: ByteArray) {
             buffer.position(ENC_HEADER_SIZE + compression.headerSize + compressedSize)
             val version = if(buffer.remaining() >= 2) buffer.short.toInt() else -1
             return Js5Container(version, dataBuffer)
+        }
+
+        fun sizeOfContainer(data: ByteArray, xteaKey: IntArray = XTEA_ZERO_KEY): Js5GroupSettings.Size {
+            val buffer = ByteBuffer.wrap(data)
+            require(xteaKey.size == XTEA_KEY_SIZE)
+            val compression = Js5Compression.getByOpcode(buffer.uByte.toInt())
+            val compressedSize = buffer.int
+            if(xteaKey.all { it != 0 }) {
+                buffer.xteaDecrypt(
+                    key = xteaKey,
+                    start = ENC_HEADER_SIZE,
+                    end = ENC_HEADER_SIZE + compression.headerSize + compressedSize
+                )
+            }
+            return if(compression != Js5Compression.NONE) {
+                Js5GroupSettings.Size(compressedSize, buffer.int)
+            } else {
+                Js5GroupSettings.Size(compressedSize, compressedSize)
+            }
         }
     }
 }
