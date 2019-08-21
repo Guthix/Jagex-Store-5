@@ -10,6 +10,13 @@ import java.util.zip.ZipException
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Verifies if the data in a cache is consistent with its settings data.
+ *
+ * Arguments:
+ *  -o= The location where the cache is stored.
+ *  -e= The archives to exclude from verifying.
+ */
 fun main(args: Array<String>) {
     var inputDir: File? = null
     val excludedArchives = mutableListOf<Int>()
