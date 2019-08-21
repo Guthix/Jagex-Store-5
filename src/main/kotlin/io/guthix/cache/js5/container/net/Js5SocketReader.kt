@@ -124,7 +124,7 @@ class Js5SocketReader(
         headerBuffer = ByteBuffer.wrap(headerBuffer.array().map {it xor xorKey}.toByteArray())
         val indexFileId = headerBuffer.uByte.toInt()
         val containerId = headerBuffer.uShort.toInt()
-        logger.info("Reading index file $indexFileId container $containerId")
+        logger.debug("Reading index file $indexFileId container $containerId")
         val compression = Js5Compression.getByOpcode(headerBuffer.uByte.toInt())
         val compressedSize = headerBuffer.uInt
 
