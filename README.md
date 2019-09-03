@@ -1,6 +1,6 @@
 # Jagex Store 5
 [![Build Status](https://img.shields.io/travis/com/guthix/Jagex-Store-5?style=flat-square)](https://travis-ci.com/guthix/Jagex-Store-5)
-[![GitHub](https://img.shields.io/github/license/guthix/Jagex-Store-5?style=flat-square)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/guthix/Jagex-Store-5?style=flat-square)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
 [![JDK](https://img.shields.io/badge/JDK-Java%209%2B-blue?style=flat-square)]()
 
 A library for reading Jagex Store 5 (JS5) game files. Jagex Store 5 is a 
