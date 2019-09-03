@@ -19,11 +19,16 @@ package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.filesystem.Js5FileSystem
 import io.guthix.cache.js5.util.*
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
+import java.math.BigInteger
 import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -141,6 +146,106 @@ class Js5CacheTest {
         Js5Cache(readerWriter = fs2, settingsXtea = mutableMapOf(archiveId to settingsXteaKey)).use { cache ->
             val readArchive = cache.readGroup(archiveId, groupId, groupXteaKey)
             assertEquals(group, readArchive)
+        }
+    }
+
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class CheckSumTest {
+        @ParameterizedTest
+        @MethodSource("testChecksumsNoWhirlpool", "testChecksumsWhirlpool")
+        fun `Encode and decode compare checksum`(
+            whirlpool: Boolean,
+            js5CacheCheckSum: Js5Cache.CheckSum,
+            mod: BigInteger?,
+            pubKey: BigInteger?,
+            privateKey: BigInteger?
+        ) {
+            Assertions.assertEquals(js5CacheCheckSum,
+                Js5Cache.CheckSum.decode(
+                    js5CacheCheckSum.encode(whirlpool, mod, pubKey),
+                    whirlpool,
+                    mod,
+                    privateKey
+                )
+            )
+        }
+
+        companion object {
+            @JvmStatic
+            fun testChecksumsNoWhirlpool() = listOf(
+                Arguments.of(
+                    true,
+                    Js5Cache.CheckSum(
+                        arrayOf(
+                            Js5Cache.ArchiveChecksum(
+                                crc = 87585,
+                                version = 1,
+                                fileCount = 0,
+                                size = 12,
+                                whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE)
+                            ),
+                            Js5Cache.ArchiveChecksum(
+                                crc = 3331,
+                                version = 3,
+                                fileCount = 3,
+                                size = 12,
+                                whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE)
+                            )
+                        )
+                    ),
+                    null, null, null
+                )
+            )
+
+            @JvmStatic
+            fun testChecksumsWhirlpool() = listOf(
+                Arguments.of(
+                    false,
+                    Js5Cache.CheckSum(
+                        arrayOf(
+                            Js5Cache.ArchiveChecksum(
+                                crc = 87585,
+                                version = 1,
+                                fileCount = 0,
+                                size = 0,
+                                whirlpoolDigest = null
+                            ),
+                            Js5Cache.ArchiveChecksum(
+                                crc = 3331,
+                                version = 3,
+                                fileCount = 0,
+                                size = 0,
+                                whirlpoolDigest = null
+                            )
+                        )
+                    ),
+                    BigInteger.valueOf(3233), // mod
+                    BigInteger.valueOf(17), // pub key
+                    BigInteger.valueOf(413) // private key
+                ),
+                Arguments.of(
+                    false,
+                    Js5Cache.CheckSum(
+                        arrayOf(
+                            Js5Cache.ArchiveChecksum(
+                                crc = 87585,
+                                version = 1,
+                                fileCount = 0,
+                                size = 0,
+                                whirlpoolDigest = null
+                            ),
+                            Js5Cache.ArchiveChecksum(
+                                crc = 3331,
+                                version = 3,
+                                fileCount = 0,
+                                size = 0,
+                                whirlpoolDigest = null
+                            )
+                        )
+                    ),
+                    null, null, null
+                )
+            )
         }
     }
 
