@@ -17,7 +17,6 @@
  */
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.41'
-    id 'io.gitlab.arturbosch.detekt' version '1.0.0-RC16'
 }
 
 group 'io.guthix.cache.js5'
@@ -43,12 +42,6 @@ allprojects {
             freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
         }
     }
-}
-
-detekt {
-    toolVersion = '1.0.0-RC16'
-    input = files 'src/main/kotlin'
-    config = files 'detekt.yml'
 }
 
 dependencies {
