@@ -45,7 +45,7 @@ fun main(args: Array<String>) {
                     if(container.isVersioned && container.version != groupSettings.version)  logger.info(
                         "Version does not match for archive $archiveId group $groupId container: ${container.version} settings ${groupSettings.version}"
                     )
-                    val sizes = Js5Container.sizeOfContainer(data)
+                    val sizes = Js5Container.sizeOf(data)
                     if(groupSettings.sizes != null && sizes != groupSettings.sizes) logger.info(
                         "Sizes do not match for archive $archiveId group $groupId container: $sizes settings ${groupSettings.sizes}"
                     )

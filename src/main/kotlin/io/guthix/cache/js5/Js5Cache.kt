@@ -22,12 +22,13 @@ import io.guthix.cache.js5.container.Js5ContainerWriter
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5ContainerReaderWriter
 import io.guthix.cache.js5.container.filesystem.Js5FileSystem
-import io.guthix.cache.js5.io.uByte
 import io.guthix.cache.js5.util.*
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import mu.KotlinLogging
 import java.io.IOException
+import java.lang.IllegalStateException
 import java.math.BigInteger
-import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
@@ -80,7 +81,7 @@ open class Js5Cache(
      * @param containerId The container id to read which is equivalent to the archive id for reading
      * [Js5ArchiveSettings] data and the group id for reading [Js5Group] data.
      */
-    open fun readData(indexId: Int, containerId: Int): ByteArray = reader.read(indexId, containerId)
+    open fun readData(indexId: Int, containerId: Int): ByteBuf = reader.read(indexId, containerId)
 
     /**
      * Reads a [Js5Group] from the cache by group id.
@@ -165,7 +166,7 @@ open class Js5Cache(
         groupCompression: Js5Compression = Js5Compression.NONE,
         groupSettingsCompression: Js5Compression = Js5Compression.NONE
     ) {
-        if(writer == null) throw IllegalCallerException("There is no writer specified for this cache.")
+        if(writer == null) throw IllegalStateException("There is no writer specified for this cache.")
         if(archiveId > writer.archiveCount) throw IOException(
             "Can not create archive with id $archiveId expected: ${writer.archiveCount}."
         )
@@ -174,7 +175,7 @@ open class Js5Cache(
             archiveId, group, groupChunkCount, groupXteaKey, groupCompression
         )
         if(group.sizes == null) {
-            group.sizes = Js5GroupSettings.Size(compressedSize, group.files.values.sumBy { it.data.size })
+            group.sizes = Js5GroupSettings.Size(compressedSize, group.files.values.sumBy { it.data.capacity() })
         }
         writeGroupSettings(
             archiveId,
@@ -205,7 +206,7 @@ open class Js5Cache(
         val groupContainer = group.encode(groupChunkCount)
         val data = groupContainer.encode(compression, xteaKey)
         writer!!.write(archiveId, group.id, data)
-        return data.size
+        return data.capacity()
     }
 
     /**
@@ -295,35 +296,32 @@ open class Js5Cache(
          * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
          * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
          */
-        fun encode(whirlpool: Boolean = false, mod: BigInteger? = null, pubKey: BigInteger? = null): ByteArray {
-            val buffer = ByteBuffer.allocate(if(whirlpool)
+        fun encode(whirlpool: Boolean = false, mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuf {
+            val buffer = Unpooled.buffer(if(whirlpool)
                 WP_ENCODED_SIZE + ArchiveChecksum.WP_ENCODED_SIZE * archiveChecksums.size
             else
                 ArchiveChecksum.ENCODED_SIZE * archiveChecksums.size
             )
-            if(whirlpool) buffer.put(archiveChecksums.size.toByte())
+            if(whirlpool) buffer.writeByte(archiveChecksums.size)
             for(indexFileChecksum in archiveChecksums) {
-                buffer.putInt(indexFileChecksum.crc)
-                buffer.putInt(indexFileChecksum.version ?: 0)
+                buffer.writeInt(indexFileChecksum.crc)
+                buffer.writeInt(indexFileChecksum.version ?: 0)
                 if(whirlpool) {
-                    buffer.putInt(indexFileChecksum.fileCount)
-                    buffer.putInt(indexFileChecksum.size)
-                    buffer.put(indexFileChecksum.whirlpoolDigest)
+                    buffer.writeInt(indexFileChecksum.fileCount)
+                    buffer.writeInt(indexFileChecksum.size)
+                    buffer.writeBytes(indexFileChecksum.whirlpoolDigest)
                 }
             }
             if(whirlpool) {
+                val dataSlice = buffer.array().sliceArray(1 until 1 + buffer.readableBytes()).whirlPoolHash()
                 val hash = if(mod != null && pubKey != null) {
-                    rsaCrypt(
-                        buffer.array().sliceArray(1 until buffer.position()).whirlPoolHash(),
-                        mod,
-                        pubKey
-                    )
+                    rsaCrypt(dataSlice, mod, pubKey)
                 } else {
-                    buffer.array().sliceArray(1 until buffer.position()).whirlPoolHash()
+                    dataSlice
                 }
-                buffer.put(hash)
+                buffer.writeBytes(hash)
             }
-            return buffer.array()
+            return buffer
         }
 
         override fun equals(other: Any?): Boolean {
@@ -350,49 +348,49 @@ open class Js5Cache(
              * @param privateKey The public key to (optionally) encrypt the whirlpool hash.
              */
             fun decode(
-                data: ByteArray,
+                data: ByteBuf,
                 whirlpool: Boolean,
                 mod: BigInteger?,
                 privateKey: BigInteger?
             ): CheckSum {
-                val buffer = ByteBuffer.wrap(data)
                 val indexFileCount = if (whirlpool) {
-                    buffer.uByte.toInt()
+                    data.readUnsignedByte().toInt()
                 } else {
-                    buffer.limit() / ArchiveChecksum.ENCODED_SIZE
+                    data.capacity() / ArchiveChecksum.ENCODED_SIZE
                 }
                 val indexFileEncodedSize = if(whirlpool) {
                     ArchiveChecksum.WP_ENCODED_SIZE * indexFileCount
                 } else {
                     ArchiveChecksum.ENCODED_SIZE * indexFileCount
                 }
-                val indexFileEncodedStart = if (whirlpool) 1 else 0
-                val calculatedDigest = buffer.array().sliceArray(
-                    indexFileEncodedStart until indexFileEncodedStart + indexFileEncodedSize
-                ).whirlPoolHash()
                 val indexFileChecksums = Array(indexFileCount) {
-                    val crc = buffer.int
-                    val version = buffer.int
-                    val fileCount = if (whirlpool) buffer.int else 0
-                    val indexFileSize = if (whirlpool) buffer.int else 0
+                    val crc = data.readInt()
+                    val version = data.readInt()
+                    val fileCount = if (whirlpool) data.readInt() else 0
+                    val indexFileSize = if (whirlpool) data.readInt() else 0
                     val whirlPoolDigest = if (whirlpool) {
                         val digest = ByteArray(WHIRLPOOL_HASH_SIZE)
-                        buffer.get(digest)
+                        data.readBytes(digest)
                         digest
                     } else null
                     ArchiveChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
                 }
                 if (whirlpool) {
+                    val calculatedDigest = data.array()
+                        .sliceArray(1 until indexFileEncodedSize)
+                        .whirlPoolHash()
+                    val dataSlice =  data.array().sliceArray(data.readerIndex() until data.writerIndex())
                     val hash= if (mod != null && privateKey != null) {
-                        rsaCrypt(
-                            buffer.array().sliceArray(
-                                buffer.position() until buffer.position() + buffer.remaining()
-                            ), mod, privateKey
-                        )
+                        rsaCrypt(dataSlice, mod, privateKey)
                     } else {
-                        buffer.array().sliceArray(buffer.position() until buffer.position() + buffer.remaining())
+                        dataSlice
                     }
-                    if (!hash!!.contentEquals(calculatedDigest)) throw IOException("Whirlpool digest does not match.")
+                    calculatedDigest.forEach { print(it) }
+                    println()
+                    dataSlice.forEach { print(it) }
+                    println()
+                    if (!hash!!.contentEquals(calculatedDigest)) throw IOException("Whirlpool digest does not match, " +
+                            "calculated $calculatedDigest read $dataSlice.")
                 }
                 return CheckSum(indexFileChecksums)
             }

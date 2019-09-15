@@ -35,13 +35,13 @@ import io.guthix.cache.js5.container.Js5Container
  * @property opcode The opcode used to encode the compression.
  * @property headerSize The header size for using the compression type.
  */
-enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
-    NONE(opcode = 0u, headerSize = 0) {
+enum class Js5Compression(val opcode: Int, val headerSize: Int) {
+    NONE(opcode = 0, headerSize = 0) {
         override fun compress(input: ByteArray) = input
         override fun decompress(input: ByteArray, decompressedSize: Int) = input
     },
 
-    BZIP2(opcode = 1u, headerSize = Int.SIZE_BYTES) {
+    BZIP2(opcode = 1, headerSize = Int.SIZE_BYTES) {
         val blockSize = 1
 
         val header = "BZh$blockSize".toByteArray(StandardCharsets.US_ASCII)
@@ -66,7 +66,7 @@ enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
         }
     },
 
-    GZIP(opcode = 2u, headerSize = Int.SIZE_BYTES) {
+    GZIP(opcode = 2, headerSize = Int.SIZE_BYTES) {
         override fun compress(input: ByteArray): ByteArray {
             ByteArrayInputStream(input).use { inStream ->
                 val bout = ByteArrayOutputStream()
@@ -86,7 +86,7 @@ enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
         }
     },
 
-    LZMA(opcode = 3u, headerSize = Int.SIZE_BYTES) {
+    LZMA(opcode = 3, headerSize = Int.SIZE_BYTES) {
         override fun compress(input: ByteArray): ByteArray {
             ByteArrayInputStream(input).use { inStream ->
                 val bout = ByteArrayOutputStream()
@@ -120,6 +120,6 @@ enum class Js5Compression(val opcode: UByte, val headerSize: Int) {
         /**
          * Gets the compression type by the [opcode].
          */
-        fun getByOpcode(opcode: Int) = values().first{ opcode == it.opcode.toInt() }
+        fun getByOpcode(opcode: Int) = values().first{ opcode == it.opcode }
     }
 }

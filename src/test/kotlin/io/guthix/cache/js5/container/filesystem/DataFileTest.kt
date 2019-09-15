@@ -17,34 +17,42 @@
  */
 package io.guthix.cache.js5.container.filesystem
 
+import io.netty.buffer.Unpooled
+import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 
+private val logger = KotlinLogging.logger {}
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DataFileTest {
     @ParameterizedTest
     @MethodSource("testNormalSegment")
-    internal fun `Encode and decode compare normal segment`(segment: Segment) =
-        assertEquals(segment, Segment.decode(segment.encode()))
+    internal fun `Encode and decode compare normal segment`(segment: Segment) {
+        assertEquals(segment, Segment.decode(segment.copy().encode()))
+    }
 
     @ParameterizedTest
     @MethodSource("testExtendedSegment")
-    internal fun `Encode and decode compare extended segment`(segment: Segment) =
-        assertEquals(segment, Segment.decodeExtended(segment.encode()))
+    internal fun `Encode and decode compare extended segment`(segment: Segment) {
+        assertEquals(segment, Segment.decodeExtended(segment.copy().encode()))
+    }
 
     companion object {
         @JvmStatic
         fun testNormalSegment() = listOf(
             Arguments.of(
                 Segment(
-                    indexFileId = 1.toUByte(),
+                    indexFileId = 1,
                     containerId = 1,
-                    position = 1.toUShort(),
+                    position = 1,
                     nextSegmentNumber = 2,
-                    data = ByteArray(Segment.DATA_SIZE)
+                    data = Unpooled.buffer(Segment.DATA_SIZE).apply {
+                        writerIndex(Segment.DATA_SIZE)
+                    }
                 )
             )
         )
@@ -53,11 +61,13 @@ class DataFileTest {
         fun testExtendedSegment() = listOf(
             Arguments.of(
                 Segment(
-                    indexFileId = 1.toUByte(),
-                    containerId = UShort.MAX_VALUE.toInt() + 1,
-                    position = 1.toUShort(),
+                    indexFileId = 1,
+                    containerId = 65536,
+                    position = 1,
                     nextSegmentNumber = 2,
-                    data = ByteArray(Segment.EXTENDED_DATA_SIZE)
+                    data = Unpooled.buffer(Segment.EXTENDED_DATA_SIZE).apply {
+                        writerIndex(Segment.EXTENDED_DATA_SIZE)
+                    }
                 )
             )
         )

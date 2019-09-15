@@ -19,7 +19,7 @@ package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.filesystem.Js5FileSystem
 import io.guthix.cache.js5.util.*
-import org.junit.jupiter.api.Assertions
+import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -29,7 +29,6 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
 import java.math.BigInteger
-import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Js5CacheTest {
@@ -42,13 +41,13 @@ class Js5CacheTest {
     fun `Read write compare group with non sequential file ids`(@TempDir cacheDir: File) {
         val nonSeqTestFiles = mapOf(
             1 to Js5Group.File(null,
-                ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }.array()
+                Unpooled.buffer(8).apply { repeat(8) { writeByte(255)} }
             ),
             6 to Js5Group.File(null,
-                ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }.array()
+                Unpooled.buffer(16).apply { repeat(16) { writeByte(1)} }
             ),
             10 to Js5Group.File(null,
-                ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }.array()
+                Unpooled.buffer(3).apply { repeat(3) { writeByte(0)} }
             )
         )
         readWriteTest(cacheDir, nonSeqTestFiles)
@@ -58,14 +57,14 @@ class Js5CacheTest {
     fun `Read write compare group with named archive and files`(@TempDir cacheDir: File) {
         val seqNameTestFiles = mapOf(
             1 to Js5Group.File("SeqTest1".hashCode(),
-                ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }.array()
+                Unpooled.buffer(8).apply { repeat(8) { writeByte(255)} }
             ),
             2 to Js5Group.File("SeqTest2".hashCode(),
-                ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }.array()
+                Unpooled.buffer(16).apply { repeat(16) { writeByte(18)} }
 
             ),
             3 to Js5Group.File("SeqTest3".hashCode(),
-                ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }.array()
+                Unpooled.buffer(3).apply { repeat(3) { writeByte(0)} }
             )
         )
         readWriteTest(cacheDir, seqNameTestFiles, nameHash = "SeqTest0".hashCode())
@@ -110,7 +109,7 @@ class Js5CacheTest {
 
     private fun readWriteTest(
         cacheDir: File,
-        filesToWrite: Map<Int, Js5Group.File>,
+        files: Map<Int, Js5Group.File>,
         archiveId: Int = 0,
         groupId: Int = 0,
         nameHash: Int? = null,
@@ -122,23 +121,24 @@ class Js5CacheTest {
         groupJs5Compression: Js5Compression = Js5Compression.NONE,
         settingsJs5Compression: Js5Compression = Js5Compression.NONE
     ) {
-        val archiveBuffer = ByteBuffer.allocate(filesToWrite.values.sumBy { it.data.size })
-        filesToWrite.values.map { it.data }.forEach { archiveBuffer.put(it) }
+        val archiveBuffer = Unpooled.buffer(files.values.sumBy { it.data.capacity() })
+        files.values.map { it.data }.forEach { archiveBuffer.writeBytes(it) }
+        files.values.forEach { it.content().resetReaderIndex() }
         val group = Js5Group(
             groupId,
             nameHash,
-            archiveBuffer.array().crc(),
+            archiveBuffer.crc(),
             null,
-            archiveBuffer.array().whirlPoolHash(),
-            Js5GroupSettings.Size(0, archiveBuffer.limit()),
+            archiveBuffer.whirlPoolHash(),
+            Js5GroupSettings.Size(0, archiveBuffer.capacity()),
             groupVersion,
-            filesToWrite.toMutableMap()
+            files.toMutableMap()
         )
         val fs = Js5FileSystem(cacheDir)
         Js5Cache(readerWriter = fs).use { cache ->
             cache.writeGroup(
-                archiveId, archiveVersion, group, groupSegmentCount, groupXteaKey, settingsXteaKey, groupJs5Compression,
-                settingsJs5Compression
+                archiveId, archiveVersion, group, groupSegmentCount, groupXteaKey, settingsXteaKey,
+                groupJs5Compression, settingsJs5Compression
             )
         }
         val fs2 = Js5FileSystem(cacheDir) // need to create a new filesystem because fs closed
@@ -149,116 +149,16 @@ class Js5CacheTest {
         }
     }
 
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    class CheckSumTest {
-        @ParameterizedTest
-        @MethodSource("testChecksumsNoWhirlpool", "testChecksumsWhirlpool")
-        fun `Encode and decode compare checksum`(
-            whirlpool: Boolean,
-            js5CacheCheckSum: Js5Cache.CheckSum,
-            mod: BigInteger?,
-            pubKey: BigInteger?,
-            privateKey: BigInteger?
-        ) {
-            Assertions.assertEquals(js5CacheCheckSum,
-                Js5Cache.CheckSum.decode(
-                    js5CacheCheckSum.encode(whirlpool, mod, pubKey),
-                    whirlpool,
-                    mod,
-                    privateKey
-                )
-            )
-        }
-
-        companion object {
-            @JvmStatic
-            fun testChecksumsNoWhirlpool() = listOf(
-                Arguments.of(
-                    true,
-                    Js5Cache.CheckSum(
-                        arrayOf(
-                            Js5Cache.ArchiveChecksum(
-                                crc = 87585,
-                                version = 1,
-                                fileCount = 0,
-                                size = 12,
-                                whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE)
-                            ),
-                            Js5Cache.ArchiveChecksum(
-                                crc = 3331,
-                                version = 3,
-                                fileCount = 3,
-                                size = 12,
-                                whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE)
-                            )
-                        )
-                    ),
-                    null, null, null
-                )
-            )
-
-            @JvmStatic
-            fun testChecksumsWhirlpool() = listOf(
-                Arguments.of(
-                    false,
-                    Js5Cache.CheckSum(
-                        arrayOf(
-                            Js5Cache.ArchiveChecksum(
-                                crc = 87585,
-                                version = 1,
-                                fileCount = 0,
-                                size = 0,
-                                whirlpoolDigest = null
-                            ),
-                            Js5Cache.ArchiveChecksum(
-                                crc = 3331,
-                                version = 3,
-                                fileCount = 0,
-                                size = 0,
-                                whirlpoolDigest = null
-                            )
-                        )
-                    ),
-                    BigInteger.valueOf(3233), // mod
-                    BigInteger.valueOf(17), // pub key
-                    BigInteger.valueOf(413) // private key
-                ),
-                Arguments.of(
-                    false,
-                    Js5Cache.CheckSum(
-                        arrayOf(
-                            Js5Cache.ArchiveChecksum(
-                                crc = 87585,
-                                version = 1,
-                                fileCount = 0,
-                                size = 0,
-                                whirlpoolDigest = null
-                            ),
-                            Js5Cache.ArchiveChecksum(
-                                crc = 3331,
-                                version = 3,
-                                fileCount = 0,
-                                size = 0,
-                                whirlpoolDigest = null
-                            )
-                        )
-                    ),
-                    null, null, null
-                )
-            )
-        }
-    }
-
     companion object {
         private val testFiles = mapOf(
             1 to Js5Group.File(null,
-                ByteBuffer.allocate(8).apply { repeat(8) { put(255.toByte())} }.array()
+                Unpooled.buffer(8).apply { repeat(8) { writeByte(255)} }
             ),
             2 to Js5Group.File(null,
-                ByteBuffer.allocate(16).apply { repeat(16) { put(18.toByte())} }.array()
+                Unpooled.buffer(16).apply { repeat(16) { writeByte(18)} }
             ),
             3 to Js5Group.File(null,
-                ByteBuffer.allocate(3).apply { repeat(3) { put(0.toByte())} }.array()
+                Unpooled.buffer(3).apply { repeat(3) { writeByte(0)} }
             )
         )
     }

@@ -17,11 +17,12 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.io.getUByte
-import io.guthix.cache.js5.io.splitOf
 import io.guthix.cache.js5.container.Js5Container
-
-import java.nio.ByteBuffer
+import io.guthix.cache.js5.util.splitOf
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.ByteBufHolder
+import io.netty.buffer.DefaultByteBufHolder
+import io.netty.buffer.Unpooled
 
 /**
  * A collection of [File]s that can be read from a cache.
@@ -65,25 +66,25 @@ data class Js5Group(
             return Js5Container(version, files.values.first().data)
         }
         val fileBuffers = files.values.map { it.data }.toTypedArray()
-        val buffer = ByteBuffer.allocate(
-            fileBuffers.sumBy { it.size } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
+        val buffer = Unpooled.buffer(
+            fileBuffers.sumBy { it.capacity() } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
         )
         val chunks = splitIntoChunks(fileBuffers, chunkCount)
         for(group in chunks) {
             for(fileGroup in group) {
-                buffer.put(fileGroup)
+                buffer.writeBytes(fileGroup)
             }
         }
         for(group in chunks) {
             var lastWrittenSize = group[0].size
-            buffer.putInt(lastWrittenSize)
+            buffer.writeInt(lastWrittenSize)
             for(i in 1 until group.size) {
-                buffer.putInt(group[i].size - lastWrittenSize) // write delta
+                buffer.writeInt(group[i].size - lastWrittenSize) // write delta
                 lastWrittenSize = group[i].size
             }
         }
-        buffer.put(chunkCount.toByte())
-        return Js5Container(version, buffer.array())
+        buffer.writeByte(chunkCount)
+        return Js5Container(version, buffer)
     }
 
     /**
@@ -93,7 +94,7 @@ data class Js5Group(
      * @param chunkCount The amount of chunks to split the data into
      */
     private fun splitIntoChunks(
-        fileData: Array<ByteArray>,
+        fileData: Array<ByteBuf>,
         chunkCount: Int
     ): Array<Array<ByteArray>> = Array(chunkCount) { group ->
         Array(fileData.size) { file ->
@@ -137,25 +138,7 @@ data class Js5Group(
      * [java.lang.String.hashCode].
      * @property data The data of the file.
      */
-    data class File(val nameHash: Int?, val data: ByteArray) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as File
-
-            if (nameHash != other.nameHash) return false
-            if (!data.contentEquals(other.data)) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = nameHash ?: 0
-            result = 31 * result + data.contentHashCode()
-            return result
-        }
-    }
+    data class File(val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
 
     companion object {
         /**
@@ -189,38 +172,37 @@ data class Js5Group(
         /**
          * Decodes a [Js5Container] when the container contains multiple [File]s.
          *
-         * @param js5Container The container to decode from.
+         * @param container The container to decode from.
          * @param fileCount The amount of files to decode.
          */
-        private fun decodeMultiFileContainer(js5Container: Js5Container, fileCount: Int): Array<ByteArray> {
-            val buffer = ByteBuffer.wrap(js5Container.data)
+        private fun decodeMultiFileContainer(container: Js5Container, fileCount: Int): Array<ByteBuf> {
             val fileSizes = IntArray(fileCount)
-            val chunkCount = buffer.getUByte(buffer.limit() - 1).toInt()
+            val chunkCount = container.data.getUnsignedByte(container.data.readableBytes() - 1).toInt()
             val chunkFileSizes = Array(chunkCount) { IntArray(fileCount) }
-            buffer.position(buffer.limit() - 1 - chunkCount * fileCount * 4)
+            container.data.readerIndex(container.data.readableBytes() - 1 - chunkCount * fileCount * 4)
             for (chunkId in 0 until chunkCount) {
                 var groupFileSize = 0
                 for (fileId in 0 until fileCount) {
-                    val delta = buffer.int // difference in chunk size compared to the previous chunk
+                    val delta = container.data.readInt() // difference in chunk size compared to the previous chunk
                     groupFileSize += delta
                     chunkFileSizes[chunkId][fileId] = groupFileSize
                     fileSizes[fileId] += groupFileSize
                 }
             }
-            val fileData = Array<ByteBuffer>(fileCount) {
-                ByteBuffer.allocate(fileSizes[it])
+            val fileData = Array<ByteBuf>(fileCount) {
+                Unpooled.buffer(fileSizes[it])
             }
-            buffer.position(0)
+            container.data.readerIndex(0)
             for (chunkId in 0 until chunkCount) {
                 for (fileId in 0 until fileCount) {
                     val groupFileSize = chunkFileSizes[chunkId][fileId]
-                    fileData[fileId].put(
-                        buffer.array().sliceArray(buffer.position() until buffer.position() + groupFileSize)
+                    fileData[fileId].writeBytes(
+                        container.data.slice(container.data.readerIndex(), groupFileSize)
                     )
-                    buffer.position(buffer.position() + groupFileSize)
+                    container.data.readerIndex(container.data.readerIndex() + groupFileSize)
                 }
             }
-            return fileData.map { it.array() }.toTypedArray()
+            return fileData
         }
     }
 }

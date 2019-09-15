@@ -18,15 +18,15 @@
 package io.guthix.cache.js5.container
 
 import io.guthix.cache.js5.util.Js5Compression
+import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class Js5Js5ContainerTest {
+class Js5ContainerTest {
     @ParameterizedTest
     @MethodSource("testContainer")
     internal fun `Encode and decode container no encryption no compression`(js5Container: Js5Container) =
@@ -50,42 +50,34 @@ class Js5Js5ContainerTest {
     @ParameterizedTest
     @MethodSource("testContainer")
     internal fun `Encode and decode container XTEA encryption no compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.NONE,
-                xteaKey
-            ), xteaKey
-            )
+        Assertions.assertEquals(
+            js5Container,
+            Js5Container.decode(js5Container.encode(Js5Compression.NONE, xteaKey), xteaKey)
         )
 
     @ParameterizedTest
     @MethodSource("testContainer")
     internal fun `Encode and decode container XTEA encryption GZIP compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.GZIP,
-                xteaKey
-            ), xteaKey
-            )
+        Assertions.assertEquals(
+            js5Container,
+            Js5Container.decode(js5Container.encode(Js5Compression.GZIP, xteaKey), xteaKey)
         )
 
 
     @ParameterizedTest
     @MethodSource("testContainer")
     internal fun `Encode and decode container XTEA encryption BZIP compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.BZIP2,
-                xteaKey
-            ), xteaKey
-            )
+        Assertions.assertEquals(
+            js5Container,
+            Js5Container.decode(js5Container.encode(Js5Compression.BZIP2, xteaKey), xteaKey)
         )
 
     @ParameterizedTest
     @MethodSource("testContainer")
     internal fun `Encode and decode container XTEA encryption LZMA compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.LZMA,
-                xteaKey
-            ), xteaKey
-            )
+        Assertions.assertEquals(
+            js5Container,
+            Js5Container.decode(js5Container.encode(Js5Compression.LZMA, xteaKey), xteaKey)
         )
 
     companion object {
@@ -93,18 +85,18 @@ class Js5Js5ContainerTest {
 
         @JvmStatic
         fun testContainer() = listOf(
-            Arguments.of(Js5Container(-1, ByteBuffer.allocate(8).apply {
-                put(8)
-                put(3)
-                putShort(4)
-                putInt(8)
-            }.array())),
-            Arguments.of(Js5Container(10, ByteBuffer.allocate(8).apply {
-                put(-1)
-                put(10)
-                putShort(30)
-                putInt(900)
-            }.array()))
+            Arguments.of(Js5Container(-1, Unpooled.buffer(8).apply {
+                writeByte(8)
+                writeByte(3)
+                writeShort(4)
+                writeInt(8)
+            })),
+            Arguments.of(Js5Container(10, Unpooled.buffer(8).apply {
+                writeByte(-1)
+                writeByte(10)
+                writeShort(30)
+                writeInt(900)
+            }))
         )
     }
 }

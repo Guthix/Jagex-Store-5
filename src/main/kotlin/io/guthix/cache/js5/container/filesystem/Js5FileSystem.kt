@@ -25,6 +25,7 @@ import io.guthix.cache.js5.container.Js5ContainerReaderWriter
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.Js5Group
 import io.guthix.cache.js5.Js5ArchiveSettings
+import io.netty.buffer.ByteBuf
 
 private val logger = KotlinLogging.logger {}
 
@@ -103,13 +104,7 @@ class Js5FileSystem(private val directory: File) : Js5ContainerReaderWriter {
         )
     }
 
-    /**
-     * Reads container data from the filesystem.
-     *
-     * @param indexFileId The index file to read from.
-     * @param containerId The container to read.
-     */
-    override fun read(indexFileId: Int, containerId: Int): ByteArray {
+    override fun read(indexFileId: Int, containerId: Int): ByteBuf {
         logger.debug("Reading index file $indexFileId container $containerId")
         if((indexFileId < 0 || indexFileId >= archiveIndexChannels.size) && indexFileId != MASTER_INDEX) {
             throw IOException("Index file does not exist.")
@@ -122,13 +117,7 @@ class Js5FileSystem(private val directory: File) : Js5ContainerReaderWriter {
         return dataChannel.read(indexFileId, containerId, index)
     }
 
-    /**
-     * Writes container data to the filesystem.
-     *
-     * @param indexFileId The index file id to write to.
-     * @param containerId The container id to write to.
-     */
-    override fun write(indexFileId: Int, containerId: Int, data: ByteArray) {
+    override fun write(indexFileId: Int, containerId: Int, data: ByteBuf) {
         logger.debug("Writing index file $indexFileId container $containerId")
         if(indexFileId >= archiveIndexChannels.size && indexFileId != MASTER_INDEX) {
             if(indexFileId == archiveIndexChannels.size) {
@@ -147,14 +136,18 @@ class Js5FileSystem(private val directory: File) : Js5ContainerReaderWriter {
                 throw IOException("Index file with id $indexFileId does not exist and could not be created.")
             }
         }
-        val indexChannel = if(indexFileId == MASTER_INDEX) masterIndexChannel else archiveIndexChannels[indexFileId]
+        val indexChannel = if(indexFileId == MASTER_INDEX) {
+            masterIndexChannel
+        } else {
+            archiveIndexChannels[indexFileId]
+        }
         val shouldOverwrite = indexChannel.containsIndex(containerId)
         val firstSegmentPos = if(shouldOverwrite) {
             indexChannel.read(containerId).segmentNumber
         } else {
             (dataChannel.size / Segment.SIZE).toInt()
         }
-        val index = Index(data.size, firstSegmentPos)
+        val index = Index(data.readableBytes(), firstSegmentPos)
         indexChannel.write(containerId, index)
         dataChannel.write(indexFileId, containerId, index, data)
     }

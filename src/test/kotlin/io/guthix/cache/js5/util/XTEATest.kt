@@ -17,6 +17,8 @@
  */
 package io.guthix.cache.js5.util
 
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
@@ -28,9 +30,9 @@ import java.nio.ByteBuffer
 class XTEATest {
     @ParameterizedTest
     @MethodSource("testBuffers")
-    fun `Encrypt and decrypt compare data`(data: ByteBuffer, keySet: IntArray) {
-        val encrypted = data.xteaEncrypt(keySet,0, data.limit())
-        val decrypted = ByteBuffer.wrap(encrypted).xteaDecrypt(keySet, 0, data.limit())
+    fun `Encrypt and decrypt compare data`(data: ByteBuf, keySet: IntArray) {
+        val encrypted = data.xteaEncrypt(keySet,0, data.capacity())
+        val decrypted = Unpooled.wrappedBuffer(encrypted).xteaDecrypt(keySet, 0, data.capacity())
         Assertions.assertEquals(data, decrypted)
     }
 
@@ -38,22 +40,22 @@ class XTEATest {
         @JvmStatic
         fun testBuffers()  = listOf(
             Arguments.of(
-                ByteBuffer.allocate(8).apply {
-                    put(8)
-                    put(3)
-                    putShort(4)
-                    putInt(8)
-                }.flip(),
+                Unpooled.buffer(8).apply {
+                    writeByte(8)
+                    writeByte(3)
+                    writeShort(4)
+                    writeInt(8)
+                },
                 intArrayOf(586096, 984665, 1856, 578569)
             ),
             Arguments.of(
-                ByteBuffer.allocate(12).apply {
-                    put(32)
-                    put(56)
-                    putShort(5876)
-                    putInt(95031)
-                    putInt(3294765)
-                }.flip(),
+                Unpooled.buffer(12).apply {
+                    writeByte(32)
+                    writeByte(56)
+                    writeShort(5876)
+                    writeInt(95031)
+                    writeInt(3294765)
+                },
                 intArrayOf(0, 0, 0, 0)
             )
         )

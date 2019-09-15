@@ -17,10 +17,9 @@
  */
 package io.guthix.cache.js5.container.filesystem
 
-import io.guthix.cache.js5.io.putMedium
-import io.guthix.cache.js5.io.uMedium
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import java.io.FileNotFoundException
-import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 
 /**
@@ -46,9 +45,9 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
         if (ptr < 0 || ptr >= fileChannel.size()) {
             throw FileNotFoundException("Could not find container $containerId.")
         }
-        val buffer = ByteBuffer.allocate(Index.SIZE)
-        fileChannel.read(buffer, ptr)
-        return Index.decode(buffer.array())
+        val buf = Unpooled.buffer(Index.SIZE)
+        buf.writeBytes(fileChannel, ptr, buf.writableBytes())
+        return Index.decode(buf)
     }
 
     /**
@@ -58,8 +57,8 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
      * @param index The index to write.
      */
     internal fun write(containerId: Int, index: Index) {
-        val ptr = containerId.toLong() * Index.SIZE.toLong()
-        fileChannel.write(ByteBuffer.wrap(index.encode()), ptr)
+        val buf = index.encode()
+        buf.readBytes(fileChannel, containerId.toLong() * Index.SIZE.toLong(), buf.readableBytes())
     }
 
     /**
@@ -85,11 +84,11 @@ internal data class Index(val dataSize: Int, val segmentNumber: Int) {
     /**
      * Encodes the index.
      */
-    internal fun encode(): ByteArray {
-        val buffer = ByteBuffer.allocate(SIZE)
-        buffer.putMedium(dataSize)
-        buffer.putMedium(segmentNumber)
-        return buffer.array()
+    fun encode(): ByteBuf {
+        val buf = Unpooled.buffer(SIZE)
+        buf.writeMedium(dataSize)
+        buf.writeMedium(segmentNumber)
+        return buf
     }
 
     companion object {
@@ -103,11 +102,9 @@ internal data class Index(val dataSize: Int, val segmentNumber: Int) {
          *
          * @param data The data to decode.
          */
-        internal fun decode(data: ByteArray): Index {
-            val buffer = ByteBuffer.wrap(data)
-            require(buffer.remaining() >= SIZE)
-            val dataSize = buffer.uMedium
-            val segmentPos = buffer.uMedium
+        fun decode(data: ByteBuf): Index {
+            val dataSize = data.readUnsignedMedium()
+            val segmentPos = data.readUnsignedMedium()
             return Index(dataSize, segmentPos)
         }
     }

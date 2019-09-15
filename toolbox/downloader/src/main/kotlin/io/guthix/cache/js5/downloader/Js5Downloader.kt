@@ -22,11 +22,11 @@ import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.filesystem.Js5FileSystem
 import io.guthix.cache.js5.container.net.Js5SocketReader
 import io.guthix.cache.js5.util.crc
+import io.netty.buffer.Unpooled
 import mu.KotlinLogging
 import java.io.File
 import java.io.IOException
 import java.net.InetSocketAddress
-import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
@@ -106,10 +106,9 @@ fun main(args: Array<String>) {
                     "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
                 )
                 val writeData = if(groupSettings.version != -1 && includeVersions) { // add version if exists
-                    ByteBuffer.allocate(response.data.size + 2).run {
-                        put(response.data)
-                        putShort(groupSettings.version.toShort())
-                        array()
+                    Unpooled.buffer(response.data.capacity() + 2).run {
+                        writeBytes(response.data)
+                        writeShort(groupSettings.version)
                     }
                 } else response.data
                 js5FileSystem.write(response.indexFileId, response.containerId, writeData)

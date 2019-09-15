@@ -17,6 +17,7 @@
  */
 package io.guthix.cache.js5.container.filesystem
 
+import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -31,39 +32,39 @@ class Js5FileSystemTest {
     @Test
     fun `Write and read compare file`(@TempDir cacheDir: File) {
         Js5FileSystem(cacheDir).use { fs ->
-            val dataToWrite = ByteBuffer.allocate(20).apply {
-                repeat(20) { put(it.toByte())}
-            }.array()
-            fs.write(0, 1, dataToWrite)
+            val dataToWrite = Unpooled.buffer(20).apply {
+                repeat(20) { writeByte(it)}
+            }
+            fs.write(0, 1, dataToWrite.copy())
             val readData = fs.read(0, 1)
-            assert(dataToWrite.contentEquals(readData))
+            assertEquals(dataToWrite, readData)
         }
     }
 
     @Test
     fun `Write, overwrite and read compare file`(@TempDir cacheDir: File) {
         Js5FileSystem(cacheDir).use { fs ->
-            val dataToWrite = ByteBuffer.allocate(20).apply {
-                repeat(20) { put(it.toByte())}
-            }.array()
-            val dataToOverWrite = ByteBuffer.allocate(20).apply {
-                repeat(20) { put((2 * it).toByte())}
-            }.array()
+            val dataToWrite = Unpooled.buffer(20).apply {
+                repeat(20) { writeByte(it)}
+            }
+            val dataToOverWrite = Unpooled.buffer(20).apply {
+                repeat(20) { writeByte((2 * it))}
+            }
             fs.write(0, 1, dataToWrite)
-            fs.write(0, 1, dataToOverWrite)
+            fs.write(0, 1, dataToOverWrite.copy())
             val readData = fs.read(0, 1)
-            assert(dataToOverWrite.contentEquals(readData))
+            assertEquals(dataToOverWrite, readData)
         }
     }
 
     @Test
     fun `Throws exception when indexes are non consecutive`(@TempDir cacheDir: File) {
         Js5FileSystem(cacheDir).use { fs ->
-            val dataToWrite = ByteBuffer.allocate(20).apply {
-                repeat(20) { put(it.toByte())}
-            }.array()
+            val dataToWrite = Unpooled.buffer(20).apply {
+                repeat(20) { writeByte(it) }
+            }
             Assertions.assertThrows(IOException::class.java) {
-                fs.write(1, 1, dataToWrite)
+                fs.write(1, 1, dataToWrite.copy())
             }
         }
     }

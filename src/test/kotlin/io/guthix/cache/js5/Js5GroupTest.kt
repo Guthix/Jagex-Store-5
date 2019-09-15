@@ -17,12 +17,12 @@
  */
 package io.guthix.cache.js5
 
+import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import java.nio.ByteBuffer
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Js5GroupTest {
@@ -53,18 +53,18 @@ class Js5GroupTest {
     companion object {
         @JvmStatic
         fun testGroups(): List<Arguments> {
-            val data1 = ByteBuffer.allocate(8).apply {
-                put(8)
-                put(3)
-                putShort(4)
-                putInt(8)
-            }.array()
-            val data2 = ByteBuffer.allocate(8).apply {
-                put(20)
-                put(0)
-                putShort(24854)
-                putInt(93432)
-            }.array()
+            val data1 = Unpooled.buffer(8).apply {
+                writeByte(8)
+                writeByte(3)
+                writeShort(4)
+                writeInt(8)
+            }
+            val data2 = Unpooled.buffer(8).apply {
+                writeByte(20)
+                writeByte(0)
+                writeShort(24854)
+                writeInt(93432)
+            }
             val encodeData = mutableMapOf(
                 1 to Js5Group.File(null, data1),
                 2 to Js5Group.File(null, data2)
