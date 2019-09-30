@@ -61,78 +61,11 @@ The Guthix JS5 library allows for reading and writing groups from and to
 the cache. This can be done by creating a `Js5Cache` object. The 
 `Js5Cache` requires a `Js5ContainerReader` and an optional `Js5ContainerWriter`. 
 The Guthix library provides 2 different readers/writers. First is 
-`Js5FileSystem` which is both capable of being a reader and a writer.
-The `Js5FileSystem` is used for reading/writing from and to a cache on 
+`Js5DiskStore` which is both capable of being a reader and a writer.
+The `Js5DiskStore` is used for reading/writing from and to a cache on 
 disk. The other option is to use the `Js5SocketReader` which can only 
 read. The `Js5SocketReader` can be used for reading container data from
 a JS5 server. Writing to a JS5 server is not possible.
-
-### Examples
-Here we show some examples of how the library could be used.
-
-#### Changing a game asset file
-```kotlin
-val cacheRoot = File("path to the folder where the cache is stored")
-val fs = Js5FileSystem(cacheRoot) // create filesystem
-val cache = Js5Cache(fs) // create cache object that can both read and write
-val group = cache.readGroup(3, 5) // read group 5 from archive 3
-val assetData = byteArrayOf(0, 0, 0, 0) // dummy asset data
-group.files[7] = Js5Group.File("The name of the file".hashCode(), assetData) // replace file 7 with the new data
-cache.writeGroup(3, group = group) // write group with new asset data to the cache
-```
-
-#### Reading a group from a remote server
-```kotlin
-val sock = Js5SocketReader(
-    sockAddr = InetSocketAddress(REMOTE_ADDRESS, PORT), // the address of the server
-    priorityMode = true, // whether to send priority request
-    revision = GAME_REVISION, // the current version of the game
-    archiveCount = ARCHIVE_COUNT // the amount of archives that are expected from the server
-)
-val cache = Js5Cache(sock) // cache that can only read because no writer is provided
-val group = cache.readGroup(3, 5) // reads group 5 archive 3 from the remote server
-```
-
-#### Reading from a remote cache and write it to disk
-When reading groups from the `Js5Cache` API we lose some of the 
-information about how the group is stored like compression and chunk 
-count. To avoid this it is also possible to read the raw data and store
-it back without decoding/encoding and decompressing/compressing the data.
-```kotlin
-val sock = Js5SocketReader(
-    sockAddr = InetSocketAddress(REMOTE_ADDRESS, PORT), // the address of the server
-    priorityMode = true, // whether to send priority request
-    revision = GAME_REVISION, // the current version of the game
-    archiveCount = ARCHIVE_COUNT // the amount of archives that are expected from the server
-)
-val cacheRoot = File("path to the folder where the cache is stored")
-val fs = Js5FileSystem(cacheRoot) // create filesystem
-val data = sock.read(3, 5) // read index 3 container 5
-fs.write(3, 5, data) // write index 3 container 5
-```
-Note that the index id is here the same as the archive id and the 
-container id is the same as the group id. This is however not always the
-case since the index id could also be the master index (.idx255) where
-the settings are stored. When reading from the master index the container
-id is equal to the archive id.
-
-In the example as demonstrated above the `socket.read` method blocks 
-until it has received the response back from the server. This can be 
-avoided by calling the `Js5SocketReader.sendFileRequest` method which 
-only sends the requests and then later calling the 
-`Js5SocketReader.readFileResponse` method to read the response.
-
-#### Reading a group and file by name
-It is possible to search for groups and files by their name. Not every
-group and or file have names. If the group however has a name all the 
-files in that group should also have names.
-```kotlin
-val cacheRoot = File("[path to the folder where the cache is stored]")
-val fs = Js5FileSystem(cacheRoot) // create filesystem
-val cache = Js5Cache(fs) // create cache object that can both read and write
-val group = cache.readGroup(3, "group name") // read "group name" from archive 3
-val fileData = group.files.values.first { it.nameHash == "file name here".hashCode() } // search file by name
-```
 
 ## Group and file names
 The names of groups and files are stored as hashes. This makes it so 
