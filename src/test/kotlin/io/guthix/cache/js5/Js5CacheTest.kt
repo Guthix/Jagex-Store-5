@@ -42,9 +42,10 @@ class Js5CacheTest : StringSpec() {
             nameHash = 3489234,
             unknownHash = 2390324
         )
-        "Read and write" {
+        "After reading and writing the group should be the same as the original" {
             cache.writeGroup(0, group)
-            cache.readGroup(0, 0) shouldBe group
+            val readGroup = cache.readGroup(0, 0)
+            readGroup shouldBe group
         }
     }
 }

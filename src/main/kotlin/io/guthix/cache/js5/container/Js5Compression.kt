@@ -49,9 +49,19 @@ sealed class Js5Compression(val opcode: Int, val headerSize: Int) {
     }
 }
 
+
 class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
     override fun compress(input: ByteBuf) = input
     override fun decompress(input: ByteBuf, length: Int) = input.slice(input.readerIndex(), length)
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is Uncompressed) return false
+        return opcode == other.opcode
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
+    }
 }
 
 class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
@@ -72,6 +82,15 @@ class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
             decompressed.writeBytes(inStream, length)
         }
         return decompressed
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is BZIP2) return false
+        return opcode == other.opcode
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
     }
 
     companion object {
@@ -98,6 +117,15 @@ class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
             while(inStream.available() == 1) decompressed.writeBytes(inStream, length)
         }
         return decompressed
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is GZIP) return false
+        return opcode == other.opcode
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
     }
 }
 
@@ -126,5 +154,14 @@ class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
             decompressed.writeBytes(inStream, length)
         }
         return decompressed
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if(other !is LZMA) return false
+        return opcode == other.opcode && header == other.header
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
     }
 }
