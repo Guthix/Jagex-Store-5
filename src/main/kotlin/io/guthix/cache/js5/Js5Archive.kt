@@ -19,13 +19,24 @@ package io.guthix.cache.js5
 
 import io.guthix.buffer.readLargeSmart
 import io.guthix.buffer.writeLargeSmart
+import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.container.Uncompressed
+import io.guthix.cache.js5.container.XTEA_ZERO_KEY
 import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
+import io.guthix.cache.js5.util.crc
+import io.guthix.cache.js5.util.whirlPoolHash
 import io.netty.buffer.Unpooled
+import java.io.IOException
 import kotlin.math.abs
 
 /**
- * The settings for an Archive.
+ * An Archive in the cache.
+ */
+data class Js5Archive(val id: Int, val groups: MutableMap<Int, Js5Group>, var version: Int?)
+
+/**
+ * The settings for a [Js5Archive].
  *
  * Archive settings are stored in the master index(.idx255) and contain meta-data about archives.
  *
@@ -34,8 +45,25 @@ import kotlin.math.abs
  */
 data class Js5ArchiveSettings(
     var version: Int?,
-    val js5GroupSettings: MutableMap<Int, Js5GroupSettings>
+    val js5GroupSettings: MutableMap<Int, Js5GroupSettings>,
+    val containsNameHash: Boolean,
+    val containsWpHash: Boolean,
+    val containsSizes: Boolean,
+    val containsUnknownHash: Boolean,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed()
 ) {
+    val uncompressedSize get() = js5GroupSettings.values.sumBy {
+        it.sizes?.uncompressed ?: 0
+    }
+
+    fun calculateChecksum(): Js5ArchiveChecksum {
+        val rawData = encode().encode()
+        return Js5ArchiveChecksum(rawData.crc(), version, js5GroupSettings.size, uncompressedSize,
+            rawData.array().whirlPoolHash()
+        )
+    }
+
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
@@ -47,24 +75,18 @@ data class Js5ArchiveSettings(
             if(js5GroupSettings.size <= UShort.MAX_VALUE.toInt()) {
                 Format.VERSIONED
             } else {
-                Format.VERSIONEDLARGE
+                Format.VERSIONED_LARGE
             }
         }
         buf.writeByte(format.opcode)
         if(format != Format.UNVERSIONED) buf.writeInt(this.version!!)
         var flags = 0
-        val hasNameHashes = js5GroupSettings.values.any { attr ->
-            attr.nameHash != null || attr.fileSettings.values.any { file -> file.nameHash != null }
-        }
-        val hasUnknownHashes = js5GroupSettings.values.any { it.unknownHash != null }
-        val hasWhirlPoolHashes = js5GroupSettings.values.any { it.whirlpoolHash != null }
-        val hasSizes = js5GroupSettings.values.any { it.sizes != null }
-        if(hasNameHashes) flags = flags or MASK_NAME_HASH
-        if(hasUnknownHashes) flags = flags or MASK_UNKNOWN_HASH
-        if(hasWhirlPoolHashes) flags = flags or MASK_WHIRLPOOL_HASH
-        if(hasSizes) flags = flags or MASK_SIZES
+        if(containsNameHash) flags = flags or MASK_NAME_HASH
+        if(containsUnknownHash) flags = flags or MASK_UNKNOWN_HASH
+        if(containsWpHash) flags = flags or MASK_WHIRLPOOL_HASH
+        if(containsSizes) flags = flags or MASK_SIZES
         buf.writeByte(flags)
-        if(format == Format.VERSIONEDLARGE) {
+        if(format == Format.VERSIONED_LARGE) {
             buf.writeLargeSmart(js5GroupSettings.size)
         } else {
             buf.writeShort(js5GroupSettings.size)
@@ -72,22 +94,22 @@ data class Js5ArchiveSettings(
         var prevArchiveId = 0
         for(id in js5GroupSettings.keys) {
             val delta = abs(prevArchiveId - id)
-            if(format == Format.VERSIONEDLARGE) buf.writeLargeSmart(delta) else buf.writeShort(delta)
+            if(format == Format.VERSIONED_LARGE) buf.writeLargeSmart(delta) else buf.writeShort(delta)
             prevArchiveId = id
         }
-        if(hasNameHashes) {
+        if(containsNameHash) {
             for(attr in js5GroupSettings.values) buf.writeInt(attr.nameHash ?: 0)
         }
         for(attr in js5GroupSettings.values) buf.writeInt(attr.crc)
-        if(hasUnknownHashes) {
+        if(containsUnknownHash) {
             for(attr in js5GroupSettings.values) buf.writeInt(attr.unknownHash ?: 0)
         }
-        if(hasWhirlPoolHashes) {
+        if(containsWpHash) {
             for(attr in js5GroupSettings.values) {
                 buf.writeBytes(attr.whirlpoolHash ?: ByteArray(WHIRLPOOL_HASH_SIZE))
             }
         }
-        if(hasSizes) {
+        if(containsSizes) {
             for(attr in js5GroupSettings.values) {
                 buf.writeInt(attr.sizes?.compressed ?: 0)
                 buf.writeInt(attr.sizes?.uncompressed ?: 0)
@@ -97,7 +119,7 @@ data class Js5ArchiveSettings(
             buf.writeInt(attr.version)
         }
         for(attr in js5GroupSettings.values) {
-            if(format == Format.VERSIONEDLARGE) {
+            if(format == Format.VERSIONED_LARGE) {
                 buf.writeLargeSmart(attr.fileSettings.size)
             } else {
                 buf.writeShort(attr.fileSettings.size)
@@ -107,7 +129,7 @@ data class Js5ArchiveSettings(
             var prevFileId = 0
             for(id in attr.fileSettings.keys) {
                 val delta = abs(prevFileId - id)
-                if(format == Format.VERSIONEDLARGE) {
+                if(format == Format.VERSIONED_LARGE) {
                     buf.writeLargeSmart(delta)
                 } else {
                     buf.writeShort(delta)
@@ -115,15 +137,36 @@ data class Js5ArchiveSettings(
                 prevFileId = id
             }
         }
-        if(hasNameHashes) {
+        if(containsNameHash) {
             for(attr in js5GroupSettings.values) {
                 for(file in attr.fileSettings.values) {
                     buf.writeInt(file.nameHash ?: 0)
                 }
             }
         }
+        return Js5Container(buf, xteaKey, compression, null) // settings containers don't have versions
+    }
 
-        return Js5Container(-1, buf) // container version is always -1
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Js5ArchiveSettings
+
+        if (version != other.version) return false
+        if (js5GroupSettings != other.js5GroupSettings) return false
+        if (compression != other.compression) return false
+        if (!xteaKey.contentEquals(other.xteaKey)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = version ?: 0
+        result = 31 * result + js5GroupSettings.hashCode()
+        result = 31 * result + compression.hashCode()
+        result = 31 * result + xteaKey.contentHashCode()
+        return result
     }
 
     /**
@@ -131,7 +174,7 @@ data class Js5ArchiveSettings(
      *
      * @property opcode The opcode used to encode the format.
      */
-    enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONEDLARGE(7) }
+    enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONED_LARGE(7) }
 
     companion object {
         private const val MASK_NAME_HASH = 0x01
@@ -142,50 +185,53 @@ data class Js5ArchiveSettings(
         /**
          * Decodes the [Js5Container] into a [Js5ArchiveSettings].
          */
-        fun decode(js5Container: Js5Container): Js5ArchiveSettings {
-            val buf = js5Container.data
+        fun decode(container: Js5Container): Js5ArchiveSettings {
+            val buf = container.data
             val formatOpcode = buf.readUnsignedByte().toInt()
-            val format = Format.values().find { it.opcode == formatOpcode }
-            require(format != null)
+            val format = Format.values().firstOrNull { it.opcode == formatOpcode } ?: throw IOException(
+                "Settings format $formatOpcode not supported."
+            )
             val version = if (format == Format.UNVERSIONED) null else buf.readInt()
             val flags = buf.readUnsignedByte().toInt()
-            val groupCount = if (format == Format.VERSIONEDLARGE) buf.readLargeSmart() else buf.readUnsignedShort()
+            val containsNameHash = flags and MASK_NAME_HASH != 0
+            val containsWpHash = flags and MASK_WHIRLPOOL_HASH != 0
+            val containsSizes = flags and MASK_SIZES != 0
+            val containsUnknownHash = flags and MASK_UNKNOWN_HASH != 0
+            val groupCount = if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort()
             val groupIds = IntArray(groupCount)
             var groupAccumulator = 0
             for(archiveIndex in groupIds.indices) {
-                // difference with previous id
-                val delta = if (format == Format.VERSIONEDLARGE) buf.readLargeSmart() else buf.readUnsignedShort()
+                val delta = if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort()
                 groupAccumulator += delta
                 groupIds[archiveIndex] = groupAccumulator
             }
-            val groupNameHashes = if (flags and MASK_NAME_HASH != 0) IntArray(groupCount) {
+            val groupNameHashes = if (containsNameHash) IntArray(groupCount) {
                 buf.readInt()
             } else null
-            val groupCRCs = IntArray(groupCount) { buf.readInt() }
-            val groupUnkownHashes = if (flags and MASK_UNKNOWN_HASH != 0) IntArray(groupCount) {
+            val gropuCrcs = IntArray(groupCount) { buf.readInt() }
+            val groupUnkownHashes = if (containsUnknownHash) IntArray(groupCount) {
                 buf.readInt()
             } else null
-            val groupWhirlpoolHashes = if (flags and MASK_WHIRLPOOL_HASH != 0) Array(groupCount) {
+            val groupWhirlpoolHashes = if (containsWpHash) Array(groupCount) {
                 ByteArray(WHIRLPOOL_HASH_SIZE) { buf.readByte() }
             } else null
-            val groupSizes = if(flags and MASK_SIZES != 0) Array(groupCount) {
-                Js5GroupSettings.Size(compressed = buf.readInt(), uncompressed = buf.readInt())
+            val groupSizes = if(containsSizes) Array(groupCount) {
+                Js5Container.Size(compressed = buf.readInt(), uncompressed = buf.readInt())
             } else null
             val groupVersions = Array(groupCount) { buf.readInt() }
             val groupFileIds = Array(groupCount) {
-                // decodeMultiFileContainer file count
-                IntArray(if (format == Format.VERSIONEDLARGE) buf.readLargeSmart() else buf.readUnsignedShort())
+                IntArray(if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort())
             }
             for(group in groupFileIds) {
                 var fileIdAccumulator = 0
                 for(fileIndex in group.indices) {
                     // difference with previous id
-                    val delta = if (format == Format.VERSIONEDLARGE) buf.readLargeSmart() else buf.readUnsignedShort()
+                    val delta = if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort()
                     fileIdAccumulator += delta
                     group[fileIndex] = fileIdAccumulator
                 }
             }
-            val groupFileNameHashes = if (flags and MASK_NAME_HASH != 0) {
+            val groupFileNameHashes = if (containsNameHash) {
                 Array(groupCount) {
                     IntArray(groupFileIds[it].size) {
                         buf.readInt()
@@ -204,90 +250,68 @@ data class Js5ArchiveSettings(
                 }
                 groupSettings[groupIds[groupIndex]] = Js5GroupSettings(
                     groupIds[groupIndex],
+                    groupVersions[groupIndex],
+                    gropuCrcs[groupIndex],
+                    fileSettings,
                     groupNameHashes?.get(groupIndex),
-                    groupCRCs[groupIndex],
                     groupUnkownHashes?.get(groupIndex),
                     groupWhirlpoolHashes?.get(groupIndex),
-                    groupSizes?.get(groupIndex),
-                    groupVersions[groupIndex],
-                    fileSettings
+                    groupSizes?.get(groupIndex)
+
                 )
             }
-            return Js5ArchiveSettings(version, groupSettings)
+            return Js5ArchiveSettings(version, groupSettings, containsNameHash, containsWpHash, containsSizes,
+                containsUnknownHash, container.xteaKey, container.compression
+            )
         }
     }
 }
 
 /**
- * The settings for a [Js5Group].
+ * The checksum meta-data for an archive.
  *
- * The [Js5GroupSettings] contain meta-data about [Js5Group]s. The [Js5GroupSettings] are encoded in the
- * [Js5ArchiveSettings].
- *
- * @property id The unique identifier in the archive of this group.
- * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
- * @property crc The [java.util.zip.CRC32] value of the encoded [Js5Group] data.
- * @property unknownHash (Optional) Its purpose and type is unknown as of yet.
- * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
- * @property sizes (Optional) The [Js5GroupSettings.Size] of this [Js5Group].
- * @property version The version of this group.
- * @property fileSettings The [Js5FileSettings] for each file in a map indexed by their id.
+ * @property crc The [java.util.zip.CRC32] value of the [Js5ArchiveSettings] as an encoded [Js5Container].
+ * @property version (Optional) he version of the [Js5ArchiveSettings].
+ * @property fileCount The amount of [Js5File] in the archive.
+ * @property uncompressedSize The size of the sum of all [Js5GroupData] data uncompressed.
+ * @property whirlpoolDigest (Optional) The whirlpool digest of this archive.
  */
-data class Js5GroupSettings(
-    val id: Int,
-    val nameHash: Int?,
-    val crc: Int,
-    val unknownHash: Int?,
-    val whirlpoolHash: ByteArray?,
-    val sizes: Size?,
-    val version: Int,
-    val fileSettings: MutableMap<Int, Js5FileSettings>
-
+data class Js5ArchiveChecksum(
+    var crc: Int,
+    var version: Int?,
+    var fileCount: Int?,
+    var uncompressedSize: Int?,
+    var whirlpoolDigest: ByteArray?
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as Js5GroupSettings
-        if (id != other.id) return false
-        if (nameHash != other.nameHash) return false
+        other as Js5ArchiveChecksum
         if (crc != other.crc) return false
-        if (unknownHash != other.unknownHash) return false
-        if (whirlpoolHash != null) {
-            if (other.whirlpoolHash == null) return false
-            if (!whirlpoolHash.contentEquals(other.whirlpoolHash)) return false
-        } else if (other.whirlpoolHash != null) return false
-        if (sizes != other.sizes) return false
         if (version != other.version) return false
-        if (fileSettings != other.fileSettings) return false
+        if (fileCount != other.fileCount) return false
+        if (uncompressedSize != other.uncompressedSize) return false
+        if (whirlpoolDigest != null) {
+            if (other.whirlpoolDigest == null) return false
+            if (!whirlpoolDigest!!.contentEquals(other.whirlpoolDigest!!)) return false
+        } else if (other.whirlpoolDigest != null) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = id
-        result = 31 * result + (nameHash ?: 0)
-        result = 31 * result + crc
-        result = 31 * result + (unknownHash ?: 0)
-        result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
-        result = 31 * result + (sizes?.hashCode() ?: 0)
-        result = 31 * result + version
-        result = 31 * result + fileSettings.hashCode()
+        var result = crc
+        result = 31 * result + (version ?: 0)
+        result = 31 * result + (fileCount ?: 0)
+        result = 31 * result + (uncompressedSize ?: 0)
+        result = 31 * result + (whirlpoolDigest?.contentHashCode() ?: 0)
         return result
     }
 
-    /**
-     * The [compressed] and [uncompressed] sizes of a [Js5Group].
-     *
-     * @property compressed The compressed size of a [Js5Group].
-     * @property uncompressed The uncompressed size of a [Js5Group].
-     */
-    data class Size(var compressed: Int, var uncompressed: Int)
+    companion object {
+        internal const val ENCODED_SIZE = Int.SIZE_BYTES + Int.SIZE_BYTES
+        internal const val WP_ENCODED_SIZE = ENCODED_SIZE + Int.SIZE_BYTES + Int.SIZE_BYTES + WHIRLPOOL_HASH_SIZE
+    }
 }
 
-/**
- * The settings for a [Js5Group.File].
- *
- * @property id The unique identifier in the group of this file.
- * @property nameHash (Optional) The unique string identifier in the group stored as a [java.lang.String.hashCode].
- */
-data class Js5FileSettings(val id: Int, val nameHash: Int?)
+

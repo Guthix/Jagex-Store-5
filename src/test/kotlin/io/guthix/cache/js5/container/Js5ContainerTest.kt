@@ -17,86 +17,40 @@
  */
 package io.guthix.cache.js5.container
 
-import io.guthix.cache.js5.util.Js5Compression
+import io.guthix.cache.js5.iterationFill
+import io.kotlintest.shouldBe
+import io.kotlintest.specs.StringSpec
 import io.netty.buffer.Unpooled
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class Js5ContainerTest {
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container no encryption no compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container, Js5Container.decode(js5Container.encode(Js5Compression.NONE)))
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container no encryption GZIP compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container, Js5Container.decode(js5Container.encode(Js5Compression.GZIP)))
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container no encryption BZIP compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container, Js5Container.decode(js5Container.encode(Js5Compression.BZIP2)))
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container no encryption LZMA compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(js5Container, Js5Container.decode(js5Container.encode(Js5Compression.LZMA)))
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container XTEA encryption no compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(
-            js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.NONE, xteaKey), xteaKey)
-        )
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container XTEA encryption GZIP compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(
-            js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.GZIP, xteaKey), xteaKey)
-        )
-
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container XTEA encryption BZIP compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(
-            js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.BZIP2, xteaKey), xteaKey)
-        )
-
-    @ParameterizedTest
-    @MethodSource("testContainer")
-    internal fun `Encode and decode container XTEA encryption LZMA compression`(js5Container: Js5Container) =
-        Assertions.assertEquals(
-            js5Container,
-            Js5Container.decode(js5Container.encode(Js5Compression.LZMA, xteaKey), xteaKey)
-        )
-
-    companion object {
-        val xteaKey = intArrayOf(376495908, 4927, 37654959, 936549)
-
-        @JvmStatic
-        fun testContainer() = listOf(
-            Arguments.of(Js5Container(-1, Unpooled.buffer(8).apply {
-                writeByte(8)
-                writeByte(3)
-                writeShort(4)
-                writeInt(8)
-            })),
-            Arguments.of(Js5Container(10, Unpooled.buffer(8).apply {
-                writeByte(-1)
-                writeByte(10)
-                writeShort(30)
-                writeInt(900)
-            }))
-        )
+class Js5ContainerTest : StringSpec({
+    val data = Unpooled.buffer(5871).iterationFill()
+    "After encoding and decoding an uncompressed container it should be the same as the original" {
+        Js5Container.decode(Js5Container(data.copy(), compression = Uncompressed()).encode()).data shouldBe data
     }
-}
+
+    "After encoding and decoding a BZIP2 compressed container it should be the same as the original" {
+        Js5Container.decode(Js5Container(data.copy(), compression = BZIP2()).encode()).data shouldBe data
+    }
+
+    "After encoding and decoding a GZIP compressed container it should be the same as the original" {
+        Js5Container.decode(Js5Container(data.copy(), compression = GZIP()).encode()).data shouldBe data
+    }
+
+    "After encoding and decoding a LZMA compressed container it should be the same as the original" {
+        val lzma = LZMA().apply {
+            header = Unpooled.buffer().apply { // write LZMA header
+                writeByte(93)
+                writeByte(0)
+                writeByte(0)
+                writeByte(64)
+                writeByte(0)
+            }
+        }
+        Js5Container.decode(Js5Container(data.copy(), compression = lzma).encode()).data shouldBe data
+    }
+
+    "After encoding and decoding a XTEA encrypted container it should be the same as the original" {
+        val xteaKey = intArrayOf(3028, 927, 0, 658)
+        Js5Container.decode(Js5Container(data.copy(), xteaKey = xteaKey).encode(), xteaKey = xteaKey).data shouldBe data
+    }
+})

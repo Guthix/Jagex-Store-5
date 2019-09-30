@@ -19,8 +19,8 @@ package io.guthix.cache.js5.container.net
 
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5ContainerReader
-import io.guthix.cache.js5.container.filesystem.Segment
-import io.guthix.cache.js5.util.Js5Compression
+import io.guthix.cache.js5.container.disk.Sector
+import io.guthix.cache.js5.container.Js5Compression
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
@@ -28,7 +28,6 @@ import mu.KotlinLogging
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.StandardSocketOptions
-import java.nio.ByteBuffer
 import java.nio.channels.SocketChannel
 import kotlin.experimental.xor
 import kotlin.math.ceil
@@ -83,9 +82,7 @@ class Js5SocketReader(
         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
         socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
         logger.info("Setting XOR encryption key to $xorKey")
-        if(xorKey.toInt() != 0) {
-            updateEncryptionKey(xorKey)
-        }
+        if(xorKey.toInt() != 0) { updateEncryptionKey(xorKey) }
         logger.info("Sending version handshake for revision $revision")
         val buffer = Unpooled.buffer(5).apply {
             writeByte(JS5_CONNECTION_TYPE)
@@ -95,9 +92,7 @@ class Js5SocketReader(
         val buf = Unpooled.buffer(1)
         buf.readBytes(socketChannel, buf.readableBytes())
         val statusCode = buf.readUnsignedByte().toInt()
-        if(statusCode != 0) throw IOException(
-            "Could not establish connection withg JS5 Server error code $statusCode."
-        )
+        if(statusCode != 0) throw IOException("Could not establish connection with JS5 Server error code $statusCode.")
         logger.info("JS5 connection successfully established")
     }
 
@@ -157,7 +152,7 @@ class Js5SocketReader(
         // write other data
         var i = 0
         while(dataResponseBuffer.isReadable) {
-            var start = BYTES_AFTER_HEADER + i * (Segment.DATA_SIZE)
+            var start = BYTES_AFTER_HEADER + i * (Sector.DATA_SIZE)
             start += 1 //skip 255
             val blockBytesLeft = dataResponseBuffer.readableBytes() - start
             val blockDataSize = if(blockBytesLeft < BYTES_AFTER_BLOCK) {
@@ -228,12 +223,12 @@ class Js5SocketReader(
         /**
          * Amount of bytes to read after decoding the header.
          */
-        private const val BYTES_AFTER_HEADER = Segment.DATA_SIZE - 8
+        private const val BYTES_AFTER_HEADER = Sector.DATA_SIZE - 8
 
         /**
          * Amount of bytes to read per block.
          */
-        private const val BYTES_AFTER_BLOCK = Segment.DATA_SIZE - 1
+        private const val BYTES_AFTER_BLOCK = Sector.DATA_SIZE - 1
 
     }
 }

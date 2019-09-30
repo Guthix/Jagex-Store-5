@@ -15,10 +15,24 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+package io.guthix.cache.js5
 
-dependencies {
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    implementation rootProject
-}
+import io.netty.buffer.ByteBuf
+import io.netty.buffer.DefaultByteBufHolder
+
+/**
+ * The smallest data unit in a [Js5Cache]. Each file contains data and optionally has a [nameHash].
+ *
+ * @property nameHash (Optional) The unique string identifier in the [Js5GroupData] stored as a
+ * [java.lang.String.hashCode].
+ * @property data The data of the file.
+ */
+data class Js5File(val id: Int, val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
+
+/**
+ * The settings for a [Js5GroupData.File].
+ *
+ * @property id The unique identifier in the group of this file.
+ * @property nameHash (Optional) The unique string identifier in the group stored as a [java.lang.String.hashCode].
+ */
+data class Js5FileSettings(val id: Int, val nameHash: Int?)

@@ -15,10 +15,14 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+package io.guthix.cache.js5.container.disk
 
-dependencies {
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    implementation rootProject
-}
+import io.kotlintest.shouldBe
+import io.kotlintest.specs.StringSpec
+
+class IndexTest : StringSpec({
+    val index = Index(3948, 1)
+    "After encoding and decoding an index it should be the same as the original" {
+        Index.decode(index.encode()) shouldBe index
+    }
+})

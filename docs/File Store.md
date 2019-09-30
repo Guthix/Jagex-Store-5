@@ -34,7 +34,7 @@ An index file contains a list of indexes. Each index represents a pointer
 to container data in the data file. For archive index files an index
 points to a group. For the master index file an index points to 
 archive settings data. An index contains the data size of the container
-and the first segment that it should start reading from the data file.
+and the first sector that it should start reading from the data file.
 It looks as follows:
 
 ![Index Encoding](images/Index.svg)
@@ -42,28 +42,28 @@ It looks as follows:
 ## Data file
 
 The data file is where the actual cache data is stored. The data file is
-a list of segments. Segments are of fixed size and multiple segments can
+a list of sectors. sectors are of fixed size and multiple sectors can
 represent a file. A data file has the following structure:
 
 ![Data File](images/DataFile.svg)
 
-Segments are made out of 2 parts. The segment header and the data part.
-The segment header contains the id of the index file it belongs to
-(the file extension number), the next segment which belongs to the same
-container, its position in the list of segments belonging to that 
+sectors are made out of 2 parts. The sector header and the data part.
+The sector header contains the id of the index file it belongs to
+(the file extension number), the next sector which belongs to the same
+container, its position in the list of sectors belonging to that 
 container and the container id it belongs to.
 
-The container id, segment position and index file id are used for
-verification while reading. The next segment position is for knowing where
-the next segment of that container is. This means that segments don't have
+The container id, sector position and index file id are used for
+verification while reading. The next sector position is for knowing where
+the next sector of that container is. This means that sectors don't have
 to be stored sequentially in the data file.
 
-A segment is encoded as follows:
+A sector is encoded as follows:
 
-![Normal Segment Encoding](images/NormalSegment.svg)
+![Normal sector Encoding](images/Normalsector.svg)
 
-This segment encoding however can only store segments with a container ids
+This sector encoding however can only store sectors with a container ids
 up until 65535 (maximum unsigned short). So container with higher ids are 
-stored with extended segments which look as follows:
+stored with extended sectors which look as follows:
 
-![Extended Segment Encoding](images/ExtendedSegment.svg)
+![Extended sector Encoding](images/Extendedsector.svg)

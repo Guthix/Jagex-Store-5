@@ -15,26 +15,15 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.container.filesystem
+package io.guthix.cache.js5
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
+import io.netty.buffer.ByteBuf
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class IndexFileTest {
-    @ParameterizedTest
-    @MethodSource("testIndexes")
-    internal fun `Encode and decode compare index`(index: Index) =
-            assertEquals(index, Index.decode(index.encode()))
-
-    companion object {
-        @JvmStatic
-        fun testIndexes() = listOf(
-            Arguments.of(Index(dataSize = 10, segmentNumber = 1)),
-            Arguments.of(Index(dataSize = 3, segmentNumber = 20))
-        )
-    }
+/**
+ * Fills a [ByteBuf] with increasing numbers starting from 0.
+ */
+internal fun ByteBuf.iterationFill(): ByteBuf {
+    var i = 0
+    while(isWritable) { writeByte(i++) }
+    return this
 }

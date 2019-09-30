@@ -17,149 +17,34 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.container.filesystem.Js5FileSystem
-import io.guthix.cache.js5.util.*
+import io.guthix.cache.js5.container.disk.Js5DiskStore
+import io.kotlintest.shouldBe
+import io.kotlintest.specs.StringSpec
 import io.netty.buffer.Unpooled
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.io.TempDir
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
-import java.io.File
-import java.math.BigInteger
+import java.nio.file.Files
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class Js5CacheTest {
-    @Test
-    fun `Read write compare group with sequential file ids`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles)
-    }
-
-    @Test
-    fun `Read write compare group with non sequential file ids`(@TempDir cacheDir: File) {
-        val nonSeqTestFiles = mapOf(
-            1 to Js5Group.File(null,
-                Unpooled.buffer(8).apply { repeat(8) { writeByte(255)} }
-            ),
-            6 to Js5Group.File(null,
-                Unpooled.buffer(16).apply { repeat(16) { writeByte(1)} }
-            ),
-            10 to Js5Group.File(null,
-                Unpooled.buffer(3).apply { repeat(3) { writeByte(0)} }
-            )
+class Js5CacheTest : StringSpec() {
+    init {
+        val fsFolder = Files.createTempDirectory("js5")
+        val diskStore = Js5DiskStore.open(fsFolder)
+        val cache = autoClose(Js5Cache.open(diskStore))
+        val files = mutableMapOf(
+            0 to Js5File(0, 23482, Unpooled.buffer(390).iterationFill()),
+            1 to Js5File(1, 5234, Unpooled.buffer(823).iterationFill()),
+            2 to Js5File(2, 6536, Unpooled.buffer(123).iterationFill())
         )
-        readWriteTest(cacheDir, nonSeqTestFiles)
-    }
-
-    @Test
-    fun `Read write compare group with named archive and files`(@TempDir cacheDir: File) {
-        val seqNameTestFiles = mapOf(
-            1 to Js5Group.File("SeqTest1".hashCode(),
-                Unpooled.buffer(8).apply { repeat(8) { writeByte(255)} }
-            ),
-            2 to Js5Group.File("SeqTest2".hashCode(),
-                Unpooled.buffer(16).apply { repeat(16) { writeByte(18)} }
-
-            ),
-            3 to Js5Group.File("SeqTest3".hashCode(),
-                Unpooled.buffer(3).apply { repeat(3) { writeByte(0)} }
-            )
-        )
-        readWriteTest(cacheDir, seqNameTestFiles, nameHash = "SeqTest0".hashCode())
-    }
-
-    @Test
-    fun `Read write compare group in multiple segments`(@TempDir cacheDir: File) {
-        val testSegments = listOf(1, 3, 8, 10, 20)
-        testSegments.forEach { readWriteTest(cacheDir, testFiles, groupSegmentCount = it) }
-    }
-
-    @Test
-    fun `Read write compare group with manually providing versions`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles, groupVersion = 3, archiveVersion = 8)
-    }
-
-    @Test
-    fun `Read write compare group with manually providing container versions`(@TempDir cacheDir: File) {
-        readWriteTest(cacheDir, testFiles)
-    }
-
-    @Test
-    fun `Read write compare encrypted group`(@TempDir cacheDir: File) {
-        val groupXteaKey = intArrayOf(3028, 1, 759, 43945)
-        val settingsXteaKey = intArrayOf(895, 3458790, 4358976, 32470)
-        readWriteTest(cacheDir, testFiles, groupXteaKey = groupXteaKey, settingsXteaKey = settingsXteaKey)
-    }
-
-    @Test
-    fun `Read write compare compressed group`(@TempDir cacheDir: File) {
-        Js5Compression.values().forEach { groupCompression ->
-            Js5Compression.values().forEach { settingsCompression ->
-                readWriteTest(
-                    cacheDir,
-                    testFiles,
-                    groupJs5Compression = groupCompression,
-                    settingsJs5Compression = settingsCompression
-                )
-            }
-        }
-    }
-
-    private fun readWriteTest(
-        cacheDir: File,
-        files: Map<Int, Js5Group.File>,
-        archiveId: Int = 0,
-        groupId: Int = 0,
-        nameHash: Int? = null,
-        groupSegmentCount: Int = 1,
-        groupVersion: Int = -1,
-        archiveVersion: Int = -1,
-        groupXteaKey: IntArray = XTEA_ZERO_KEY,
-        settingsXteaKey: IntArray = XTEA_ZERO_KEY,
-        groupJs5Compression: Js5Compression = Js5Compression.NONE,
-        settingsJs5Compression: Js5Compression = Js5Compression.NONE
-    ) {
-        val archiveBuffer = Unpooled.buffer(files.values.sumBy { it.data.capacity() })
-        files.values.map { it.data }.forEach { archiveBuffer.writeBytes(it) }
-        files.values.forEach { it.content().resetReaderIndex() }
+        cache.addArchive(0, containsWpHash = true, containsSizes = true)
         val group = Js5Group(
-            groupId,
-            nameHash,
-            archiveBuffer.crc(),
-            null,
-            archiveBuffer.whirlPoolHash(),
-            Js5GroupSettings.Size(0, archiveBuffer.capacity()),
-            groupVersion,
-            files.toMutableMap()
+            id = 0,
+            version = 23,
+            chunkCount = 10,
+            files = files,
+            nameHash = 3489234,
+            unknownHash = 2390324
         )
-        val fs = Js5FileSystem(cacheDir)
-        Js5Cache(readerWriter = fs).use { cache ->
-            cache.writeGroup(
-                archiveId, archiveVersion, group, groupSegmentCount, groupXteaKey, settingsXteaKey,
-                groupJs5Compression, settingsJs5Compression
-            )
+        "Read and write" {
+            cache.writeGroup(0, group)
+            cache.readGroup(0, 0) shouldBe group
         }
-        val fs2 = Js5FileSystem(cacheDir) // need to create a new filesystem because fs closed
-        // create new cache to remove settings from memory and read them in again
-        Js5Cache(readerWriter = fs2, settingsXtea = mutableMapOf(archiveId to settingsXteaKey)).use { cache ->
-            val readArchive = cache.readGroup(archiveId, groupId, groupXteaKey)
-            assertEquals(group, readArchive)
-        }
-    }
-
-    companion object {
-        private val testFiles = mapOf(
-            1 to Js5Group.File(null,
-                Unpooled.buffer(8).apply { repeat(8) { writeByte(255)} }
-            ),
-            2 to Js5Group.File(null,
-                Unpooled.buffer(16).apply { repeat(16) { writeByte(18)} }
-            ),
-            3 to Js5Group.File(null,
-                Unpooled.buffer(3).apply { repeat(3) { writeByte(0)} }
-            )
-        )
     }
 }

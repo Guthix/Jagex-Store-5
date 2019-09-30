@@ -17,165 +17,135 @@
  */
 package io.guthix.cache.js5
 
+import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.container.Uncompressed
+import io.guthix.cache.js5.container.XTEA_ZERO_KEY
 import io.guthix.cache.js5.util.splitOf
 import io.netty.buffer.ByteBuf
-import io.netty.buffer.ByteBufHolder
-import io.netty.buffer.DefaultByteBufHolder
+import io.netty.buffer.CompositeByteBuf
 import io.netty.buffer.Unpooled
+import kotlin.math.ceil
 
-/**
- * A collection of [File]s that can be read from a cache.
- *
- * A [Js5Group] is a collection of [File]s where each file is accompanied an ID. The [Js5Group] group also has its own
- * ID. Multiple [Js5Group]s can form an archive. The [Js5Group] is the smallest set of files that can be read/written
- * from/to the cache and can be encoded/decoded from/to a [Js5Container]. Thus a request for a single file in the
- * [Js5Group] requires the whole group to be read. Each [Js5Group] can also contain other meta-data that is loaded from
- * the [Js5GroupSettings].
- *
- * @property id The unique identifier in the archive of this group.
- * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
- * @property crc The [java.util.zip.CRC32] value of the encoded [Js5Group] data.
- * @property unknownHash (Optional) Its purpose and type is unknown as of yet.
- * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
- * @property sizes (Optional) The [Js5GroupSettings.Size] of this [Js5Group].
- * @property version The version of this group.
- * @property files The [File]s in a map, indexed by their [id].
- */
 data class Js5Group(
-    val id: Int,
-    val nameHash: Int?,
-    val crc: Int,
-    val unknownHash: Int?,
-    val whirlpoolHash: ByteArray?,
-    var sizes: Js5GroupSettings.Size?,
-    val version: Int,
-    val files: MutableMap<Int, File>
+    var id: Int,
+    var version: Int,
+    internal var crc: Int = 0,
+    var chunkCount: Int,
+    val files: MutableMap<Int, Js5File>,
+    var nameHash: Int? = null,
+    var unknownHash: Int? = null,
+    internal var whirlpoolHash: ByteArray? = null,
+    internal var sizes: Js5Container.Size? = null,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed()
 ) {
-    /**
-     * Encodes a [Js5Group] into a [Js5Container]. If the [Js5Group] contains a single file the data of that file will
-     * be used as the [Js5Group] encoding. If the [Js5Group] contains more than 1 file the files can be split up in
-     * chunks of data.
-     *
-     * @see [decode] for doing the reverse operation.
-     *
-     * @param chunkCount The amount of chunks used to split the files when there is more than 1 file.
-     */
-    fun encode(chunkCount: Int = 1): Js5Container {
-        if(files.values.size == 1) {
-            return Js5Container(version, files.values.first().data)
-        }
-        val fileBuffers = files.values.map { it.data }.toTypedArray()
-        val buffer = Unpooled.buffer(
-            fileBuffers.sumBy { it.capacity() } + chunkCount * fileBuffers.size * Int.SIZE_BYTES + 1
-        )
-        val chunks = splitIntoChunks(fileBuffers, chunkCount)
-        for(group in chunks) {
-            for(fileGroup in group) {
-                buffer.writeBytes(fileGroup)
+    val groupData get() = Js5GroupData(files.values.map { it.data }.toTypedArray(), chunkCount, xteaKey, compression)
+
+    val groupSettings get() = Js5GroupSettings(id, version, crc, files.mapValues { (fileId, file) ->
+        Js5FileSettings(fileId, file.nameHash) }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
+    )
+
+    companion object {
+        fun create(data: Js5GroupData, settings: Js5GroupSettings): Js5Group {
+            var i = 0
+            val files = mutableMapOf<Int, Js5File>()
+            settings.fileSettings.forEach { (fileId, fileSettings) ->
+                files[fileId] = Js5File(fileId, fileSettings.nameHash, data.fileData[i])
+                i++
             }
+            return Js5Group(settings.id, settings.version, settings.crc, data.chunkCount, files, settings.nameHash,
+                settings.unknownHash, settings.whirlpoolHash, settings.sizes
+            )
         }
-        for(group in chunks) {
-            var lastWrittenSize = group[0].size
-            buffer.writeInt(lastWrittenSize)
-            for(i in 1 until group.size) {
-                buffer.writeInt(group[i].size - lastWrittenSize) // write delta
-                lastWrittenSize = group[i].size
-            }
-        }
-        buffer.writeByte(chunkCount)
-        return Js5Container(version, buffer)
+    }
+}
+
+data class Js5GroupData(
+    val fileData: Array<ByteBuf>,
+    var chunkCount: Int = 1,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed()
+) {
+    fun encode(version: Int? = null) = if(fileData.size == 1) {
+        Js5Container(fileData.first(), xteaKey, compression, version)
+    } else {
+        Js5Container(encodeMultipleFiles(fileData, chunkCount), xteaKey, compression, version)
     }
 
-    /**
-     * Splits a set of [ByteArray]s int [chunkCount] chunks.
-     *
-     * @param fileData The data do split
-     * @param chunkCount The amount of chunks to split the data into
-     */
-    private fun splitIntoChunks(
-        fileData: Array<ByteBuf>,
-        chunkCount: Int
-    ): Array<Array<ByteArray>> = Array(chunkCount) { group ->
-        Array(fileData.size) { file ->
-            fileData[file].splitOf(group + 1, chunkCount)
+    private fun encodeMultipleFiles(data: Array<ByteBuf>, chunkCount: Int): ByteBuf {
+        val chunks = splitIntoChunks(data, chunkCount)
+        val buf = Unpooled.compositeBuffer(
+            chunks.size * chunks.sumBy { it.size } + 1
+        )
+        for(group in chunks) {
+            for(fileGroup in group) { // don't use spread operator hear because of unnecessary array copying
+                buf.addComponent(true, fileGroup)
+            }
+        }
+        val suffixBuf = Unpooled.buffer(chunkCount * data.size * Int.SIZE_BYTES + Byte.SIZE_BYTES)
+        for(group in chunks) {
+            var lastWrittenSize = group[0].writerIndex()
+            suffixBuf.writeInt(lastWrittenSize)
+            for(i in 1 until group.size) {
+                suffixBuf.writeInt(group[i].writerIndex() - lastWrittenSize) // write delta
+                lastWrittenSize = group[i].writerIndex()
+            }
+        }
+        suffixBuf.writeByte(chunkCount)
+        buf.addComponent(true, suffixBuf)
+        return buf
+    }
+
+    private fun splitIntoChunks(fileData: Array<ByteBuf>, chunkCount: Int): Array<Array<ByteBuf>> {
+        val chunkSize = fileData.map { ceil(it.writerIndex().toDouble() / chunkCount).toInt() }.toTypedArray()
+        return Array(chunkCount) { group ->
+            Array(fileData.size) { file ->
+                fileData[file].splitOf(group, chunkSize[file])
+            }
         }
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is Js5Group) return false
-        if (id != other.id) return false
-        if (nameHash != other.nameHash) return false
-        if (crc != other.crc) return false
-        if (unknownHash != other.unknownHash) return false
-        if (whirlpoolHash != null) {
-            if (other.whirlpoolHash == null) return false
-            if (!whirlpoolHash.contentEquals(other.whirlpoolHash)) return false
-        } else if (other.whirlpoolHash != null) return false
-        if (sizes != other.sizes) return false
-        if (version != other.version) return false
-        if (files != other.files) return false
+        if (javaClass != other?.javaClass) return false
+
+        other as Js5GroupData
+
+        if (!fileData.contentEquals(other.fileData)) return false
+        if (chunkCount != other.chunkCount) return false
+
         return true
     }
 
     override fun hashCode(): Int {
-        var result = id
-        result = 31 * result + (nameHash ?: 0)
-        result = 31 * result + crc
-        result = 31 * result + (unknownHash ?: 0)
-        result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
-        result = 31 * result + (sizes?.hashCode() ?: 0)
-        result = 31 * result + (version)
-        result = 31 * result + files.hashCode()
+        var result = fileData.contentHashCode()
+        result = 31 * result + chunkCount
         return result
     }
 
-    /**
-     * The smallest data unit in a [Js5Cache]. Each file contains data and optionally has a [nameHash].
-     *
-     * @property nameHash (Optional) The unique string identifier in the [Js5Group] stored as a
-     * [java.lang.String.hashCode].
-     * @property data The data of the file.
-     */
-    data class File(val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
-
     companion object {
         /**
-         * Decodes a [Js5Container] into a [Js5Group]. If the [Js5Group] contains a single file the whole [Js5Container]
-         * data is used as [File] data. If the [Js5Group] contains more than 1 file the files could be split up in
+         * Decodes a [Js5Container] into a [Js5GroupData]. If the [Js5GroupData] contains a single file the whole [Js5Container]
+         * data is used as [Js5File] data. If the [Js5GroupData] contains more than 1 file the files could be split up in
          * multiple chunks of data
-         *
-         * @see [encode] for doing the reverse operation.
-         *
-         * @param js5Container The container to decode from.
-         * @param groupSettings The [Js5GroupSettings] from the master index belonging to this group.
-         */
-        fun decode(js5Container: Js5Container, groupSettings: Js5GroupSettings): Js5Group {
-            val fileBuffers = if(groupSettings.fileSettings.size == 1) {
-                arrayOf(js5Container.data)
-            } else {
-                decodeMultiFileContainer(js5Container, groupSettings.fileSettings.size)
-            }
-            val files = mutableMapOf<Int, File>()
-            var index = 0
-            groupSettings.fileSettings.forEach { (fileId, attribute) ->
-                files[fileId] = File(attribute.nameHash, fileBuffers[index])
-                index++
-            }
-            return Js5Group(
-                groupSettings.id, groupSettings.nameHash, groupSettings.crc, groupSettings.unknownHash,
-                groupSettings.whirlpoolHash, groupSettings.sizes, groupSettings.version, files
-            )
-        }
-
-        /**
-         * Decodes a [Js5Container] when the container contains multiple [File]s.
          *
          * @param container The container to decode from.
          * @param fileCount The amount of files to decode.
          */
-        private fun decodeMultiFileContainer(container: Js5Container, fileCount: Int): Array<ByteBuf> {
+        fun decode(container: Js5Container, fileCount: Int) = if(fileCount == 1) {
+            Js5GroupData(arrayOf(container.data), 1, container.xteaKey, container.compression)
+        } else {
+            decodeMultipleFiles(container, fileCount)
+        }
+
+        /**
+         * Decodes a [Js5Container] when the container contains multiple [Js5File]s.
+         *
+         * @param container The container to decode from.
+         * @param fileCount The amount of files to decode.
+         */
+        private fun decodeMultipleFiles(container: Js5Container, fileCount: Int): Js5GroupData {
             val fileSizes = IntArray(fileCount)
             val chunkCount = container.data.getUnsignedByte(container.data.readableBytes() - 1).toInt()
             val chunkFileSizes = Array(chunkCount) { IntArray(fileCount) }
@@ -189,20 +159,80 @@ data class Js5Group(
                     fileSizes[fileId] += groupFileSize
                 }
             }
-            val fileData = Array<ByteBuf>(fileCount) {
-                Unpooled.buffer(fileSizes[it])
+            val fileData = Array<CompositeByteBuf>(fileCount) {
+                Unpooled.compositeBuffer(chunkCount)
             }
             container.data.readerIndex(0)
             for (chunkId in 0 until chunkCount) {
                 for (fileId in 0 until fileCount) {
                     val groupFileSize = chunkFileSizes[chunkId][fileId]
-                    fileData[fileId].writeBytes(
-                        container.data.slice(container.data.readerIndex(), groupFileSize)
+                    fileData[fileId].addComponent(
+                        true, container.data.slice(container.data.readerIndex(), groupFileSize)
                     )
                     container.data.readerIndex(container.data.readerIndex() + groupFileSize)
                 }
             }
-            return fileData
+            return Js5GroupData(
+                fileData.map { it as ByteBuf }.toTypedArray(),
+                chunkCount,
+                container.xteaKey,
+                container.compression
+            )
         }
+    }
+}
+
+/**
+ * The settings for a [Js5GroupData]. The [Js5GroupSettings] contain meta-data about [Js5GroupData]s. The
+ * [Js5GroupSettings] are encoded in the [Js5ArchiveSettings].
+ *
+ * @property id The unique identifier in the archive of this group.
+ * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
+ * @property crc The [java.util.zip.CRC32] value of the encoded [Js5GroupData] data.
+ * @property unknownHash (Optional) Its purpose and type is unknown as of yet.
+ * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
+ * @property sizes (Optional) The [Js5Container.Size] of this [Js5GroupData].
+ * @property version The version of this group.
+ * @property fileSettings The [Js5FileSettings] for each file in a map indexed by their id.
+ */
+data class Js5GroupSettings(
+    var id: Int,
+    var version: Int,
+    var crc: Int,
+    val fileSettings: MutableMap<Int, Js5FileSettings>,
+    var nameHash: Int? = null,
+    var unknownHash: Int? = null,
+    var whirlpoolHash: ByteArray? = null,
+    var sizes: Js5Container.Size? = null
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as Js5GroupSettings
+        if (id != other.id) return false
+        if (version != other.version) return false
+        if (crc != other.crc) return false
+        if (fileSettings != other.fileSettings) return false
+        if (nameHash != other.nameHash) return false
+        if (unknownHash != other.unknownHash) return false
+        if (whirlpoolHash != null) {
+            if (other.whirlpoolHash == null) return false
+            if (!whirlpoolHash!!.contentEquals(other.whirlpoolHash!!)) return false
+        } else if (other.whirlpoolHash != null) return false
+        if (sizes != other.sizes) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id
+        result = 31 * result + version
+        result = 31 * result + crc
+        result = 31 * result + fileSettings.hashCode()
+        result = 31 * result + (nameHash ?: 0)
+        result = 31 * result + (unknownHash ?: 0)
+        result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
+        result = 31 * result + (sizes?.hashCode() ?: 0)
+        return result
     }
 }

@@ -17,20 +17,17 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.container.Js5ContainerReader
-import io.guthix.cache.js5.container.Js5ContainerWriter
-import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.container.Js5ContainerReaderWriter
-import io.guthix.cache.js5.container.filesystem.Js5FileSystem
+import io.guthix.cache.js5.container.*
+import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.util.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import mu.KotlinLogging
 import java.io.IOException
-import java.lang.IllegalStateException
 import java.math.BigInteger
+import kotlin.IllegalArgumentException
 
-private val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger { }
 
 /**
  * A readable and writeable [Js5Cache].
@@ -44,403 +41,255 @@ private val logger = KotlinLogging.logger {}
  * @property writer The container writer.
  * @property settingsXtea (Optional) XTEA keys for decrypting the [Js5ArchiveSettings].
  */
-open class Js5Cache(
+class Js5Cache private constructor(
     private val reader: Js5ContainerReader,
-    private val writer: Js5ContainerWriter? = null,
-    private val settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
+    private val writer: Js5ContainerWriter,
+    private val archiveSettings: MutableMap<Int, Js5ArchiveSettings>
 ) : AutoCloseable {
-    constructor(
-        readerWriter: Js5ContainerReaderWriter,
-        settingsXtea: MutableMap<Int, IntArray> = mutableMapOf()
-    ) : this(reader = readerWriter,  writer = readerWriter, settingsXtea = settingsXtea)
+    val archiveCount get() = archiveSettings.size
 
-    /**
-     * The [Js5ArchiveSettings] for all the archives in this [Js5Cache].
-     */
-    val archiveSettings = MutableList(reader.archiveCount) {
-        Js5ArchiveSettings.decode(
-            Js5Container.decode(
-                reader.read(
-                    Js5FileSystem.MASTER_INDEX,
-                    it
-                ),
-                settingsXtea[it] ?: XTEA_ZERO_KEY
-            )
+    fun addArchive(
+        version: Int? = null,
+        containsNameHash: Boolean = false,
+        containsWpHash: Boolean = false,
+        containsSizes: Boolean = false,
+        containsUnknownHash: Boolean = false,
+        xteaKey: IntArray = XTEA_ZERO_KEY,
+        compression: Js5Compression = Uncompressed()
+    ) {
+        val archiveId = archiveSettings.size
+        logger.debug { "Adding empty archive with id $archiveId" }
+        archiveSettings[archiveId] = Js5ArchiveSettings(version, mutableMapOf(), containsNameHash, containsWpHash,
+            containsSizes, containsUnknownHash, xteaKey, compression
         )
-    }
-
-    init {
-        logger.info("Loaded cache with ${archiveSettings.size} archives")
-    }
-
-    /**
-     * Reads raw data from the [reader].
-     *
-     * @param indexId The index id to read. For reading groups the index id is equivalent to the archive id and for the
-     * settings the index id is equivalent to the [Js5FileSystem.MASTER_INDEX].
-     * @param containerId The container id to read which is equivalent to the archive id for reading
-     * [Js5ArchiveSettings] data and the group id for reading [Js5Group] data.
-     */
-    open fun readData(indexId: Int, containerId: Int): ByteBuf = reader.read(indexId, containerId)
-
-    /**
-     * Reads a [Js5Group] from the cache by group id.
-     *
-     * @param archiveId The archive to read from.
-     * @param groupId The gropu to read from.
-     * @param xteaKey The (Optional) XTEA key to decrypt the group container.
-     */
-    open fun readGroup(
-        archiveId: Int,
-        groupId: Int,
-        xteaKey: IntArray = XTEA_ZERO_KEY
-    ): Js5Group {
-        val archiveSettings = archiveSettings[archiveId]
-        val groupSettings = archiveSettings.js5GroupSettings[groupId] ?: throw IOException("Js5Group does not exist.")
-        val groupContainer = Js5Container.decode(readData(archiveId, groupId), xteaKey)
-        logger.info("Reading group $groupId from archive $archiveId")
-        return Js5Group.decode(groupContainer, groupSettings)
-    }
-
-    /**
-     * Reads a [Js5Group] from the cache by group name.
-     *
-     * @param archiveId The archive to read from.
-     * @param groupName The name of the group to read.
-     * @param xteaKey The (Optional) XTEA key to decrypt the group container.
-     */
-    open fun readGroup(
-        archiveId: Int,
-        groupName: String,
-        xteaKey: IntArray = XTEA_ZERO_KEY
-    ): Js5Group {
-        val archiveSettings = archiveSettings[archiveId]
-        val nameHash = groupName.hashCode()
-        val groupSettings =  archiveSettings.js5GroupSettings.values.first { it.nameHash == nameHash }
-        logger.info("Reading group ${groupSettings.id} from archive $archiveId")
-        val groupContainer = Js5Container.decode(readData(archiveId, groupSettings.id), xteaKey)
-        return Js5Group.decode(groupContainer, groupSettings)
     }
 
     /**
      * Reads an archive from the cache by id.
      *
      * @param archiveId The id of the archive.
-     * @param xteaKeys The xtea keys for decrypting the [Js5Group]s in the archive.
+     * @param xteaKeys The xtea keys for decrypting the [Js5GroupData]s in the archive.
      */
-    open fun readArchive(
-        archiveId: Int,
-        xteaKeys: Map<Int, IntArray> = emptyMap()
-    ): Map<Int, Js5Group> {
-        val archiveSettings = archiveSettings[archiveId]
+    fun readArchive(archiveId: Int, xteaKeys: Map<Int, IntArray> = emptyMap()): Js5Archive {
+        val archiveSettings = getArchiveSettings(archiveId)
         val groups = mutableMapOf<Int, Js5Group>()
         archiveSettings.js5GroupSettings.forEach { (groupId, groupSettings) ->
-            val xtea = xteaKeys[groupId] ?: XTEA_ZERO_KEY
-            logger.info("Reading group ${groupSettings.id} from archive $archiveId")
-            val groupContainer = Js5Container.decode(readData(archiveId, groupId), xtea)
-            groups[groupId] = Js5Group.decode(groupContainer, groupSettings)
+            groups[groupId] = readGroup(archiveId, groupSettings, xteaKeys.getOrElse(groupId) { XTEA_ZERO_KEY })
         }
-        return groups
+        return Js5Archive(archiveId, groups, archiveSettings.version)
     }
 
     /**
-     * Writes a [Js5Group] to this cache.
+     * Reads a [Js5GroupData] from the cache by group id.
      *
-     * @param archiveId The id of the archive to write to.
-     * @param archiveVersion (Optional) The version of the archive.
-     * @param group The [Js5Group] to write.
-     * @param groupChunkCount (Optional) The amount of chunks to use for encoding the [Js5Group].
-     * @param groupXteaKey (Optional) The XTEA key for encoding the [Js5Container] for the [Js5Group].
-     * @param groupSettingsXteaKey (Optional) The XTEA key for encoding the [Js5Container] for the [Js5GroupSettings].
-     * @param groupCompression (Optional) The compression for encoding the [Js5Container] for the [Js5Group].
-     * @param groupSettingsCompression (Optional) The compression for encoding the [Js5Container] for the
-     * [Js5GroupSettings].
+     * @param archiveId The archive to read from.
+     * @param groupId The gropu to read from.
+     * @param xteaKey The (Optional) XTEA key to decrypt the group container.
      */
-    open fun writeGroup(
-        archiveId: Int,
-        archiveVersion: Int? = null,
-        group: Js5Group,
-        groupChunkCount: Int = 1,
-        groupXteaKey: IntArray = XTEA_ZERO_KEY,
-        groupSettingsXteaKey: IntArray = XTEA_ZERO_KEY,
-        groupCompression: Js5Compression = Js5Compression.NONE,
-        groupSettingsCompression: Js5Compression = Js5Compression.NONE
-    ) {
-        if(writer == null) throw IllegalStateException("There is no writer specified for this cache.")
-        if(archiveId > writer.archiveCount) throw IOException(
-            "Can not create archive with id $archiveId expected: ${writer.archiveCount}."
-        )
-        logger.info("Writing group ${group.id} from archive $archiveId")
-        val compressedSize = writeGroupData(
-            archiveId, group, groupChunkCount, groupXteaKey, groupCompression
-        )
-        if(group.sizes == null) {
-            group.sizes = Js5GroupSettings.Size(compressedSize, group.files.values.sumBy { it.data.capacity() })
-        }
-        writeGroupSettings(
-            archiveId,
-            archiveVersion,
-            group,
-            groupSettingsXteaKey,
-            groupSettingsCompression
-        )
+    fun readGroup(archiveId: Int, groupId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+        val settings = getArchiveSettings(archiveId).js5GroupSettings[groupId]
+            ?: throw IllegalArgumentException("Unable to read group $groupId because it does not exist.")
+        return readGroup(archiveId, settings, xteaKey)
     }
 
     /**
-     * Writes the group data for a [Js5Group].
+     * Reads a [Js5GroupData] from the cache by group name.
      *
-     * @param archiveId The id of the archive to write to.
-     * @param group The [Js5Group] to write.
-     * @param groupChunkCount (Optional) The amount of chunks to use for encoding.
-     * @param xteaKey (Optional) The XTEA key for encoding the [Js5Container].
-     * @param compression (Optional) The compression for encoding the [Js5Container].
+     * @param archiveId The archive to read from.
+     * @param groupName The name of the group to read.
+     * @param xteaKey The (Optional) XTEA key to decrypt the group container.
      */
-    private fun writeGroupData(
-        archiveId: Int,
-        group: Js5Group,
-        groupChunkCount: Int = 1,
-        xteaKey: IntArray = XTEA_ZERO_KEY,
-        compression: Js5Compression = Js5Compression.NONE
-    ): Int {
-        logger.info("Writing group data for group ${group.id} from archive $archiveId")
-        val groupContainer = group.encode(groupChunkCount)
-        val data = groupContainer.encode(compression, xteaKey)
-        writer!!.write(archiveId, group.id, data)
-        return data.capacity()
+    fun readGroup(archiveId: Int, groupName: String, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+        val nameHash = groupName.hashCode()
+        val settings =  getArchiveSettings(archiveId).js5GroupSettings.values.firstOrNull {
+            it.nameHash == nameHash
+        } ?: throw IllegalArgumentException("Unable to read group `$groupName` because it does not exist.")
+        return readGroup(archiveId, settings, xteaKey)
+    }
+
+    private fun readGroup(archiveId: Int, settings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+        val groupData = Js5GroupData.decode(
+            Js5Container.decode(reader.read(archiveId, settings.id), xteaKey), settings.fileSettings.size
+        )
+        val group = Js5Group.create(groupData, settings)
+        logger.info("Reading group ${settings.id} from archive $archiveId")
+        return group
+    }
+
+    fun writeGroup(archiveId: Int, group: Js5Group) {
+        val archiveSettings = archiveSettings.getOrElse(archiveId) {
+            throw IllegalArgumentException("Unable to write to archive $archiveId because settings do not exist.")
+        }
+        val data = group.groupData.encode().encode()
+        val compressedSize = writeGroupData(archiveId, group.id, data)
+        val uncompressedSize = group.groupData.fileData.sumBy { it.writerIndex() }
+        group.crc = data.crc()
+        if(archiveSettings.containsWpHash) group.whirlpoolHash = data.array().whirlPoolHash()
+        if(archiveSettings.containsSizes) group.groupSettings.sizes = Js5Container.Size(compressedSize, uncompressedSize)
+        writeGroupSettings(archiveId, archiveSettings, group.groupSettings)
     }
 
     /**
-     * Writes the [Js5GroupSettings] for a [Js5Group].
+     * Writes the group data for a [Js5GroupData].
      *
      * @param archiveId The id of the archive to write to.
-     * @param archiveVersion (Optional) The version of the archive.
-     * @param group The [Js5Group] to write.
-     * @param xteaKey (Optional) The XTEA key for encoding the [Js5Container].
-     * @param compression (Optional) The compression for encoding the [Js5Container].
+     * @param groupData The [Js5GroupData] to write.
      */
-    private fun writeGroupSettings(
-        archiveId: Int,
-        archiveVersion: Int? = null,
-        group: Js5Group,
-        xteaKey: IntArray = XTEA_ZERO_KEY,
-        compression: Js5Compression = Js5Compression.NONE
-    ) {
-        logger.info("Writing group settings for group ${group.id} from archive $archiveId")
-        val archiveSettings = if(archiveId == archiveSettings.size) {
-            val settings = Js5ArchiveSettings(0, mutableMapOf())
-            archiveSettings.add(archiveId, settings)
-            settings
-        } else {
-            archiveSettings[archiveId]
-        }
-        val fileSettings = mutableMapOf<Int, Js5FileSettings>()
-        group.files.forEach { (id, file) ->
-            fileSettings[id] = Js5FileSettings(id, file.nameHash)
-        }
-        if(!xteaKey.contentEquals(XTEA_ZERO_KEY)) settingsXtea[archiveId] = xteaKey
-        archiveSettings.version = archiveVersion
-        archiveSettings.js5GroupSettings[group.id] = Js5GroupSettings(
-            group.id,
-            group.nameHash,
-            group.crc,
-            group.unknownHash,
-            group.whirlpoolHash,
-            group.sizes,
-            group.version,
-            fileSettings
-        )
-        writer!!.write(
-            Js5FileSystem.MASTER_INDEX,
-            archiveId,
-            archiveSettings.encode().encode(compression, xteaKey)
-        )
+    private fun writeGroupData(archiveId: Int, groupId: Int, data: ByteBuf): Int {
+        val compressedSize = data.readableBytes()
+        writer.write(archiveId, groupId, data)
+        return compressedSize
     }
+
+    /**
+     * Writes the [Js5GroupSettings] for a [Js5GroupData].
+     *
+     * @param archiveId The id of the archive to write to.
+     * @param group The [Js5GroupData] to write.
+     */
+    private fun writeGroupSettings(archiveId: Int, archiveSettings: Js5ArchiveSettings, group: Js5GroupSettings) {
+        archiveSettings.js5GroupSettings[group.id] = group
+        writer.write(Js5DiskStore.MASTER_INDEX, archiveId, archiveSettings.encode().encode())
+    }
+
+    private fun getArchiveSettings(archiveId: Int) = archiveSettings.getOrElse(archiveId) {
+        throw IllegalArgumentException("Unable to read from archive $archiveId because it does not exist.")
+    }
+
+    /**
+     * Generates the [Js5CacheChecksum] of this cache.
+     */
+    fun generateChecksum(): Js5CacheChecksum  = Js5CacheChecksum(
+        archiveSettings.values.map { it.calculateChecksum() }.toTypedArray()
+    )
 
     override fun close() {
         reader.close()
-        writer?.close()
+        writer.close()
     }
 
+    companion object {
+        fun open(rw: Js5ContainerReaderWriter, xteas: Array<IntArray> = arrayOf()) = open(rw, rw, xteas)
+
+        fun open(r: Js5ContainerReader, w: Js5ContainerWriter, xteas: Array<IntArray> = arrayOf()): Js5Cache {
+            require(xteas.isEmpty() || xteas.size == r.archiveCount)
+            val settings = mutableMapOf<Int, Js5ArchiveSettings>()
+            for(archiveId in 0 until r.archiveCount) {
+                val data = r.read(Js5DiskStore.MASTER_INDEX, archiveId)
+                if(data != Unpooled.EMPTY_BUFFER) {
+                    settings[archiveId] = Js5ArchiveSettings.decode(
+                        Js5Container.decode(data, xteas.getOrElse(archiveId) { XTEA_ZERO_KEY })
+                    )
+                }
+            }
+            return Js5Cache(r, w, settings)
+        }
+    }
+}
+
+/**
+ * Contains meta-daa for calculating the checksum of a [Js5Cache]. Cache checksums can optionally contain a whirlpool
+ * hash which can optionally be encrypted using RSA.
+ *
+ * @property archiveChecksums The checksum data for each archive.
+ */
+data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
+    val containsWhirlpool get() = archiveChecksums.all { it.whirlpoolDigest != null }
+
     /**
-     * Generates the [CheckSum] of this cache.
+     * Encodes the [Js5CacheChecksum]. The encoding can optionally contain a (encrypted) whirlpool hash.
+     *
+     * @param whirlpool Whether to add the whirlpool hash to the checksum.
+     * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
+     * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
      */
-    fun generateChecksum(): CheckSum {
-        logger.info("Generating cache checksum")
-        return CheckSum(
-            Array(archiveSettings.size) { archiveId ->
-                val archiveSettings = archiveSettings[archiveId]
-                val settingsData = reader.read(Js5FileSystem.MASTER_INDEX, archiveId)
-                ArchiveChecksum(
-                    settingsData.crc(),
-                    archiveSettings.version,
-                    archiveSettings.js5GroupSettings.size,
-                    archiveSettings.js5GroupSettings.values
-                        .sumBy { if(it.sizes?.compressed != null) it.sizes.uncompressed else 0 },
-                    settingsData.whirlPoolHash()
+    fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null, newFormat: Boolean = false): ByteBuf {
+        archiveChecksums.all { it.whirlpoolDigest != null }
+        val buf = Unpooled.buffer(if(containsWhirlpool)
+            WP_ENCODED_SIZE + Js5ArchiveChecksum.WP_ENCODED_SIZE * archiveChecksums.size
+        else
+            Js5ArchiveChecksum.ENCODED_SIZE * archiveChecksums.size
+        )
+        if(containsWhirlpool) buf.writeByte(archiveChecksums.size)
+        for(archiveChecksum in archiveChecksums) {
+            buf.writeInt(archiveChecksum.crc)
+            buf.writeInt(archiveChecksum.version ?: 0)
+            if(containsWhirlpool) {
+                if(newFormat) {
+                    buf.writeInt(archiveChecksum.fileCount ?: 0)
+                    buf.writeInt(archiveChecksum.uncompressedSize ?: 0)
+                }
+                buf.writeBytes(archiveChecksum.whirlpoolDigest)
+            }
+        }
+        if(containsWhirlpool) {
+            val digest = buf.array().sliceArray(1 until buf.writerIndex()).whirlPoolHash()
+            val encDigest = if(mod != null && pubKey != null) rsaCrypt(digest, mod, pubKey) else digest
+            buf.writeBytes(encDigest)
+        }
+        return buf
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as Js5CacheChecksum
+        if (!archiveChecksums.contentEquals(other.archiveChecksums)) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return archiveChecksums.contentHashCode()
+    }
+
+    companion object {
+        const val WP_ENCODED_SIZE = Byte.SIZE_BYTES + WHIRLPOOL_HASH_SIZE
+
+        /**
+         * Decodes the [Js5CacheChecksum]. The encoding can optionally contain a (encrypted) whirlpool hash.
+         *
+         * @param buf The buf to decode
+         * @param whirlpool Whether to decode the whirlpool hash.
+         * @param mod Modulus for decrypting the whirlpool hash using RSA.
+         * @param privateKey The public key to (optionally) encrypt the whirlpool hash.
+         */
+        fun decode(
+            buf: ByteBuf,
+            whirlpool: Boolean = false,
+            mod: BigInteger? = null,
+            privateKey: BigInteger? = null,
+            newFormat: Boolean = false
+        ): Js5CacheChecksum {
+            val archiveCount = if (whirlpool) {
+                buf.readUnsignedByte().toInt()
+            } else {
+                buf.writerIndex() / Js5ArchiveChecksum.ENCODED_SIZE
+            }
+            val archiveChecksums = Array(archiveCount) {
+                val crc = buf.readInt()
+                val version = buf.readInt()
+                val fileCount = if (whirlpool && newFormat) buf.readInt() else null
+                val indexFileSize = if (whirlpool && newFormat) buf.readInt() else null
+                val whirlPoolDigest = if (whirlpool) {
+                    val digest = ByteArray(WHIRLPOOL_HASH_SIZE)
+                    buf.readBytes(digest)
+                    digest
+                } else null
+                Js5ArchiveChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
+            }
+            if (whirlpool) {
+                val calcDigest = buf.array().sliceArray(1 until buf.readerIndex()).whirlPoolHash()
+                val readDigest =  buf.array().sliceArray(buf.readerIndex() until buf.writerIndex())
+                val decReadDigest= if (mod != null && privateKey != null) {
+                    rsaCrypt(readDigest, mod, privateKey)
+                } else {
+                    readDigest
+                }
+                if (!decReadDigest!!.contentEquals(calcDigest)) throw IOException("Whirlpool digest does not match,  " +
+                        "calculated ${calcDigest.contentToString()} read ${decReadDigest.contentToString()}."
                 )
             }
-        )
-    }
-
-    /**
-     * Contains meta-daa for calculating the checksum of a [Js5Cache]. Cache checksums can optionally contain a whirlpool
-     * hash which can optionally be encrypted using RSA.
-     *
-     * @property archiveChecksums The checksum data for each archive.
-     */
-    data class CheckSum(val archiveChecksums: Array<ArchiveChecksum>) {
-        /**
-         * Encodes the [CheckSum]. The encoding can optionally contain a (encrypted) whirlpool hash.
-         *
-         * @param whirlpool Whether to add the whirlpool hash to the checksum.
-         * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
-         * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
-         */
-        fun encode(whirlpool: Boolean = false, mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuf {
-            val buffer = Unpooled.buffer(if(whirlpool)
-                WP_ENCODED_SIZE + ArchiveChecksum.WP_ENCODED_SIZE * archiveChecksums.size
-            else
-                ArchiveChecksum.ENCODED_SIZE * archiveChecksums.size
-            )
-            if(whirlpool) buffer.writeByte(archiveChecksums.size)
-            for(indexFileChecksum in archiveChecksums) {
-                buffer.writeInt(indexFileChecksum.crc)
-                buffer.writeInt(indexFileChecksum.version ?: 0)
-                if(whirlpool) {
-                    buffer.writeInt(indexFileChecksum.fileCount)
-                    buffer.writeInt(indexFileChecksum.size)
-                    buffer.writeBytes(indexFileChecksum.whirlpoolDigest)
-                }
-            }
-            if(whirlpool) {
-                val dataSlice = buffer.array().sliceArray(1 until 1 + buffer.readableBytes()).whirlPoolHash()
-                val hash = if(mod != null && pubKey != null) {
-                    rsaCrypt(dataSlice, mod, pubKey)
-                } else {
-                    dataSlice
-                }
-                buffer.writeBytes(hash)
-            }
-            return buffer
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-            other as CheckSum
-            if (!archiveChecksums.contentEquals(other.archiveChecksums)) return false
-            return true
-        }
-
-        override fun hashCode(): Int {
-            return archiveChecksums.contentHashCode()
-        }
-
-        companion object {
-            const val WP_ENCODED_SIZE = WHIRLPOOL_HASH_SIZE + 1
-
-            /**
-             * Decodes the [CheckSum]. The encoding can optionally contain a (encrypted) whirlpool hash.
-             *
-             * @param data The data to decode
-             * @param whirlpool Whether to decode the whirlpool hash.
-             * @param mod Modulus for decrypting the whirlpool hash using RSA.
-             * @param privateKey The public key to (optionally) encrypt the whirlpool hash.
-             */
-            fun decode(
-                data: ByteBuf,
-                whirlpool: Boolean,
-                mod: BigInteger?,
-                privateKey: BigInteger?
-            ): CheckSum {
-                val indexFileCount = if (whirlpool) {
-                    data.readUnsignedByte().toInt()
-                } else {
-                    data.capacity() / ArchiveChecksum.ENCODED_SIZE
-                }
-                val indexFileEncodedSize = if(whirlpool) {
-                    ArchiveChecksum.WP_ENCODED_SIZE * indexFileCount
-                } else {
-                    ArchiveChecksum.ENCODED_SIZE * indexFileCount
-                }
-                val indexFileChecksums = Array(indexFileCount) {
-                    val crc = data.readInt()
-                    val version = data.readInt()
-                    val fileCount = if (whirlpool) data.readInt() else 0
-                    val indexFileSize = if (whirlpool) data.readInt() else 0
-                    val whirlPoolDigest = if (whirlpool) {
-                        val digest = ByteArray(WHIRLPOOL_HASH_SIZE)
-                        data.readBytes(digest)
-                        digest
-                    } else null
-                    ArchiveChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
-                }
-                if (whirlpool) {
-                    val calculatedDigest = data.array()
-                        .sliceArray(1 until indexFileEncodedSize)
-                        .whirlPoolHash()
-                    val dataSlice =  data.array().sliceArray(data.readerIndex() until data.writerIndex())
-                    val hash= if (mod != null && privateKey != null) {
-                        rsaCrypt(dataSlice, mod, privateKey)
-                    } else {
-                        dataSlice
-                    }
-                    calculatedDigest.forEach { print(it) }
-                    println()
-                    dataSlice.forEach { print(it) }
-                    println()
-                    if (!hash!!.contentEquals(calculatedDigest)) throw IOException("Whirlpool digest does not match, " +
-                            "calculated $calculatedDigest read $dataSlice.")
-                }
-                return CheckSum(indexFileChecksums)
-            }
-        }
-    }
-
-    /**
-     * The checksum meta-data for an archive.
-     *
-     * @property crc The [java.util.zip.CRC32] value of the [Js5ArchiveSettings] as an encoded [Js5Container].
-     * @property version (Optional) he version of the [Js5ArchiveSettings].
-     * @property fileCount The amount of [Js5Group.File] in the archive.
-     * @property size The size of the sum of all [Js5Group] data uncompressed.
-     * @property whirlpoolDigest (Optional) The whirlpool digest of this archive.
-     */
-    data class ArchiveChecksum(
-        val crc: Int,
-        val version: Int?,
-        val fileCount: Int,
-        val size: Int,
-        val whirlpoolDigest: ByteArray?
-    ) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-            other as ArchiveChecksum
-            if (crc != other.crc) return false
-            if (version != other.version) return false
-            if (fileCount != other.fileCount) return false
-            if (size != other.size) return false
-            if (whirlpoolDigest != null) {
-                if (other.whirlpoolDigest == null) return false
-                if (!whirlpoolDigest.contentEquals(other.whirlpoolDigest)) return false
-            } else if (other.whirlpoolDigest != null) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = crc
-            result = 31 * result + (version ?: 0)
-            result = 31 * result + fileCount
-            result = 31 * result + size
-            result = 31 * result + (whirlpoolDigest?.contentHashCode() ?: 0)
-            return result
-        }
-
-        companion object {
-            internal const val ENCODED_SIZE = 8
-            internal const val WP_ENCODED_SIZE = ENCODED_SIZE + WHIRLPOOL_HASH_SIZE + 8
+            return Js5CacheChecksum(archiveChecksums)
         }
     }
 }

@@ -2,10 +2,10 @@ package io.guthix.cache.js5.verifier
 
 import io.guthix.cache.js5.Js5ArchiveSettings
 import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.container.filesystem.Js5FileSystem
+import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.util.crc
 import mu.KotlinLogging
-import java.io.File
+import java.nio.file.Path
 import java.util.zip.ZipException
 
 private val logger = KotlinLogging.logger {}
@@ -18,20 +18,18 @@ private val logger = KotlinLogging.logger {}
  *  -e= The archives to exclude from verifying.
  */
 fun main(args: Array<String>) {
-    var inputDir: File? = null
+    var inputDir: Path? = null
     val excludedArchives = mutableListOf<Int>()
     for(arg in args) {
         when {
-            arg.startsWith("-i=") -> inputDir = File(arg.substring(3))
+            arg.startsWith("-i=") -> inputDir = Path.of(arg.substring(3))
             arg.startsWith("-e=") -> excludedArchives.add(arg.substring(3).toInt())
         }
     }
-    if(inputDir == null) throw IllegalArgumentException(
-        "No output directory specified to read the cache from. Pass -i=DIR as an argument."
-    )
-    val fileSystem = Js5FileSystem(inputDir)
+    requireNotNull(inputDir) { "No output directory specified to read the cache from. Pass -i=DIR as an argument." }
+    val fileSystem = Js5DiskStore.open(inputDir)
     val settings = Array(fileSystem.archiveCount) { archiveId ->
-        Js5ArchiveSettings.decode(Js5Container.decode(fileSystem.read(Js5FileSystem.MASTER_INDEX, archiveId)))
+        Js5ArchiveSettings.decode(Js5Container.decode(fileSystem.read(Js5DiskStore.MASTER_INDEX, archiveId)))
     }
     settings.forEachIndexed { archiveId, archiveSettings ->
         if(!excludedArchives.contains(archiveId)) {
@@ -45,7 +43,7 @@ fun main(args: Array<String>) {
                     if(container.isVersioned && container.version != groupSettings.version)  logger.info(
                         "Version does not match for archive $archiveId group $groupId container: ${container.version} settings ${groupSettings.version}"
                     )
-                    val sizes = Js5Container.sizeOf(data)
+                    val sizes = Js5Container.decodeSize(data)
                     if(groupSettings.sizes != null && sizes != groupSettings.sizes) logger.info(
                         "Sizes do not match for archive $archiveId group $groupId container: $sizes settings ${groupSettings.sizes}"
                     )

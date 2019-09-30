@@ -19,14 +19,14 @@ package io.guthix.cache.js5.downloader
 
 import io.guthix.cache.js5.Js5ArchiveSettings
 import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.container.filesystem.Js5FileSystem
+import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.container.net.Js5SocketReader
 import io.guthix.cache.js5.util.crc
 import io.netty.buffer.Unpooled
 import mu.KotlinLogging
-import java.io.File
 import java.io.IOException
 import java.net.InetSocketAddress
+import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -42,7 +42,7 @@ private val logger = KotlinLogging.logger {}
  *  -v  Whether to store versions at the end of every file
  */
 fun main(args: Array<String>) {
-    var outputDir: File? = null
+    var outputDir: Path? = null
     var address: String? = null
     var port: Int? = null
     var revision: Int? = null
@@ -50,7 +50,7 @@ fun main(args: Array<String>) {
     var includeVersions = false
     for(arg in args) {
         when {
-            arg.startsWith("-o=") -> outputDir = File(arg.substring(3))
+            arg.startsWith("-o=") -> outputDir = Path.of(arg.substring(3))
             arg.startsWith("-a=") -> address = arg.substring(3)
             arg.startsWith("-r=") -> revision = arg.substring(3).toInt()
             arg.startsWith("-c=") -> archiveCount = arg.substring(3).toInt()
@@ -58,22 +58,12 @@ fun main(args: Array<String>) {
             arg.startsWith("-v") -> includeVersions = true
         }
     }
-    if(outputDir == null) throw IllegalArgumentException(
-        "No output directory specified to store the cache. Pass -o=DIR as an argument."
-    )
-    if(address == null) throw IllegalArgumentException(
-        "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument."
-    )
-    if(port == null) throw IllegalArgumentException(
-        "No port has been specified to download the cache from. Pass -p=PORT as an argument."
-    )
-    if(revision == null) throw IllegalArgumentException(
-        "No game revision has been specified. Pass -r=REVISION as an argument."
-    )
-    if(archiveCount == null) throw IllegalArgumentException(
-        "No archive count has been specified. Pass -c=ARCHIVECOUNT as an argument."
-    )
-    val js5FileSystem = Js5FileSystem(outputDir)
+    requireNotNull(outputDir) { "No output directory specified to store the cache. Pass -o=DIR as an argument." }
+    requireNotNull(address) { "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument." }
+    requireNotNull(port) { "No port has been specified to download the cache from. Pass -p=PORT as an argument." }
+    requireNotNull(revision) { "No game revision has been specified. Pass -r=REVISION as an argument." }
+    requireNotNull(archiveCount) { "No archive count has been specified. Pass -c=ARCHIVECOUNT as an argument." }
+    val js5FileSystem = Js5DiskStore.open(outputDir)
     val js5SocketReader = Js5SocketReader(
         sockAddr = InetSocketAddress(address, port),
         revision = revision,
@@ -81,10 +71,10 @@ fun main(args: Array<String>) {
         archiveCount = archiveCount
     )
     val settingsData = Array(archiveCount) { archiveId ->
-        js5SocketReader.read(Js5FileSystem.MASTER_INDEX, archiveId)
+        js5SocketReader.read(Js5DiskStore.MASTER_INDEX, archiveId)
     }
     settingsData.forEachIndexed { archiveId, data ->
-        js5FileSystem.write(Js5FileSystem.MASTER_INDEX, archiveId, data)
+        js5FileSystem.write(Js5DiskStore.MASTER_INDEX, archiveId, data)
     }
     val settings = settingsData.map { data ->
         Js5ArchiveSettings.decode(Js5Container.decode(data))

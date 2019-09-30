@@ -16,7 +16,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.3.41'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.50' apply false
     id 'java-library'
 }
 
@@ -24,6 +24,8 @@ group 'io.guthix.cache.js5'
 version '0.1-SNAPSHOT'
 
 allprojects {
+    apply plugin: "org.jetbrains.kotlin.jvm"
+
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }
@@ -33,33 +35,31 @@ allprojects {
     compileKotlin {
         sourceCompatibility = JavaVersion.VERSION_1_9
         kotlinOptions {
-            jvmTarget = "1.8"
+            jvmTarget = "11"
             freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
         }
     }
     compileTestKotlin {
         sourceCompatibility = JavaVersion.VERSION_1_9
         kotlinOptions {
-            jvmTarget = "1.8"
+            jvmTarget = "11"
             freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
         }
     }
 }
 
+test {
+    useJUnitPlatform()
+}
+
 dependencies {
+    api group: 'com.github.guthix', name: 'Jagex-ByteBuf', version: 'd01debc583'
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'org.tukaani', name: 'xz', version: xzVersion
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: bouncyCastleVersion
     implementation group: 'org.apache.commons', name: 'commons-compress', version: apacheCompressVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    api group: 'com.github.guthix', name: 'Jagex-ByteBuf', version: '65b5793c7c'
     testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junitVersion
-    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junitVersion
-    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junitVersion
-
+    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.4.1'
 }
 
-test {
-    useJUnitPlatform()
-}

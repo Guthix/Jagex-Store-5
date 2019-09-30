@@ -15,21 +15,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.container.filesystem
+package io.guthix.cache.js5.container.disk
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import java.io.FileNotFoundException
 import java.nio.channels.FileChannel
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import io.guthix.cache.js5.container.Js5Container
 
 /**
- * An index file channel for writing and reading indices.
+ * An index file for writing and reading [Index]es.
  *
- * An index is a pointer to a file in a [Dat2Channel]. They are sequentially stored in index files.
+ * An index is a pointer to a file in a [Dat2File]. They are sequentially stored in index files as fixed sized volumes
+ * indexed by the [Js5Container] id.
  *
  * @property fileChannel The [FileChannel] to read the indices from.
  */
-internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable {
+internal class IdxFile private constructor(private val fileChannel: FileChannel) : AutoCloseable {
     /**
      * The size of the file.
      */
@@ -40,7 +44,7 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
      *
      * @param containerId The container to read.
      */
-    internal fun read(containerId: Int): Index {
+    fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size()) {
             throw FileNotFoundException("Could not find container $containerId.")
@@ -56,7 +60,7 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
      * @param containerId The container to write.
      * @param index The index to write.
      */
-    internal fun write(containerId: Int, index: Index) {
+    fun write(containerId: Int, index: Index) {
         val buf = index.encode()
         buf.readBytes(fileChannel, containerId.toLong() * Index.SIZE.toLong(), buf.readableBytes())
     }
@@ -66,46 +70,54 @@ internal class IDXChannel(private val fileChannel: FileChannel) : AutoCloseable 
      *
      * @param containerId The container to check.
      */
-    internal fun containsIndex(containerId: Int): Boolean {
+    fun containsIndex(containerId: Int): Boolean {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         return ptr < fileChannel.size()
     }
 
-    override fun close() =  fileChannel.close()
+    override fun close() = fileChannel.close()
+
+    companion object {
+        const val EXTENSION = "idx"
+
+        fun open(path: Path): IdxFile {
+            return IdxFile(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE))
+        }
+    }
 }
 
 /**
- * An index in an [IDXChannel].
+ * An [Index] stored in an [IdxFile].
  *
  * @property dataSize The size of the data of which the index points to.
- * @property segmentNumber The relative position of this index compared to other index that point to the same file.
+ * @property sectorNumber The [Sector] where the data starts in the [Dat2File].
  */
-internal data class Index(val dataSize: Int, val segmentNumber: Int) {
+internal data class Index(val dataSize: Int, val sectorNumber: Int) {
     /**
      * Encodes the index.
      */
     fun encode(): ByteBuf {
         val buf = Unpooled.buffer(SIZE)
         buf.writeMedium(dataSize)
-        buf.writeMedium(segmentNumber)
+        buf.writeMedium(sectorNumber)
         return buf
     }
 
     companion object {
         /**
-         * Byte size of the index.
+         * Byte size of the [Index].
          */
         const val SIZE = 6
 
         /**
-         * Decodes an index.
+         * Decodes an [Index].
          *
          * @param data The data to decode.
          */
         fun decode(data: ByteBuf): Index {
             val dataSize = data.readUnsignedMedium()
-            val segmentPos = data.readUnsignedMedium()
-            return Index(dataSize, segmentPos)
+            val sectorNumber = data.readUnsignedMedium()
+            return Index(dataSize, sectorNumber)
         }
     }
 }
