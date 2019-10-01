@@ -18,6 +18,7 @@
 package io.guthix.cache.js5.util
 
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -29,9 +30,9 @@ private val crc = CRC32()
 /**
  * Calculates the [java.util.zip.CRC32] of a [ByteArray].
  */
-fun ByteBuf.crc(): Int {
+fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int {
     crc.reset()
-    crc.update(this.array())
+    crc.update(this.array(), index, length)
     return crc.value.toInt()
 }
 
@@ -40,9 +41,15 @@ fun ByteBuf.crc(): Int {
  */
 internal const val WHIRLPOOL_HASH_SIZE = 64
 
-internal fun ByteArray.whirlPoolHash(): ByteArray {
+private val messageDigest: MessageDigest by lazy {
     Security.addProvider(BouncyCastleProvider())
-    return MessageDigest.getInstance("Whirlpool").digest(this)
+    MessageDigest.getInstance("Whirlpool")
+}
+
+internal fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
+    Security.addProvider(BouncyCastleProvider())
+    messageDigest.update(this.array(), index, length)
+    return messageDigest.digest()
 }
 
 /**

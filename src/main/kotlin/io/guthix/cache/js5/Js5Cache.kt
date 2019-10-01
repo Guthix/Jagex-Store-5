@@ -116,15 +116,16 @@ class Js5Cache private constructor(
         return group
     }
 
-    fun writeGroup(archiveId: Int, group: Js5Group) {
+    fun writeGroup(archiveId: Int, group: Js5Group, appendVersion: Boolean = false) {
         val archiveSettings = archiveSettings.getOrElse(archiveId) {
             throw IllegalArgumentException("Unable to write to archive $archiveId because settings do not exist.")
         }
-        val data = group.groupData.encode().encode()
-        val compressedSize = writeGroupData(archiveId, group.id, data)
+        val data = group.groupData.encode(if(appendVersion) group.version else null).encode()
+        val dataEnd = if(appendVersion) data.writerIndex() else data.writerIndex() - 2
+        group.crc = data.crc(length = dataEnd)
+        if(archiveSettings.containsWpHash) group.whirlpoolHash = data.whirlPoolHash(length = dataEnd)
         val uncompressedSize = group.groupData.fileData.sumBy { it.writerIndex() }
-        group.crc = data.crc()
-        if(archiveSettings.containsWpHash) group.whirlpoolHash = data.array().whirlPoolHash()
+        val compressedSize = writeGroupData(archiveId, group.id, data)
         if(archiveSettings.containsSizes) group.groupSettings.sizes = Js5Container.Size(compressedSize, uncompressedSize)
         writeGroupSettings(archiveId, archiveSettings, group.groupSettings)
     }
@@ -223,7 +224,7 @@ data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
             }
         }
         if(containsWhirlpool) {
-            val digest = buf.array().sliceArray(1 until buf.writerIndex()).whirlPoolHash()
+            val digest = buf.whirlPoolHash(1, buf.writerIndex() - 1)
             val encDigest = if(mod != null && pubKey != null) rsaCrypt(digest, mod, pubKey) else digest
             buf.writeBytes(encDigest)
         }
@@ -278,7 +279,7 @@ data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
                 Js5ArchiveChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
             }
             if (whirlpool) {
-                val calcDigest = buf.array().sliceArray(1 until buf.readerIndex()).whirlPoolHash()
+                val calcDigest = buf.whirlPoolHash(1, buf.readerIndex() - 1)
                 val readDigest =  buf.array().sliceArray(buf.readerIndex() until buf.writerIndex())
                 val decReadDigest= if (mod != null && privateKey != null) {
                     rsaCrypt(readDigest, mod, privateKey)

@@ -59,8 +59,8 @@ data class Js5ArchiveSettings(
 
     fun calculateChecksum(): Js5ArchiveChecksum {
         val rawData = encode().encode()
-        return Js5ArchiveChecksum(rawData.crc(), version, js5GroupSettings.size, uncompressedSize,
-            rawData.array().whirlPoolHash()
+        return Js5ArchiveChecksum(
+            rawData.crc(), version, js5GroupSettings.size, uncompressedSize, rawData.whirlPoolHash()
         )
     }
 
