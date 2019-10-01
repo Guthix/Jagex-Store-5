@@ -66,6 +66,14 @@ internal class IdxFile private constructor(private val fileChannel: FileChannel)
     }
 
     /**
+     * Removes an index from the [fileChannel].
+     */
+    fun remove(containerId: Int) {
+        val ptr = containerId.toLong() * Index.SIZE.toLong()
+        Index.EMPTY_BUF.getBytes(0, fileChannel, ptr, 6)
+    }
+
+    /**
      * Checks whether an index exists in this file.
      *
      * @param containerId The container to check.
@@ -108,6 +116,8 @@ internal data class Index(val dataSize: Int, val sectorNumber: Int) {
          * Byte size of the [Index].
          */
         const val SIZE = 6
+
+        val EMPTY_BUF = Index(dataSize = 0, sectorNumber = 0).encode()
 
         /**
          * Decodes an [Index].

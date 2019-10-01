@@ -94,6 +94,12 @@ class Js5DiskStore private constructor(
         dataFile.write(indexFileId, containerId, index, data)
     }
 
+    override fun remove(indexFileId: Int, containerId: Int) = if(indexFileId == MASTER_INDEX) {
+        masterIndexFile.remove(containerId)
+    } else {
+        archiveIndexFiles[indexFileId].remove(containerId)
+    }
+
     override fun close() {
         logger.debug { "Closing JS5 filesystem at $root" }
         dataFile.close()

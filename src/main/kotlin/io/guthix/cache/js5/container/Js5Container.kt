@@ -43,6 +43,14 @@ interface Js5ContainerReader : AutoCloseable {
      * @param containerId The container to read from.
      */
     fun read(indexFileId: Int, containerId: Int): ByteBuf
+
+    /**
+     * Remove container from the cache.
+     *
+     * @param indexFileId The index to remove.
+     * @param containerId The container to remove.
+     */
+    fun remove(indexFileId: Int, containerId: Int)
 }
 
 /**

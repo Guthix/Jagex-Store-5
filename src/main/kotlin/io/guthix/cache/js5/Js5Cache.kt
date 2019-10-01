@@ -37,13 +37,11 @@ private val logger = KotlinLogging.logger { }
  * operations are done. Every cache has archives paired with settings. When creating a [Js5Cache] object all
  * [Js5ArchiveSettings] are loading from cache into [archiveSettings].
  *
- * @property reader The container reader.
- * @property writer The container writer.
- * @property settingsXtea (Optional) XTEA keys for decrypting the [Js5ArchiveSettings].
+ * @property rw The container read writer.
+ * @property archiveSettings The [Js5ArchiveSettings].
  */
 class Js5Cache private constructor(
-    private val reader: Js5ContainerReader,
-    private val writer: Js5ContainerWriter,
+    private val rw: Js5ContainerReaderWriter,
     private val archiveSettings: MutableMap<Int, Js5ArchiveSettings>
 ) : AutoCloseable {
     val archiveCount get() = archiveSettings.size
@@ -109,7 +107,7 @@ class Js5Cache private constructor(
 
     private fun readGroup(archiveId: Int, settings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
         val groupData = Js5GroupData.decode(
-            Js5Container.decode(reader.read(archiveId, settings.id), xteaKey), settings.fileSettings.size
+            Js5Container.decode(rw.read(archiveId, settings.id), xteaKey), settings.fileSettings.size
         )
         val group = Js5Group.create(groupData, settings)
         logger.info("Reading group ${settings.id} from archive $archiveId")
@@ -138,7 +136,7 @@ class Js5Cache private constructor(
      */
     private fun writeGroupData(archiveId: Int, groupId: Int, data: ByteBuf): Int {
         val compressedSize = data.readableBytes()
-        writer.write(archiveId, groupId, data)
+        rw.write(archiveId, groupId, data)
         return compressedSize
     }
 
@@ -150,7 +148,14 @@ class Js5Cache private constructor(
      */
     private fun writeGroupSettings(archiveId: Int, archiveSettings: Js5ArchiveSettings, group: Js5GroupSettings) {
         archiveSettings.js5GroupSettings[group.id] = group
-        writer.write(Js5DiskStore.MASTER_INDEX, archiveId, archiveSettings.encode().encode())
+        rw.write(Js5DiskStore.MASTER_INDEX, archiveId, archiveSettings.encode().encode())
+    }
+
+    fun removeGroup(archiveId: Int, groupId: Int) {
+        getArchiveSettings(archiveId).js5GroupSettings.remove(groupId) ?: throw IllegalArgumentException(
+            "Unable to remove group $groupId from archive $archiveId because the group does not exist."
+        )
+        rw.remove(archiveId, groupId)
     }
 
     private fun getArchiveSettings(archiveId: Int) = archiveSettings.getOrElse(archiveId) {
@@ -164,26 +169,21 @@ class Js5Cache private constructor(
         archiveSettings.values.map { it.calculateChecksum() }.toTypedArray()
     )
 
-    override fun close() {
-        reader.close()
-        writer.close()
-    }
+    override fun close() =  rw.close()
 
     companion object {
-        fun open(rw: Js5ContainerReaderWriter, xteas: Array<IntArray> = arrayOf()) = open(rw, rw, xteas)
-
-        fun open(r: Js5ContainerReader, w: Js5ContainerWriter, xteas: Array<IntArray> = arrayOf()): Js5Cache {
-            require(xteas.isEmpty() || xteas.size == r.archiveCount)
+        fun open(rw: Js5ContainerReaderWriter, xteas: Array<IntArray> = arrayOf()): Js5Cache {
+            require(xteas.isEmpty() || xteas.size == rw.archiveCount)
             val settings = mutableMapOf<Int, Js5ArchiveSettings>()
-            for(archiveId in 0 until r.archiveCount) {
-                val data = r.read(Js5DiskStore.MASTER_INDEX, archiveId)
+            for(archiveId in 0 until rw.archiveCount) {
+                val data = rw.read(Js5DiskStore.MASTER_INDEX, archiveId)
                 if(data != Unpooled.EMPTY_BUFFER) {
                     settings[archiveId] = Js5ArchiveSettings.decode(
                         Js5Container.decode(data, xteas.getOrElse(archiveId) { XTEA_ZERO_KEY })
                     )
                 }
             }
-            return Js5Cache(r, w, settings)
+            return Js5Cache(rw, settings)
         }
     }
 }
