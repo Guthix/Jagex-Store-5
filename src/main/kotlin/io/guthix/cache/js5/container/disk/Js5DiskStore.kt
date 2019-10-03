@@ -47,6 +47,10 @@ class Js5DiskStore private constructor(
         indexFileId, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
     )
 
+    fun idxFileExists(indexFileId: Int) = Files.exists(
+        root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
+    )
+
     fun createIdxFile(): IdxFile {
         val indexFileId = archiveCount
         val indexFile = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")

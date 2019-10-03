@@ -96,36 +96,28 @@ class Js5SocketReader(
         logger.debug("Reading index file $indexFileId container $containerId")
         val compression = Js5Compression.getByOpcode(headerBuffer.readUnsignedByte().toInt())
         val compressedSize = headerBuffer.readInt()
-
-        // Read response data
         val containerSize = compression.headerSize + compressedSize
-        val dataBuf = Unpooled.buffer(
+        val dataBuf = Unpooled.buffer( // Read response data
             containerSize + ceil((containerSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()).toInt()
         )
-
-        // Actual data
-        val containerBuffer = Unpooled.buffer(
+        val containerBuffer = Unpooled.buffer( // Container data
             Js5Container.ENC_HEADER_SIZE + containerSize
         )
         containerBuffer.writeByte(compression.opcode)
         containerBuffer.writeInt(compressedSize)
-
         while(dataBuf.isWritable) {
             dataBuf.writeBytes(socketChannel, dataBuf.writableBytes())
         }
         dataBuf.forEachByte { it xor xorKey; true }
-
-        // write all data after header
-        val headerDataSize = if(dataBuf.readableBytes() < BYTES_AFTER_HEADER) {
+        val headerDataSize = if(dataBuf.readableBytes() < BYTES_AFTER_HEADER) { // write all data after header
             dataBuf.readableBytes()
         } else {
             BYTES_AFTER_HEADER
         }
         containerBuffer.writeBytes(dataBuf.slice(0, headerDataSize))
         dataBuf.readerIndex(headerDataSize)
-        // write other data
         var i = 0
-        while(dataBuf.isReadable) {
+        while(dataBuf.isReadable) {  // write other data
             var start = BYTES_AFTER_HEADER + i * (Sector.DATA_SIZE)
             start += 1 //skip 255
             val bytesToRead = dataBuf.readableBytes() - 1

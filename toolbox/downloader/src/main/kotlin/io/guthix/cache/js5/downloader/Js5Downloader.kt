@@ -81,24 +81,23 @@ fun main(args: Array<String>) {
         sr.read(Js5DiskStore.MASTER_INDEX, it)
     }
     val archiveSettings = checkSettingsData(checksum, settingsData)
-    val archives = settingsData.mapIndexed { archiveId, data ->
-        val index = ds.createIdxFile()
-        ds.write(index, archiveId, data)
-        index
-    }.toTypedArray()
+    settingsData.mapIndexed { archiveId, data ->
+        ds.write(ds.masterIndex, archiveId, data)
+    }
 
     val readThread = Thread { // start thread that sends requests
         archiveSettings.forEachIndexed { archiveId, archiveSettings ->
             archiveSettings.groupSettings.forEach { (groupId, _) ->
                 sr.sendFileRequest(archiveId, groupId)
-                Thread.sleep(30) // prevent remote from closing the connection
+                Thread.sleep(25) // prevent remote from closing the connection
             }
         }
         logger.info("Done sending requests")
     }
 
     val writeThread = Thread { // start thread that reads requests
-        archiveSettings.forEachIndexed { _, archiveSettings ->
+        archiveSettings.forEachIndexed { archiveId, archiveSettings ->
+            val idxFile = if(!ds.idxFileExists(archiveId)) ds.createIdxFile() else ds.openIdxFile(archiveId)
             archiveSettings.groupSettings.forEach { (_, groupSettings) ->
                 val response = sr.readFileResponse()
                 if(response.data.crc() != groupSettings.crc) throw IOException(
@@ -110,7 +109,7 @@ fun main(args: Array<String>) {
                         writeShort(groupSettings.version)
                     }
                 } else response.data
-                ds.write(archives[response.indexFileId], response.containerId, writeData)
+                ds.write(idxFile, response.containerId, writeData)
             }
         }
         logger.info("Done writing responses")
