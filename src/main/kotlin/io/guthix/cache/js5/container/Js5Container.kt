@@ -23,56 +23,6 @@ import io.netty.buffer.Unpooled
 import java.io.IOException
 
 /**
- * Reader and writer for [Js5Container]s.
- */
-interface Js5ContainerReaderWriter : Js5ContainerReader, Js5ContainerWriter
-
-/**
- * Reader for [Js5Container]s.
- */
-interface Js5ContainerReader : AutoCloseable {
-    /**
-     * Amount of archives in this reader.
-     */
-    val archiveCount: Int
-
-    /**
-     * Reads raw container data from the cache.
-     *
-     * @param indexFileId The index to read from.
-     * @param containerId The container to read from.
-     */
-    fun read(indexFileId: Int, containerId: Int): ByteBuf
-
-    /**
-     * Remove container from the cache.
-     *
-     * @param indexFileId The index to remove.
-     * @param containerId The container to remove.
-     */
-    fun remove(indexFileId: Int, containerId: Int)
-}
-
-/**
- * Writer for [Js5Container]s.
- */
-interface Js5ContainerWriter : AutoCloseable {
-    /**
-     * Amount of archives in this writer.
-     */
-    val archiveCount: Int
-
-    /***
-     * Writes raw container data to the cache.
-     *
-     * @param indexFileId The index to write to.
-     * @param containerId The container to write to.
-     * @param data The data to write.
-     */
-    fun write(indexFileId: Int, containerId: Int, data: ByteBuf)
-}
-
-/**
  * An (Optional) encrypted and (Optional) compressed data volume that can be read from a cache.
  *
  * A [Js5Container] is the smallest piece of data that can be read and written from and to the cache.
@@ -138,8 +88,8 @@ data class Js5Container(
     /**
      * The [compressed] and [uncompressed] sizes of a [Js5Container].
      *
-     * @property compressed The compressed size of a [Js5Container].
-     * @property uncompressed The uncompressed size of a [Js5Container].
+     * @property compressed The compressed size of the [Js5Container] without the version.
+     * @property uncompressed The uncompressed size of the data of the [Js5Container].
      */
     data class Size(var compressed: Int, var uncompressed: Int)
 

@@ -18,7 +18,6 @@
 package io.guthix.cache.js5.container.net
 
 import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.container.Js5ContainerReader
 import io.guthix.cache.js5.container.disk.Sector
 import io.guthix.cache.js5.container.Js5Compression
 import io.netty.buffer.ByteBuf
@@ -69,32 +68,11 @@ data class FileResponse(val indexFileId: Int, val containerId: Int, val data: By
  * @property archiveCount The amount of archives on the server.
  */
 class Js5SocketReader(
-    sockAddr: InetSocketAddress,
-    revision: Int,
-    private var xorKey: Byte = 0,
+    private val socketChannel: SocketChannel,
     var priorityMode: Boolean = false,
-    override val archiveCount: Int
-) : Js5ContainerReader {
-    private val socketChannel = SocketChannel.open(sockAddr)
-
-    init {
-        logger.info("Initializing JS5 connection to ${sockAddr.address}")
-        socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
-        socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
-        logger.info("Setting XOR encryption key to $xorKey")
-        if(xorKey.toInt() != 0) { updateEncryptionKey(xorKey) }
-        logger.info("Sending version handshake for revision $revision")
-        val buffer = Unpooled.buffer(5).apply {
-            writeByte(JS5_CONNECTION_TYPE)
-            writeInt(revision)
-        }
-        buffer.readBytes(socketChannel, buffer.readableBytes())
-        val buf = Unpooled.buffer(1)
-        buf.readBytes(socketChannel, buf.readableBytes())
-        val statusCode = buf.readUnsignedByte().toInt()
-        if(statusCode != 0) throw IOException("Could not establish connection with JS5 Server error code $statusCode.")
-        logger.info("JS5 connection successfully established")
-    }
+    var archiveCount: Int
+)  {
+    private var xorKey: Byte = 0
 
     /**
      * Requests container data and blocks until the response arrives.
@@ -102,7 +80,7 @@ class Js5SocketReader(
      * @param indexFileId The index to request.
      * @param containerId the container to request.
      */
-    override fun read(indexFileId: Int, containerId: Int): ByteBuf {
+    fun read(indexFileId: Int, containerId: Int): ByteBuf {
         sendFileRequest(indexFileId, containerId, priorityMode)
         return readFileResponse().data
     }
@@ -210,7 +188,7 @@ class Js5SocketReader(
         buf.readBytes(socketChannel, buf.readableBytes())
     }
 
-    override fun close() {
+    fun close() {
         socketChannel.close()
     }
 
@@ -229,6 +207,34 @@ class Js5SocketReader(
          * Amount of bytes to read per block.
          */
         private const val BYTES_AFTER_BLOCK = Sector.DATA_SIZE - 1
+
+        fun open(
+            sockAddr: InetSocketAddress,
+            revision: Int,
+            xorKey: Byte = 0,
+            priorityMode: Boolean = false,
+            archiveCount: Int
+        ): Js5SocketReader {
+            val socketChannel = SocketChannel.open(sockAddr)
+            logger.info("Initializing JS5 connection to ${sockAddr.address}")
+            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
+            socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
+            logger.info("Setting XOR encryption key to $xorKey")
+            logger.info("Sending version handshake for revision $revision")
+            val buffer = Unpooled.buffer(5).apply {
+                writeByte(JS5_CONNECTION_TYPE)
+                writeInt(revision)
+            }
+            buffer.readBytes(socketChannel, buffer.readableBytes())
+            val buf = Unpooled.buffer(1)
+            buf.readBytes(socketChannel, buf.readableBytes())
+            val statusCode = buf.readUnsignedByte().toInt()
+            if(statusCode != 0) throw IOException("Could not establish connection with JS5 Server error code $statusCode.")
+            logger.info("JS5 connection successfully established")
+            val js5SocketReader = Js5SocketReader(socketChannel, priorityMode, archiveCount)
+            if(xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
+            return js5SocketReader
+        }
 
     }
 }

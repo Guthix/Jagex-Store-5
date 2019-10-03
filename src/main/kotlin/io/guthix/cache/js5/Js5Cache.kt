@@ -22,12 +22,8 @@ import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.util.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import mu.KotlinLogging
 import java.io.IOException
 import java.math.BigInteger
-import kotlin.IllegalArgumentException
-
-private val logger = KotlinLogging.logger { }
 
 /**
  * A readable and writeable [Js5Cache].
@@ -40,11 +36,19 @@ private val logger = KotlinLogging.logger { }
  * @property rw The container read writer.
  * @property archiveSettings The [Js5ArchiveSettings].
  */
-class Js5Cache private constructor(
-    private val rw: Js5ContainerReaderWriter,
-    private val archiveSettings: MutableMap<Int, Js5ArchiveSettings>
-) : AutoCloseable {
-    val archiveCount get() = archiveSettings.size
+class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
+    val archiveCount get() = store.archiveCount
+
+    fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
+        val data = store.read(store.masterIndex, archiveId)
+        if(data == Unpooled.EMPTY_BUFFER) throw IOException(
+            "Settings for archive $archiveId do not exist."
+        )
+        val container = Js5Container.decode(data, xteaKey)
+        val archiveSettings = Js5ArchiveSettings.decode(container)
+        val archiveIndexFile = store.openIdxFile(archiveId)
+        return Js5Archive.create(store, archiveIndexFile, archiveSettings, container.xteaKey, container.compression)
+    }
 
     fun addArchive(
         version: Int? = null,
@@ -54,138 +58,30 @@ class Js5Cache private constructor(
         containsUnknownHash: Boolean = false,
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
-    ) {
-        val archiveId = archiveSettings.size
-        logger.debug { "Adding empty archive with id $archiveId" }
-        archiveSettings[archiveId] = Js5ArchiveSettings(version, mutableMapOf(), containsNameHash, containsWpHash,
+    ) =  Js5Archive(store, store.createIdxFile(), version, containsNameHash, containsWpHash,
             containsSizes, containsUnknownHash, xteaKey, compression
-        )
-    }
-
-    /**
-     * Reads an archive from the cache by id.
-     *
-     * @param archiveId The id of the archive.
-     * @param xteaKeys The xtea keys for decrypting the [Js5GroupData]s in the archive.
-     */
-    fun readArchive(archiveId: Int, xteaKeys: Map<Int, IntArray> = emptyMap()): Js5Archive {
-        val archiveSettings = getArchiveSettings(archiveId)
-        val groups = mutableMapOf<Int, Js5Group>()
-        archiveSettings.js5GroupSettings.forEach { (groupId, groupSettings) ->
-            groups[groupId] = readGroup(archiveId, groupSettings, xteaKeys.getOrElse(groupId) { XTEA_ZERO_KEY })
-        }
-        return Js5Archive(archiveId, groups, archiveSettings.version)
-    }
-
-    /**
-     * Reads a [Js5GroupData] from the cache by group id.
-     *
-     * @param archiveId The archive to read from.
-     * @param groupId The gropu to read from.
-     * @param xteaKey The (Optional) XTEA key to decrypt the group container.
-     */
-    fun readGroup(archiveId: Int, groupId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
-        val settings = getArchiveSettings(archiveId).js5GroupSettings[groupId]
-            ?: throw IllegalArgumentException("Unable to read group $groupId because it does not exist.")
-        return readGroup(archiveId, settings, xteaKey)
-    }
-
-    /**
-     * Reads a [Js5GroupData] from the cache by group name.
-     *
-     * @param archiveId The archive to read from.
-     * @param groupName The name of the group to read.
-     * @param xteaKey The (Optional) XTEA key to decrypt the group container.
-     */
-    fun readGroup(archiveId: Int, groupName: String, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
-        val nameHash = groupName.hashCode()
-        val settings =  getArchiveSettings(archiveId).js5GroupSettings.values.firstOrNull {
-            it.nameHash == nameHash
-        } ?: throw IllegalArgumentException("Unable to read group `$groupName` because it does not exist.")
-        return readGroup(archiveId, settings, xteaKey)
-    }
-
-    private fun readGroup(archiveId: Int, settings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
-        val groupData = Js5GroupData.decode(
-            Js5Container.decode(rw.read(archiveId, settings.id), xteaKey), settings.fileSettings.size
-        )
-        val group = Js5Group.create(groupData, settings)
-        logger.info("Reading group ${settings.id} from archive $archiveId")
-        return group
-    }
-
-    fun writeGroup(archiveId: Int, group: Js5Group, appendVersion: Boolean = false) {
-        val archiveSettings = archiveSettings.getOrElse(archiveId) {
-            throw IllegalArgumentException("Unable to write to archive $archiveId because settings do not exist.")
-        }
-        val data = group.groupData.encode(if(appendVersion) group.version else null).encode()
-        val dataEnd = if(appendVersion) data.writerIndex() else data.writerIndex() - 2
-        group.crc = data.crc(length = dataEnd)
-        if(archiveSettings.containsWpHash) group.whirlpoolHash = data.whirlPoolHash(length = dataEnd)
-        val uncompressedSize = group.groupData.fileData.sumBy { it.writerIndex() }
-        val compressedSize = writeGroupData(archiveId, group.id, data)
-        if(archiveSettings.containsSizes) group.groupSettings.sizes = Js5Container.Size(compressedSize, uncompressedSize)
-        writeGroupSettings(archiveId, archiveSettings, group.groupSettings)
-    }
-
-    /**
-     * Writes the group data for a [Js5GroupData].
-     *
-     * @param archiveId The id of the archive to write to.
-     * @param groupData The [Js5GroupData] to write.
-     */
-    private fun writeGroupData(archiveId: Int, groupId: Int, data: ByteBuf): Int {
-        val compressedSize = data.readableBytes()
-        rw.write(archiveId, groupId, data)
-        return compressedSize
-    }
-
-    /**
-     * Writes the [Js5GroupSettings] for a [Js5GroupData].
-     *
-     * @param archiveId The id of the archive to write to.
-     * @param group The [Js5GroupData] to write.
-     */
-    private fun writeGroupSettings(archiveId: Int, archiveSettings: Js5ArchiveSettings, group: Js5GroupSettings) {
-        archiveSettings.js5GroupSettings[group.id] = group
-        rw.write(Js5DiskStore.MASTER_INDEX, archiveId, archiveSettings.encode().encode())
-    }
-
-    fun removeGroup(archiveId: Int, groupId: Int) {
-        getArchiveSettings(archiveId).js5GroupSettings.remove(groupId) ?: throw IllegalArgumentException(
-            "Unable to remove group $groupId from archive $archiveId because the group does not exist."
-        )
-        rw.remove(archiveId, groupId)
-    }
-
-    private fun getArchiveSettings(archiveId: Int) = archiveSettings.getOrElse(archiveId) {
-        throw IllegalArgumentException("Unable to read from archive $archiveId because it does not exist.")
-    }
-
-    /**
-     * Generates the [Js5CacheChecksum] of this cache.
-     */
-    fun generateChecksum(): Js5CacheChecksum  = Js5CacheChecksum(
-        archiveSettings.values.map { it.calculateChecksum() }.toTypedArray()
     )
 
-    override fun close() =  rw.close()
-
-    companion object {
-        fun open(rw: Js5ContainerReaderWriter, xteas: Array<IntArray> = arrayOf()): Js5Cache {
-            require(xteas.isEmpty() || xteas.size == rw.archiveCount)
-            val settings = mutableMapOf<Int, Js5ArchiveSettings>()
-            for(archiveId in 0 until rw.archiveCount) {
-                val data = rw.read(Js5DiskStore.MASTER_INDEX, archiveId)
-                if(data != Unpooled.EMPTY_BUFFER) {
-                    settings[archiveId] = Js5ArchiveSettings.decode(
-                        Js5Container.decode(data, xteas.getOrElse(archiveId) { XTEA_ZERO_KEY })
-                    )
-                }
+    fun generateChecksum(xteaKeys: Map<Int, IntArray>): Js5CacheChecksum  {
+        val archiveCount = store.archiveCount
+        val archiveChecksums = mutableListOf<Js5ArchiveChecksum>()
+        for(archiveIndex in 0 until archiveCount) {
+            val data = store.read(store.masterIndex, archiveIndex)
+            if(data == Unpooled.EMPTY_BUFFER) continue
+            val settings = Js5ArchiveSettings.decode(
+                Js5Container.decode(data, xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
+            )
+            val uncompressedSize = settings.groupSettings.values.sumBy {
+                it.sizes?.uncompressed ?: 0
             }
-            return Js5Cache(rw, settings)
+            archiveChecksums.add(Js5ArchiveChecksum(
+                data.crc(), settings.version, settings.groupSettings.size, uncompressedSize, data.whirlPoolHash()
+            ))
         }
+        return Js5CacheChecksum(archiveChecksums.toTypedArray())
     }
+
+    override fun close() =  store.close()
 }
 
 /**
@@ -196,6 +92,9 @@ class Js5Cache private constructor(
  */
 data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
     val containsWhirlpool get() = archiveChecksums.all { it.whirlpoolDigest != null }
+
+    val newFormat get() = archiveChecksums.all { it.fileCount != null } &&
+            archiveChecksums.all { it.uncompressedSize != null }
 
     /**
      * Encodes the [Js5CacheChecksum]. The encoding can optionally contain a (encrypted) whirlpool hash.

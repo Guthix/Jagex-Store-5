@@ -27,13 +27,12 @@ class Js5CacheTest : StringSpec() {
     init {
         val fsFolder = Files.createTempDirectory("js5")
         val diskStore = Js5DiskStore.open(fsFolder)
-        val cache = autoClose(Js5Cache.open(diskStore))
+        val cache = autoClose(Js5Cache(diskStore))
         val files = mutableMapOf(
             0 to Js5File(0, 23482, Unpooled.buffer(390).iterationFill()),
             1 to Js5File(1, 5234, Unpooled.buffer(823).iterationFill()),
             2 to Js5File(2, 6536, Unpooled.buffer(123).iterationFill())
         )
-        cache.addArchive(0, containsWpHash = true, containsSizes = true)
         val group = Js5Group(
             id = 0,
             version = 23,
@@ -43,8 +42,12 @@ class Js5CacheTest : StringSpec() {
             unknownHash = 2390324
         )
         "After reading and writing the group should be the same as the original" {
-            cache.writeGroup(0, group, true)
-            val readGroup = cache.readGroup(0, 0)
+            cache.addArchive(0, containsWpHash = true, containsSizes = true, containsUnknownHash = true,
+                containsNameHash = true
+            ).use {
+                it.writeGroup(group, true)
+            }
+            val readGroup = cache.readArchive(0).readGroup(group.id)
             readGroup shouldBe group
         }
     }

@@ -27,14 +27,15 @@ fun main(args: Array<String>) {
         }
     }
     requireNotNull(inputDir) { "No output directory specified to read the cache from. Pass -i=DIR as an argument." }
-    val fileSystem = Js5DiskStore.open(inputDir)
-    val settings = Array(fileSystem.archiveCount) { archiveId ->
-        Js5ArchiveSettings.decode(Js5Container.decode(fileSystem.read(Js5DiskStore.MASTER_INDEX, archiveId)))
+    val ds = Js5DiskStore.open(inputDir)
+    val settings = Array(ds.archiveCount) { archiveId ->
+        Js5ArchiveSettings.decode(Js5Container.decode(ds.read(ds.masterIndex, archiveId)))
     }
     settings.forEachIndexed { archiveId, archiveSettings ->
+        val archiveIdxFile = ds.openIdxFile(archiveId)
         if(!excludedArchives.contains(archiveId)) {
-            archiveSettings.js5GroupSettings.forEach { (groupId, groupSettings) ->
-                val data = fileSystem.read(archiveId, groupId)
+            archiveSettings.groupSettings.forEach { (groupId, groupSettings) ->
+                val data = ds.read(archiveIdxFile, groupId)
                 if(data.crc() != groupSettings.crc) logger.info(
                     "CRC does not match for archive $archiveId group $groupId"
                 )

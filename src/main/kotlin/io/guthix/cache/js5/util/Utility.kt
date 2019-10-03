@@ -46,7 +46,7 @@ private val messageDigest: MessageDigest by lazy {
     MessageDigest.getInstance("Whirlpool")
 }
 
-internal fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
+fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
     Security.addProvider(BouncyCastleProvider())
     messageDigest.update(this.array(), index, length)
     return messageDigest.digest()

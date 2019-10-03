@@ -19,7 +19,6 @@ package io.guthix.cache.js5.container.disk
 
 import mu.KotlinLogging
 import java.io.IOException
-import io.guthix.cache.js5.container.Js5ContainerReaderWriter
 import io.guthix.cache.js5.container.Js5Container
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -37,52 +36,41 @@ private val logger = KotlinLogging.logger {}
  * pointing to meta data of archives. The archive indices should be sequentially numbered starting from 0.
  *
  * @property dataFile The data channel of the file system.
- * @property archiveIndexFiles The archive index channels indexed by the archive id
- * @property masterIndexFile The master index channel that contains meta-data for the archives
  */
 class Js5DiskStore private constructor(
     private val root: Path,
     private val dataFile: Dat2File,
-    private val archiveIndexFiles: MutableList<IdxFile>,
-    private val masterIndexFile: IdxFile
-) : Js5ContainerReaderWriter {
-    override val archiveCount get() = archiveIndexFiles.size
+    val masterIndex: IdxFile,
+    var archiveCount: Int
+) : AutoCloseable {
+    fun openIdxFile(indexFileId: Int) = IdxFile.open(
+        indexFileId, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
+    )
 
-    override fun read(indexFileId: Int, containerId: Int): ByteBuf {
-        require(indexFileId == MASTER_INDEX || indexFileId in 0 until archiveIndexFiles.size) {
-            "Can not read from index file $indexFileId because it does not exist."
-        }
-        val index = if(indexFileId == MASTER_INDEX) {
-            masterIndexFile.read(containerId)
-        } else {
-            archiveIndexFiles[indexFileId].read(containerId)
-        }
-        if(index.dataSize == 0) {
-            logger.warn { "Could not read index file $indexFileId container $containerId because index does not exist" }
-            return Unpooled.EMPTY_BUFFER
-        } else {
-            logger.debug { "Reading index file $indexFileId container $containerId" }
-        }
-        return dataFile.read(indexFileId, containerId, index)
+    fun createIdxFile(): IdxFile {
+        val indexFileId = archiveCount
+        val indexFile = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
+        logger.debug { "Created index file ${indexFile.fileName}" }
+        Files.createFile(indexFile)
+        archiveCount++
+        return IdxFile.open(indexFileId, indexFile)
     }
 
-    override fun write(indexFileId: Int, containerId: Int, data: ByteBuf) {
-        require(indexFileId == MASTER_INDEX || indexFileId in 0..archiveIndexFiles.size) {
-            "Can not write to or create index file $indexFileId because it is not sequential."
-        }
-        val indexFile = if(indexFileId == MASTER_INDEX) {
-            masterIndexFile
-        } else {
-            archiveIndexFiles.getOrElse(indexFileId) { // create new file
-                val indexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
-                Files.createFile(indexPath)
-                val indexFile = IdxFile.open(indexPath)
-                archiveIndexFiles.add(indexFile)
-                logger.info { "Created empty .idx$indexFileId file" }
-                indexFile
+    fun read(indexFile: IdxFile, containerId: Int): ByteBuf {
+        val index = indexFile.read(containerId)
+        if(index.dataSize == 0) {
+            logger.warn {
+                "Could not read index file ${indexFile.id} container $containerId because the index does not exist"
             }
+            return Unpooled.EMPTY_BUFFER
+        } else {
+            logger.debug { "Reading index file ${indexFile.id} container $containerId" }
         }
-        logger.debug { "Writing index file $indexFileId container $containerId" }
+        return dataFile.read(indexFile.id, containerId, index)
+    }
+
+    fun write(indexFile: IdxFile, containerId: Int, data: ByteBuf) {
+        logger.debug { "Writing index file ${indexFile.id} container $containerId" }
         val overWriteIndex = indexFile.containsIndex(containerId)
         val firstSegNumber = if(overWriteIndex) {
             indexFile.read(containerId).sectorNumber
@@ -91,20 +79,15 @@ class Js5DiskStore private constructor(
         }
         val index = Index(data.readableBytes(), firstSegNumber)
         indexFile.write(containerId, index)
-        dataFile.write(indexFileId, containerId, index, data)
+        dataFile.write(indexFile.id, containerId, index, data)
     }
 
-    override fun remove(indexFileId: Int, containerId: Int) = if(indexFileId == MASTER_INDEX) {
-        masterIndexFile.remove(containerId)
-    } else {
-        archiveIndexFiles[indexFileId].remove(containerId)
-    }
+    fun remove(indexFile: IdxFile, containerId: Int) = indexFile.remove(containerId)
 
     override fun close() {
         logger.debug { "Closing JS5 filesystem at $root" }
         dataFile.close()
-        archiveIndexFiles.forEach { it.close() }
-        masterIndexFile.close()
+        masterIndex.close()
     }
 
     companion object {
@@ -129,15 +112,6 @@ class Js5DiskStore private constructor(
                 logger.debug { "Created empty .dat2 file\"" }
             }
             val dataFile = Dat2File.open(dataPath)
-            val archiveIndexFiles: MutableList<IdxFile> = mutableListOf()
-            for (indexFileId in 0 until MASTER_INDEX) {
-                val indexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
-                if(!Files.exists(indexPath))  {
-                    logger.debug { "Found $indexFileId index file${if(indexFileId != 1) "s" else ""}" }
-                    break
-                }
-                archiveIndexFiles.add(IdxFile.open(indexPath))
-            }
             val masterIndexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$MASTER_INDEX")
             if(Files.exists(masterIndexPath)) {
                 logger.debug { "Found .idx255 file" }
@@ -146,8 +120,17 @@ class Js5DiskStore private constructor(
                 Files.createFile(masterIndexPath)
                 logger.debug { "Created empty .idx255 file" }
             }
-            val masterIndexFile = IdxFile.open(masterIndexPath)
-            return Js5DiskStore(root, dataFile, archiveIndexFiles, masterIndexFile)
+            val masterIndexFile = IdxFile.open(MASTER_INDEX, masterIndexPath)
+            var archiveCount = 0
+            for (indexFileId in 0 until MASTER_INDEX) {
+                val indexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
+                if(!Files.exists(indexPath)) {
+                    archiveCount = indexFileId
+                    break
+                }
+            }
+            logger.debug { "Created disk store with archive count $archiveCount" }
+            return Js5DiskStore(root, dataFile, masterIndexFile, archiveCount)
         }
     }
 }

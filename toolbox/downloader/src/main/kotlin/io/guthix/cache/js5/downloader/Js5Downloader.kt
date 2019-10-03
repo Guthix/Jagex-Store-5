@@ -17,11 +17,15 @@
  */
 package io.guthix.cache.js5.downloader
 
+import io.guthix.cache.js5.Js5ArchiveChecksum
 import io.guthix.cache.js5.Js5ArchiveSettings
+import io.guthix.cache.js5.Js5CacheChecksum
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.container.net.Js5SocketReader
 import io.guthix.cache.js5.util.crc
+import io.guthix.cache.js5.util.whirlPoolHash
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import mu.KotlinLogging
 import java.io.IOException
@@ -59,39 +63,43 @@ fun main(args: Array<String>) {
         }
     }
     requireNotNull(outputDir) { "No output directory specified to store the cache. Pass -o=DIR as an argument." }
-    requireNotNull(address) { "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument." }
+    requireNotNull(address) {
+        "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument."
+    }
     requireNotNull(port) { "No port has been specified to download the cache from. Pass -p=PORT as an argument." }
     requireNotNull(revision) { "No game revision has been specified. Pass -r=REVISION as an argument." }
     requireNotNull(archiveCount) { "No archive count has been specified. Pass -c=ARCHIVECOUNT as an argument." }
-    val js5FileSystem = Js5DiskStore.open(outputDir)
-    val js5SocketReader = Js5SocketReader(
+    val ds = Js5DiskStore.open(outputDir)
+    val sr = Js5SocketReader.open(
         sockAddr = InetSocketAddress(address, port),
         revision = revision,
         priorityMode = true,
         archiveCount = archiveCount
     )
-    val settingsData = Array(archiveCount) { archiveId ->
-        js5SocketReader.read(Js5DiskStore.MASTER_INDEX, archiveId)
+    val settingsData = Array(archiveCount) {
+        sr.read(Js5DiskStore.MASTER_INDEX, it)
     }
-    settingsData.forEachIndexed { archiveId, data ->
-        js5FileSystem.write(Js5DiskStore.MASTER_INDEX, archiveId, data)
-    }
-    val settings = settingsData.map { data ->
-        Js5ArchiveSettings.decode(Js5Container.decode(data))
-    }
+    val archiveSettings = readSettingsData(sr, settingsData)
+    val archives = settingsData.mapIndexed { archiveId, data ->
+        val index = ds.createIdxFile()
+        ds.write(index, archiveId, data)
+        index
+    }.toTypedArray()
+
     val readThread = Thread { // start thread that sends requests
-        settings.forEachIndexed { archiveId, archiveSettings ->
-            archiveSettings.js5GroupSettings.forEach { (groupId, _) ->
-                js5SocketReader.sendFileRequest(archiveId, groupId)
+        archiveSettings.forEachIndexed { archiveId, archiveSettings ->
+            archiveSettings.groupSettings.forEach { (groupId, _) ->
+                sr.sendFileRequest(archiveId, groupId)
                 Thread.sleep(25) // prevent remote from closing the connection
             }
         }
         logger.info("Done sending requests")
     }
+
     val writeThread = Thread { // start thread that reads requests
-        settings.forEachIndexed { _, archiveSettings ->
-            archiveSettings.js5GroupSettings.forEach { (_, groupSettings) ->
-                val response = js5SocketReader.readFileResponse()
+        archiveSettings.forEachIndexed { _, archiveSettings ->
+            archiveSettings.groupSettings.forEach { (_, groupSettings) ->
+                val response = sr.readFileResponse()
                 if(response.data.crc() != groupSettings.crc) throw IOException(
                     "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
                 )
@@ -101,7 +109,7 @@ fun main(args: Array<String>) {
                         writeShort(groupSettings.version)
                     }
                 } else response.data
-                js5FileSystem.write(response.indexFileId, response.containerId, writeData)
+                ds.write(archives[response.indexFileId], response.containerId, writeData)
             }
         }
         logger.info("Done writing responses")
@@ -110,4 +118,30 @@ fun main(args: Array<String>) {
     writeThread.start()
     readThread.join()
     writeThread.join()
+}
+
+private fun readSettingsData(sr: Js5SocketReader, settingsData: Array<ByteBuf>): MutableList<Js5ArchiveSettings> {
+    val readChecksum = Js5CacheChecksum.decode(
+        sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
+    )
+    val newFormat = readChecksum.newFormat
+    val containsWhirlool = readChecksum.containsWhirlpool
+    val archiveSettings = mutableListOf<Js5ArchiveSettings>()
+    val archiveChecksums = settingsData.mapIndexed { archiveId, data ->
+        val settings = Js5ArchiveSettings.decode(
+            Js5Container.decode(sr.read(Js5DiskStore.MASTER_INDEX, archiveId))
+        )
+        archiveSettings.add(settings)
+        val whirlpoolHash = if(containsWhirlool) data.whirlPoolHash() else null
+        val fileCount = if(newFormat) settings.groupSettings.size else null
+        val uncompressedSize = if(newFormat) settings.groupSettings.values.sumBy {
+            it.sizes?.uncompressed ?: 0
+        } else null
+        Js5ArchiveChecksum(data.crc(), settings.version, fileCount, uncompressedSize, whirlpoolHash)
+    }.toTypedArray()
+    val calcChecksum = Js5CacheChecksum(archiveChecksums)
+    if(readChecksum != calcChecksum) throw IOException(
+        "Checksum does not match, archive settings are corrupted."
+    )
+    return archiveSettings
 }

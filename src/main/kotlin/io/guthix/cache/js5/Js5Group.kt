@@ -32,11 +32,11 @@ data class Js5Group(
     var version: Int,
     internal var crc: Int = 0,
     var chunkCount: Int,
-    val files: MutableMap<Int, Js5File>,
     var nameHash: Int? = null,
     var unknownHash: Int? = null,
     internal var whirlpoolHash: ByteArray? = null,
     internal var sizes: Js5Container.Size? = null,
+    val files: MutableMap<Int, Js5File> = mutableMapOf(),
     var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed()
 ) {
@@ -46,6 +46,43 @@ data class Js5Group(
         Js5FileSettings(fileId, file.nameHash) }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
     )
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as Js5Group
+        if (id != other.id) return false
+        if (version != other.version) return false
+        if (crc != other.crc) return false
+        if (chunkCount != other.chunkCount) return false
+        if (nameHash != other.nameHash) return false
+        if (unknownHash != other.unknownHash) return false
+        if (whirlpoolHash != null) {
+            if (other.whirlpoolHash == null) return false
+            if (!whirlpoolHash!!.contentEquals(other.whirlpoolHash!!)) return false
+        } else if (other.whirlpoolHash != null) return false
+        if (sizes != other.sizes) return false
+        if (files != other.files) return false
+        if (!xteaKey.contentEquals(other.xteaKey)) return false
+        if (compression != other.compression) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id
+        result = 31 * result + version
+        result = 31 * result + crc
+        result = 31 * result + chunkCount
+        result = 31 * result + (nameHash ?: 0)
+        result = 31 * result + (unknownHash ?: 0)
+        result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
+        result = 31 * result + (sizes?.hashCode() ?: 0)
+        result = 31 * result + files.hashCode()
+        result = 31 * result + xteaKey.contentHashCode()
+        result = 31 * result + compression.hashCode()
+        return result
+    }
+
     companion object {
         fun create(data: Js5GroupData, settings: Js5GroupSettings): Js5Group {
             var i = 0
@@ -54,8 +91,8 @@ data class Js5Group(
                 files[fileId] = Js5File(fileId, fileSettings.nameHash, data.fileData[i])
                 i++
             }
-            return Js5Group(settings.id, settings.version, settings.crc, data.chunkCount, files, settings.nameHash,
-                settings.unknownHash, settings.whirlpoolHash, settings.sizes
+            return Js5Group(settings.id, settings.version, settings.crc, data.chunkCount, settings.nameHash,
+                settings.unknownHash, settings.whirlpoolHash, settings.sizes, files, data.xteaKey, data.compression
             )
         }
     }

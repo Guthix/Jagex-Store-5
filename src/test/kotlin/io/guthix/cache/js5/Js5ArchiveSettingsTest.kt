@@ -25,7 +25,7 @@ import io.kotlintest.specs.StringSpec
 class Js5ArchiveSettingsTest : StringSpec({
     val archiveSettings = Js5ArchiveSettings(
         version = 13,
-        js5GroupSettings = mutableMapOf(
+        groupSettings = mutableMapOf(
             0 to Js5GroupSettings(
                 id = 0,
                 version = 2,

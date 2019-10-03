@@ -23,17 +23,110 @@ import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Uncompressed
 import io.guthix.cache.js5.container.XTEA_ZERO_KEY
+import io.guthix.cache.js5.container.disk.IdxFile
+import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
 import io.guthix.cache.js5.util.crc
 import io.guthix.cache.js5.util.whirlPoolHash
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import mu.KotlinLogging
 import java.io.IOException
 import kotlin.math.abs
+
+private val logger = KotlinLogging.logger { }
 
 /**
  * An Archive in the cache.
  */
-data class Js5Archive(val id: Int, val groups: MutableMap<Int, Js5Group>, var version: Int?)
+data class Js5Archive internal constructor(
+    private val store: Js5DiskStore,
+    private val indexFile: IdxFile,
+    var version: Int?,
+    val containsNameHash: Boolean,
+    val containsWpHash: Boolean,
+    val containsSizes: Boolean,
+    val containsUnknownHash: Boolean,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed(),
+    val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf()
+) : AutoCloseable {
+    val id get() = indexFile.id
+
+    private val archiveSettings get() = Js5ArchiveSettings(
+        version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, groupSettings
+    )
+
+    fun readGroup(groupId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+        val settings = groupSettings.getOrElse(groupId) {
+            throw IllegalArgumentException("Unable to read group $groupId because it does not exist.")
+        }
+        return readGroup(indexFile.id, settings, xteaKey)
+    }
+
+    fun readGroup(groupName: String, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+        val nameHash = groupName.hashCode()
+        val settings =  groupSettings.values.firstOrNull { it.nameHash == nameHash }
+            ?: throw IllegalArgumentException("Unable to read group `$groupName` because it does not exist.")
+        return readGroup(indexFile.id, settings, xteaKey)
+    }
+
+    private fun readGroup(archiveId: Int, groupSettings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+        val groupData = Js5GroupData.decode(
+            Js5Container.decode(store.read(indexFile, groupSettings.id), xteaKey),
+            groupSettings.fileSettings.size
+        )
+        val group = Js5Group.create(groupData, groupSettings)
+        logger.info("Reading group ${groupSettings.id} from archive $archiveId")
+        return group
+    }
+
+    fun writeGroup(group: Js5Group, appendVersion: Boolean) {
+        val container = group.groupData.encode(if(appendVersion) group.version else null)
+        val uncompressedSize = container.data.writerIndex()
+        val data = container.encode()
+        val compressedSize = if(appendVersion) data.writerIndex() - 2 else data.writerIndex()
+        group.crc = data.crc(length = compressedSize)
+        if(containsWpHash) group.whirlpoolHash = data.whirlPoolHash(length = compressedSize)
+        writeGroupData(group.id, data)
+        if(containsSizes) group.sizes = Js5Container.Size(compressedSize, uncompressedSize)
+        groupSettings[group.id] = group.groupSettings
+    }
+
+    fun removeGroup(groupId: Int) {
+        groupSettings.remove(groupId) ?: throw IllegalArgumentException(
+            "Unable to remove group $groupId from archive ${indexFile.id} because the group does not exist."
+        )
+        store.remove(indexFile, groupId)
+    }
+
+    private fun writeGroupData(groupId: Int, data: ByteBuf): Int {
+        val compressedSize = data.readableBytes()
+        store.write(indexFile, groupId, data)
+        return compressedSize
+    }
+
+    override fun close() {
+        val settings = archiveSettings
+        logger.debug { "Writing archive settings for archive ${indexFile.id}" }
+        store.write(store.masterIndex, indexFile.id, settings.encode(xteaKey, compression).encode())
+        indexFile.close()
+    }
+
+    companion object {
+        internal fun create(
+            store: Js5DiskStore,
+            indexFile: IdxFile,
+            settings: Js5ArchiveSettings,
+            xteaKey: IntArray,
+            compression: Js5Compression
+        ): Js5Archive {
+            return Js5Archive(store, indexFile, settings.version, settings.containsNameHash, settings.containsWpHash,
+                settings.containsSizes, settings.containsUnknownHash, xteaKey, compression, settings.groupSettings
+            )
+        }
+    }
+}
 
 /**
  * The settings for a [Js5Archive].
@@ -41,45 +134,32 @@ data class Js5Archive(val id: Int, val groups: MutableMap<Int, Js5Group>, var ve
  * Archive settings are stored in the master index(.idx255) and contain meta-data about archives.
  *
  * @property version (Optional) The version of the archive settings.
- * @property js5GroupSettings A map of [Js5GroupSettings] indexed by their id.
+ * @property groupSettings A map of [Js5GroupSettings] indexed by their id.
  */
 data class Js5ArchiveSettings(
     var version: Int?,
-    val js5GroupSettings: MutableMap<Int, Js5GroupSettings>,
     val containsNameHash: Boolean,
     val containsWpHash: Boolean,
     val containsSizes: Boolean,
     val containsUnknownHash: Boolean,
-    var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed()
+    val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf()
 ) {
-    val uncompressedSize get() = js5GroupSettings.values.sumBy {
-        it.sizes?.uncompressed ?: 0
-    }
-
-    fun calculateChecksum(): Js5ArchiveChecksum {
-        val rawData = encode().encode()
-        return Js5ArchiveChecksum(
-            rawData.crc(), version, js5GroupSettings.size, uncompressedSize, rawData.whirlPoolHash()
-        )
-    }
-
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
-    fun encode(): Js5Container {
+    fun encode(xteaKey: IntArray = XTEA_ZERO_KEY, compression: Js5Compression = Uncompressed()): Js5Container {
         val buf = Unpooled.buffer()
         val format = if(this.version == -1) {
             Format.UNVERSIONED
         } else {
-            if(js5GroupSettings.size <= UShort.MAX_VALUE.toInt()) {
+            if(groupSettings.size <= UShort.MAX_VALUE.toInt()) {
                 Format.VERSIONED
             } else {
                 Format.VERSIONED_LARGE
             }
         }
         buf.writeByte(format.opcode)
-        if(format != Format.UNVERSIONED) buf.writeInt(this.version!!)
+        if(format != Format.UNVERSIONED) buf.writeInt(version!!)
         var flags = 0
         if(containsNameHash) flags = flags or MASK_NAME_HASH
         if(containsUnknownHash) flags = flags or MASK_UNKNOWN_HASH
@@ -87,45 +167,45 @@ data class Js5ArchiveSettings(
         if(containsSizes) flags = flags or MASK_SIZES
         buf.writeByte(flags)
         if(format == Format.VERSIONED_LARGE) {
-            buf.writeLargeSmart(js5GroupSettings.size)
+            buf.writeLargeSmart(groupSettings.size)
         } else {
-            buf.writeShort(js5GroupSettings.size)
+            buf.writeShort(groupSettings.size)
         }
         var prevArchiveId = 0
-        for(id in js5GroupSettings.keys) {
+        for(id in groupSettings.keys) {
             val delta = abs(prevArchiveId - id)
             if(format == Format.VERSIONED_LARGE) buf.writeLargeSmart(delta) else buf.writeShort(delta)
             prevArchiveId = id
         }
         if(containsNameHash) {
-            for(attr in js5GroupSettings.values) buf.writeInt(attr.nameHash ?: 0)
+            for(attr in groupSettings.values) buf.writeInt(attr.nameHash ?: 0)
         }
-        for(attr in js5GroupSettings.values) buf.writeInt(attr.crc)
+        for(attr in groupSettings.values) buf.writeInt(attr.crc)
         if(containsUnknownHash) {
-            for(attr in js5GroupSettings.values) buf.writeInt(attr.unknownHash ?: 0)
+            for(attr in groupSettings.values) buf.writeInt(attr.unknownHash ?: 0)
         }
         if(containsWpHash) {
-            for(attr in js5GroupSettings.values) {
+            for(attr in groupSettings.values) {
                 buf.writeBytes(attr.whirlpoolHash ?: ByteArray(WHIRLPOOL_HASH_SIZE))
             }
         }
         if(containsSizes) {
-            for(attr in js5GroupSettings.values) {
+            for(attr in groupSettings.values) {
                 buf.writeInt(attr.sizes?.compressed ?: 0)
                 buf.writeInt(attr.sizes?.uncompressed ?: 0)
             }
         }
-        for(attr in js5GroupSettings.values) {
+        for(attr in groupSettings.values) {
             buf.writeInt(attr.version)
         }
-        for(attr in js5GroupSettings.values) {
+        for(attr in groupSettings.values) {
             if(format == Format.VERSIONED_LARGE) {
                 buf.writeLargeSmart(attr.fileSettings.size)
             } else {
                 buf.writeShort(attr.fileSettings.size)
             }
         }
-        for(attr in js5GroupSettings.values) {
+        for(attr in groupSettings.values) {
             var prevFileId = 0
             for(id in attr.fileSettings.keys) {
                 val delta = abs(prevFileId - id)
@@ -138,35 +218,13 @@ data class Js5ArchiveSettings(
             }
         }
         if(containsNameHash) {
-            for(attr in js5GroupSettings.values) {
+            for(attr in groupSettings.values) {
                 for(file in attr.fileSettings.values) {
                     buf.writeInt(file.nameHash ?: 0)
                 }
             }
         }
         return Js5Container(buf, xteaKey, compression, null) // settings containers don't have versions
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Js5ArchiveSettings
-
-        if (version != other.version) return false
-        if (js5GroupSettings != other.js5GroupSettings) return false
-        if (compression != other.compression) return false
-        if (!xteaKey.contentEquals(other.xteaKey)) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = version ?: 0
-        result = 31 * result + js5GroupSettings.hashCode()
-        result = 31 * result + compression.hashCode()
-        result = 31 * result + xteaKey.contentHashCode()
-        return result
     }
 
     /**
@@ -260,8 +318,8 @@ data class Js5ArchiveSettings(
 
                 )
             }
-            return Js5ArchiveSettings(version, groupSettings, containsNameHash, containsWpHash, containsSizes,
-                containsUnknownHash, container.xteaKey, container.compression
+            return Js5ArchiveSettings(
+                version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, groupSettings
             )
         }
     }

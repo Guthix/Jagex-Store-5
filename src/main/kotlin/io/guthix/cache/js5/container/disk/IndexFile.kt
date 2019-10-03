@@ -33,7 +33,7 @@ import io.guthix.cache.js5.container.Js5Container
  *
  * @property fileChannel The [FileChannel] to read the indices from.
  */
-internal class IdxFile private constructor(private val fileChannel: FileChannel) : AutoCloseable {
+class IdxFile private constructor(val id: Int, private val fileChannel: FileChannel) : AutoCloseable {
     /**
      * The size of the file.
      */
@@ -44,7 +44,7 @@ internal class IdxFile private constructor(private val fileChannel: FileChannel)
      *
      * @param containerId The container to read.
      */
-    fun read(containerId: Int): Index {
+    internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         if (ptr < 0 || ptr >= fileChannel.size()) {
             throw FileNotFoundException("Could not find container $containerId.")
@@ -60,7 +60,7 @@ internal class IdxFile private constructor(private val fileChannel: FileChannel)
      * @param containerId The container to write.
      * @param index The index to write.
      */
-    fun write(containerId: Int, index: Index) {
+    internal fun write(containerId: Int, index: Index) {
         val buf = index.encode()
         buf.readBytes(fileChannel, containerId.toLong() * Index.SIZE.toLong(), buf.readableBytes())
     }
@@ -68,7 +68,7 @@ internal class IdxFile private constructor(private val fileChannel: FileChannel)
     /**
      * Removes an index from the [fileChannel].
      */
-    fun remove(containerId: Int) {
+    internal fun remove(containerId: Int) {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         Index.EMPTY_BUF.getBytes(0, fileChannel, ptr, 6)
     }
@@ -78,7 +78,7 @@ internal class IdxFile private constructor(private val fileChannel: FileChannel)
      *
      * @param containerId The container to check.
      */
-    fun containsIndex(containerId: Int): Boolean {
+    internal fun containsIndex(containerId: Int): Boolean {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
         return ptr < fileChannel.size()
     }
@@ -88,8 +88,8 @@ internal class IdxFile private constructor(private val fileChannel: FileChannel)
     companion object {
         const val EXTENSION = "idx"
 
-        fun open(path: Path): IdxFile {
-            return IdxFile(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE))
+        fun open(id: Int, path: Path): IdxFile {
+            return IdxFile(id, FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE))
         }
     }
 }

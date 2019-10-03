@@ -23,7 +23,9 @@ import java.nio.file.Files
 
 class IdxFileTest : StringSpec() {
     init {
-        val indexFile = autoClose(IdxFile.open(Files.createTempFile("main_file_cache", ".idx1")))
+        val indexFile = autoClose(IdxFile.open(1,
+            Files.createTempFile("main_file_cache", ".idx1"))
+        )
         val index1 = Index(30587, 0)
         val containerId1 = 1
         "After writing and reading the index should be the same as the original" {

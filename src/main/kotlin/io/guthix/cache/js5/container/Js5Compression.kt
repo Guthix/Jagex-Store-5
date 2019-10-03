@@ -147,10 +147,10 @@ class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
     override fun decompress(input: ByteBuf, length: Int): ByteBuf {
         val decompressed = Unpooled.buffer(length)
         header = input.slice(input.readerIndex(), 5)
-        val propByte = input.readByte()
+        val propByte = input.readUnsignedByte()
         var dictionarySize = 0
         repeat(4) { dictionarySize += input.readUnsignedByte().toInt() shl (it * 8) }
-        LZMAInputStream(ByteBufInputStream(input), -1, propByte, dictionarySize).use { inStream ->
+        LZMAInputStream(ByteBufInputStream(input), -1, propByte.toByte(), dictionarySize).use { inStream ->
             decompressed.writeBytes(inStream, length)
         }
         return decompressed
