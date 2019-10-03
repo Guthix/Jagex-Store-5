@@ -75,7 +75,8 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
                 it.sizes?.uncompressed ?: 0
             }
             archiveChecksums.add(Js5ArchiveChecksum(
-                data.crc(), settings.version, settings.groupSettings.size, uncompressedSize, data.whirlPoolHash()
+                data.crc(), settings.version ?: 0, settings.groupSettings.size, uncompressedSize,
+                data.whirlPoolHash()
             ))
         }
         return Js5CacheChecksum(archiveChecksums.toTypedArray())

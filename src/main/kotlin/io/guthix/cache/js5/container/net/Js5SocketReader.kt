@@ -69,8 +69,7 @@ data class FileResponse(val indexFileId: Int, val containerId: Int, val data: By
  */
 class Js5SocketReader(
     private val socketChannel: SocketChannel,
-    var priorityMode: Boolean = false,
-    var archiveCount: Int
+    var priorityMode: Boolean = false
 )  {
     private var xorKey: Byte = 0
 
@@ -90,56 +89,53 @@ class Js5SocketReader(
      */
     fun readFileResponse(): FileResponse {
         val headerBuffer = Unpooled.buffer(8)
-        headerBuffer.readBytes(socketChannel, headerBuffer.readableBytes())
-        headerBuffer.forEachByte {
-            it xor xorKey
-            true
-        }
+        while(headerBuffer.isWritable) headerBuffer.writeBytes(socketChannel, headerBuffer.writableBytes())
+        headerBuffer.forEachByte { it xor xorKey; true }
         val indexFileId = headerBuffer.readUnsignedByte().toInt()
         val containerId = headerBuffer.readUnsignedShort()
         logger.debug("Reading index file $indexFileId container $containerId")
         val compression = Js5Compression.getByOpcode(headerBuffer.readUnsignedByte().toInt())
         val compressedSize = headerBuffer.readInt()
 
-        // Create container and add meta-data
+        // Read response data
+        val containerSize = compression.headerSize + compressedSize
+        val dataBuf = Unpooled.buffer(
+            containerSize + ceil((containerSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()).toInt()
+        )
+
+        // Actual data
         val containerBuffer = Unpooled.buffer(
-            Js5Container.ENC_HEADER_SIZE + compression.headerSize + compressedSize
+            Js5Container.ENC_HEADER_SIZE + containerSize
         )
         containerBuffer.writeByte(compression.opcode)
         containerBuffer.writeInt(compressedSize)
 
-        // Read response data
-        val containerSize = compression.headerSize + compressedSize
-        val dataResponseBuffer = Unpooled.buffer(
-            containerSize + ceil((containerSize - BYTES_AFTER_HEADER) / BYTES_AFTER_BLOCK.toDouble()).toInt()
-        )
-        dataResponseBuffer.readBytes(dataResponseBuffer, dataResponseBuffer.writableBytes())
-        dataResponseBuffer.forEachByte {
-            it xor xorKey
-            true
+        while(dataBuf.isWritable) {
+            dataBuf.writeBytes(socketChannel, dataBuf.writableBytes())
         }
+        dataBuf.forEachByte { it xor xorKey; true }
 
         // write all data after header
-        val headerDataSize = if(dataResponseBuffer.readableBytes() < BYTES_AFTER_HEADER) {
-            dataResponseBuffer.readableBytes()
+        val headerDataSize = if(dataBuf.readableBytes() < BYTES_AFTER_HEADER) {
+            dataBuf.readableBytes()
         } else {
             BYTES_AFTER_HEADER
         }
-        containerBuffer.writeBytes(dataResponseBuffer.slice(0, headerDataSize))
-
+        containerBuffer.writeBytes(dataBuf.slice(0, headerDataSize))
+        dataBuf.readerIndex(headerDataSize)
         // write other data
         var i = 0
-        while(dataResponseBuffer.isReadable) {
+        while(dataBuf.isReadable) {
             var start = BYTES_AFTER_HEADER + i * (Sector.DATA_SIZE)
             start += 1 //skip 255
-            val blockBytesLeft = dataResponseBuffer.readableBytes() - start
-            val blockDataSize = if(blockBytesLeft < BYTES_AFTER_BLOCK) {
-                blockBytesLeft
+            val bytesToRead = dataBuf.readableBytes() - 1
+            val blockDataSize = if(bytesToRead < BYTES_AFTER_BLOCK) {
+                bytesToRead
             } else {
                 BYTES_AFTER_BLOCK
             }
-            dataResponseBuffer.writeBytes(dataResponseBuffer.slice(start, blockDataSize))
-            dataResponseBuffer.readerIndex(start + blockDataSize)
+            containerBuffer.writeBytes(dataBuf.slice(start, blockDataSize))
+            dataBuf.readerIndex(start + blockDataSize)
             i++
         }
         return FileResponse(indexFileId, containerId, containerBuffer)
@@ -212,14 +208,12 @@ class Js5SocketReader(
             sockAddr: InetSocketAddress,
             revision: Int,
             xorKey: Byte = 0,
-            priorityMode: Boolean = false,
-            archiveCount: Int
+            priorityMode: Boolean = false
         ): Js5SocketReader {
             val socketChannel = SocketChannel.open(sockAddr)
             logger.info("Initializing JS5 connection to ${sockAddr.address}")
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
             socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
-            logger.info("Setting XOR encryption key to $xorKey")
             logger.info("Sending version handshake for revision $revision")
             val buffer = Unpooled.buffer(5).apply {
                 writeByte(JS5_CONNECTION_TYPE)
@@ -227,11 +221,11 @@ class Js5SocketReader(
             }
             buffer.readBytes(socketChannel, buffer.readableBytes())
             val buf = Unpooled.buffer(1)
-            buf.readBytes(socketChannel, buf.readableBytes())
+            buf.writeBytes(socketChannel, buf.writableBytes())
             val statusCode = buf.readUnsignedByte().toInt()
             if(statusCode != 0) throw IOException("Could not establish connection with JS5 Server error code $statusCode.")
             logger.info("JS5 connection successfully established")
-            val js5SocketReader = Js5SocketReader(socketChannel, priorityMode, archiveCount)
+            val js5SocketReader = Js5SocketReader(socketChannel, priorityMode)
             if(xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
             return js5SocketReader
         }

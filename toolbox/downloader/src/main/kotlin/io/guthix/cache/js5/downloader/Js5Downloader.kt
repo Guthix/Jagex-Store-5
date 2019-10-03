@@ -30,6 +30,7 @@ import io.netty.buffer.Unpooled
 import mu.KotlinLogging
 import java.io.IOException
 import java.net.InetSocketAddress
+import java.nio.file.Files
 import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
@@ -50,15 +51,13 @@ fun main(args: Array<String>) {
     var address: String? = null
     var port: Int? = null
     var revision: Int? = null
-    var archiveCount: Int? = null
     var includeVersions = false
     for(arg in args) {
         when {
             arg.startsWith("-o=") -> outputDir = Path.of(arg.substring(3))
             arg.startsWith("-a=") -> address = arg.substring(3)
             arg.startsWith("-r=") -> revision = arg.substring(3).toInt()
-            arg.startsWith("-c=") -> archiveCount = arg.substring(3).toInt()
-            arg.startsWith("-p=") -> port =  arg.substring(3).toInt()
+            arg.startsWith("-p=") -> port = arg.substring(3).toInt()
             arg.startsWith("-v") -> includeVersions = true
         }
     }
@@ -68,18 +67,20 @@ fun main(args: Array<String>) {
     }
     requireNotNull(port) { "No port has been specified to download the cache from. Pass -p=PORT as an argument." }
     requireNotNull(revision) { "No game revision has been specified. Pass -r=REVISION as an argument." }
-    requireNotNull(archiveCount) { "No archive count has been specified. Pass -c=ARCHIVECOUNT as an argument." }
+    if(!Files.isDirectory(outputDir)) Files.createDirectory(outputDir)
     val ds = Js5DiskStore.open(outputDir)
     val sr = Js5SocketReader.open(
         sockAddr = InetSocketAddress(address, port),
         revision = revision,
-        priorityMode = true,
-        archiveCount = archiveCount
+        priorityMode = false
     )
-    val settingsData = Array(archiveCount) {
+    val checksum = Js5CacheChecksum.decode(Js5Container.decode(
+        sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
+    ).data)
+    val settingsData = Array(checksum.archiveChecksums.size) {
         sr.read(Js5DiskStore.MASTER_INDEX, it)
     }
-    val archiveSettings = readSettingsData(sr, settingsData)
+    val archiveSettings = checkSettingsData(checksum, settingsData)
     val archives = settingsData.mapIndexed { archiveId, data ->
         val index = ds.createIdxFile()
         ds.write(index, archiveId, data)
@@ -90,7 +91,7 @@ fun main(args: Array<String>) {
         archiveSettings.forEachIndexed { archiveId, archiveSettings ->
             archiveSettings.groupSettings.forEach { (groupId, _) ->
                 sr.sendFileRequest(archiveId, groupId)
-                Thread.sleep(25) // prevent remote from closing the connection
+                Thread.sleep(30) // prevent remote from closing the connection
             }
         }
         logger.info("Done sending requests")
@@ -120,16 +121,16 @@ fun main(args: Array<String>) {
     writeThread.join()
 }
 
-private fun readSettingsData(sr: Js5SocketReader, settingsData: Array<ByteBuf>): MutableList<Js5ArchiveSettings> {
-    val readChecksum = Js5CacheChecksum.decode(
-        sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
-    )
+private fun checkSettingsData(
+    readChecksum: Js5CacheChecksum,
+    settingsData: Array<ByteBuf>
+): MutableList<Js5ArchiveSettings> {
     val newFormat = readChecksum.newFormat
     val containsWhirlool = readChecksum.containsWhirlpool
     val archiveSettings = mutableListOf<Js5ArchiveSettings>()
-    val archiveChecksums = settingsData.mapIndexed { archiveId, data ->
+    val archiveChecksums = settingsData.map { data ->
         val settings = Js5ArchiveSettings.decode(
-            Js5Container.decode(sr.read(Js5DiskStore.MASTER_INDEX, archiveId))
+            Js5Container.decode(data)
         )
         archiveSettings.add(settings)
         val whirlpoolHash = if(containsWhirlool) data.whirlPoolHash() else null
@@ -137,7 +138,8 @@ private fun readSettingsData(sr: Js5SocketReader, settingsData: Array<ByteBuf>):
         val uncompressedSize = if(newFormat) settings.groupSettings.values.sumBy {
             it.sizes?.uncompressed ?: 0
         } else null
-        Js5ArchiveChecksum(data.crc(), settings.version, fileCount, uncompressedSize, whirlpoolHash)
+        data.readerIndex(0)
+        Js5ArchiveChecksum(data.crc(), settings.version ?: 0, fileCount, uncompressedSize, whirlpoolHash)
     }.toTypedArray()
     val calcChecksum = Js5CacheChecksum(archiveChecksums)
     if(readChecksum != calcChecksum) throw IOException(
