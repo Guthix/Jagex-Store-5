@@ -20,16 +20,16 @@ package io.guthix.cache.js5
 import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
 import io.kotlintest.specs.StringSpec
 
-class Js5CacheChecksumTest : StringSpec({
-    val checksum = Js5CacheChecksum(arrayOf(
-        Js5ArchiveChecksum(
+class Js5CacheValidatorTest : StringSpec({
+    val checksum = Js5CacheValidator(arrayOf(
+        Js5ArchiveValidator(
             crc = 32493,
             version = 3893,
             fileCount = 10,
             uncompressedSize = 39,
             whirlpoolDigest = null
         ),
-        Js5ArchiveChecksum(
+        Js5ArchiveValidator(
             crc = 642,
             version = 34,
             fileCount = 1,
@@ -38,11 +38,11 @@ class Js5CacheChecksumTest : StringSpec({
         )
     ))
     "After encoding and decoding the checksum should be the same as the original" {
-        Js5CacheChecksum.decode(checksum.encode())
+        Js5CacheValidator.decode(checksum.encode())
     }
 
-    checksum.archiveChecksums.forEach { it.whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE) }
+    checksum.archiveValidators.forEach { it.whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE) }
     "After encoding and decoding the checksum with whirlpool it should be the same as the original" {
-        Js5CacheChecksum.decode(checksum.encode(), whirlpool = true)
+        Js5CacheValidator.decode(checksum.encode(), whirlpool = true)
     }
 })

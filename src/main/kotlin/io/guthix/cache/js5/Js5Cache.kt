@@ -62,9 +62,9 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
             containsSizes, containsUnknownHash, xteaKey, compression
     )
 
-    fun generateChecksum(xteaKeys: Map<Int, IntArray>): Js5CacheChecksum  {
+    fun generateChecksum(xteaKeys: Map<Int, IntArray>): Js5CacheValidator  {
         val archiveCount = store.archiveCount
-        val archiveChecksums = mutableListOf<Js5ArchiveChecksum>()
+        val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for(archiveIndex in 0 until archiveCount) {
             val data = store.read(store.masterIndex, archiveIndex)
             if(data == Unpooled.EMPTY_BUFFER) continue
@@ -74,12 +74,12 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
             val uncompressedSize = settings.groupSettings.values.sumBy {
                 it.sizes?.uncompressed ?: 0
             }
-            archiveChecksums.add(Js5ArchiveChecksum(
+            archiveChecksums.add(Js5ArchiveValidator(
                 data.crc(), settings.version ?: 0, settings.groupSettings.size, uncompressedSize,
                 data.whirlPoolHash()
             ))
         }
-        return Js5CacheChecksum(archiveChecksums.toTypedArray())
+        return Js5CacheValidator(archiveChecksums.toTypedArray())
     }
 
     override fun close() =  store.close()
@@ -89,30 +89,30 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
  * Contains meta-daa for calculating the checksum of a [Js5Cache]. Cache checksums can optionally contain a whirlpool
  * hash which can optionally be encrypted using RSA.
  *
- * @property archiveChecksums The checksum data for each archive.
+ * @property archiveValidators The checksum data for each archive.
  */
-data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
-    val containsWhirlpool get() = archiveChecksums.all { it.whirlpoolDigest != null }
+data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) {
+    val containsWhirlpool get() = archiveValidators.all { it.whirlpoolDigest != null }
 
-    val newFormat get() = archiveChecksums.all { it.fileCount != null } &&
-            archiveChecksums.all { it.uncompressedSize != null }
+    val newFormat get() = archiveValidators.all { it.fileCount != null } &&
+            archiveValidators.all { it.uncompressedSize != null }
 
     /**
-     * Encodes the [Js5CacheChecksum]. The encoding can optionally contain a (encrypted) whirlpool hash.
+     * Encodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
      *
      * @param whirlpool Whether to add the whirlpool hash to the checksum.
      * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
      * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
      */
     fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null, newFormat: Boolean = false): ByteBuf {
-        archiveChecksums.all { it.whirlpoolDigest != null }
+        archiveValidators.all { it.whirlpoolDigest != null }
         val buf = Unpooled.buffer(if(containsWhirlpool)
-            WP_ENCODED_SIZE + Js5ArchiveChecksum.WP_ENCODED_SIZE * archiveChecksums.size
+            WP_ENCODED_SIZE + Js5ArchiveValidator.WP_ENCODED_SIZE * archiveValidators.size
         else
-            Js5ArchiveChecksum.ENCODED_SIZE * archiveChecksums.size
+            Js5ArchiveValidator.ENCODED_SIZE * archiveValidators.size
         )
-        if(containsWhirlpool) buf.writeByte(archiveChecksums.size)
-        for(archiveChecksum in archiveChecksums) {
+        if(containsWhirlpool) buf.writeByte(archiveValidators.size)
+        for(archiveChecksum in archiveValidators) {
             buf.writeInt(archiveChecksum.crc)
             buf.writeInt(archiveChecksum.version ?: 0)
             if(containsWhirlpool) {
@@ -134,20 +134,20 @@ data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as Js5CacheChecksum
-        if (!archiveChecksums.contentEquals(other.archiveChecksums)) return false
+        other as Js5CacheValidator
+        if (!archiveValidators.contentEquals(other.archiveValidators)) return false
         return true
     }
 
     override fun hashCode(): Int {
-        return archiveChecksums.contentHashCode()
+        return archiveValidators.contentHashCode()
     }
 
     companion object {
         const val WP_ENCODED_SIZE = Byte.SIZE_BYTES + WHIRLPOOL_HASH_SIZE
 
         /**
-         * Decodes the [Js5CacheChecksum]. The encoding can optionally contain a (encrypted) whirlpool hash.
+         * Decodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
          *
          * @param buf The buf to decode
          * @param whirlpool Whether to decode the whirlpool hash.
@@ -160,11 +160,11 @@ data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
             mod: BigInteger? = null,
             privateKey: BigInteger? = null,
             newFormat: Boolean = false
-        ): Js5CacheChecksum {
+        ): Js5CacheValidator {
             val archiveCount = if (whirlpool) {
                 buf.readUnsignedByte().toInt()
             } else {
-                buf.writerIndex() / Js5ArchiveChecksum.ENCODED_SIZE
+                buf.writerIndex() / Js5ArchiveValidator.ENCODED_SIZE
             }
             val archiveChecksums = Array(archiveCount) {
                 val crc = buf.readInt()
@@ -176,7 +176,7 @@ data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
                     buf.readBytes(digest)
                     digest
                 } else null
-                Js5ArchiveChecksum(crc, version, fileCount, indexFileSize, whirlPoolDigest)
+                Js5ArchiveValidator(crc, version, fileCount, indexFileSize, whirlPoolDigest)
             }
             if (whirlpool) {
                 val calcDigest = buf.whirlPoolHash(1, buf.readerIndex() - 1)
@@ -190,7 +190,7 @@ data class Js5CacheChecksum(val archiveChecksums: Array<Js5ArchiveChecksum>) {
                         "calculated ${calcDigest.contentToString()} read ${decReadDigest.contentToString()}."
                 )
             }
-            return Js5CacheChecksum(archiveChecksums)
+            return Js5CacheValidator(archiveChecksums)
         }
     }
 }

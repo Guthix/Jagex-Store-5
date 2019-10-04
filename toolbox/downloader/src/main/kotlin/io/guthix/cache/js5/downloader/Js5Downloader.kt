@@ -17,9 +17,9 @@
  */
 package io.guthix.cache.js5.downloader
 
-import io.guthix.cache.js5.Js5ArchiveChecksum
+import io.guthix.cache.js5.Js5ArchiveValidator
 import io.guthix.cache.js5.Js5ArchiveSettings
-import io.guthix.cache.js5.Js5CacheChecksum
+import io.guthix.cache.js5.Js5CacheValidator
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.container.net.Js5SocketReader
@@ -74,10 +74,10 @@ fun main(args: Array<String>) {
         revision = revision,
         priorityMode = false
     )
-    val checksum = Js5CacheChecksum.decode(Js5Container.decode(
+    val checksum = Js5CacheValidator.decode(Js5Container.decode(
         sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
     ).data)
-    val settingsData = Array(checksum.archiveChecksums.size) {
+    val settingsData = Array(checksum.archiveValidators.size) {
         sr.read(Js5DiskStore.MASTER_INDEX, it)
     }
     val archiveSettings = checkSettingsData(checksum, settingsData)
@@ -121,13 +121,13 @@ fun main(args: Array<String>) {
 }
 
 private fun checkSettingsData(
-    readChecksum: Js5CacheChecksum,
+    readValidator: Js5CacheValidator,
     settingsData: Array<ByteBuf>
 ): MutableList<Js5ArchiveSettings> {
-    val newFormat = readChecksum.newFormat
-    val containsWhirlool = readChecksum.containsWhirlpool
+    val newFormat = readValidator.newFormat
+    val containsWhirlool = readValidator.containsWhirlpool
     val archiveSettings = mutableListOf<Js5ArchiveSettings>()
-    val archiveChecksums = settingsData.map { data ->
+    val archiveValidators = settingsData.map { data ->
         val settings = Js5ArchiveSettings.decode(
             Js5Container.decode(data)
         )
@@ -138,10 +138,10 @@ private fun checkSettingsData(
             it.sizes?.uncompressed ?: 0
         } else null
         data.readerIndex(0)
-        Js5ArchiveChecksum(data.crc(), settings.version ?: 0, fileCount, uncompressedSize, whirlpoolHash)
+        Js5ArchiveValidator(data.crc(), settings.version ?: 0, fileCount, uncompressedSize, whirlpoolHash)
     }.toTypedArray()
-    val calcChecksum = Js5CacheChecksum(archiveChecksums)
-    if(readChecksum != calcChecksum) throw IOException(
+    val calcValidator = Js5CacheValidator(archiveValidators)
+    if(readValidator != calcValidator) throw IOException(
         "Checksum does not match, archive settings are corrupted."
     )
     return archiveSettings

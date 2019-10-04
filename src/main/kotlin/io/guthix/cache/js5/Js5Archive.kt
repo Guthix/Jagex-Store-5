@@ -334,7 +334,7 @@ data class Js5ArchiveSettings(
  * @property uncompressedSize The size of the sum of all [Js5GroupData] data uncompressed.
  * @property whirlpoolDigest (Optional) The whirlpool digest of this archive.
  */
-data class Js5ArchiveChecksum(
+data class Js5ArchiveValidator(
     var crc: Int,
     var version: Int?,
     var fileCount: Int?,
@@ -344,7 +344,7 @@ data class Js5ArchiveChecksum(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as Js5ArchiveChecksum
+        other as Js5ArchiveValidator
         if (crc != other.crc) return false
         if (version != other.version) return false
         if (fileCount != other.fileCount) return false
