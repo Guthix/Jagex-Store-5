@@ -1,4 +1,4 @@
-name: CI
+name: Build
 
 on: [push, pull_request]
 
@@ -6,6 +6,7 @@ jobs:
   build:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         java: [ '9', '10', '11', '12' ]
     steps:
