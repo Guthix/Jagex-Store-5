@@ -1,0 +1,19 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        java: [ '9', '10', '11', '12' ]
+    steps:
+    - uses: actions/checkout@master
+    - name:  Set up the JDK
+      uses: actions/setup-java@master
+      with:
+        java-version: ${{ matrix.java }}
+        architecture: x64
+    - name: Building
+      run: gradlew build --stacktrace --console=plain
