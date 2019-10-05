@@ -3,69 +3,84 @@
 [![License](https://img.shields.io/github/license/guthix/Jagex-Store-5?style=flat-square)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
 [![JDK](https://img.shields.io/badge/JDK-Java%209%2B-blue?style=flat-square)]()
 
-A library for reading Jagex Store 5 (JS5) game files. Jagex Store 5 is a 
-protocol used for storing game assets in the Runetek game engine made by
+A library for reading, writing and transferring Jagex Store 5 (JS5) game files. 
+Jagex Store 5 is a protocol used for storing game assets in the Runetek game engine made by the
 Jagex Games Studio. A set of game assets is also called a cache and can
 contain all type of game information like client scripts, models, 
 animations, sounds etc. This library allows reading and writing the 
-encoded file data from and to the cache. Which can later be decoded into 
-game assets.
+domain encoded file data from and to the cache.
 
-## Structure
-A cache contains various files on disk which do not directly correlate 
-with game asset files. Game assets can be compressed and encrypted and
-can have meta-data attached to them.
+## Toolbox
+Besides an API for modifying the JS5 cache this repository also provides a toolset
+with useful tools for modifying, retrieving, optimizing and validating the cache.
 
-### Disk Structure
-A JS5 cache is made out of multiple files on disk. First there are the
-index files. Index files have an .idx extension suffixed by a number
-ranging from 0 until 255. An index file contains a list of pointers(
-also called indices) to the game asset data in the data file which has 
-the .dat2 file extension. The .idx255 is a special index file, it points
-to meta-data data for the game assets. The meta-data are called settings 
-and contain information such as version, crc and name hashes.
-
-![JS5 cache stored on disk](docs/images/FileOverview.svg)
-
-All other .idx file contain indices that point to archive data. An 
-archive contains game assets of a certain type. An archive can for 
-example contain all the model data for a game or all the client scripts 
-for a game. The data for both the settings and archives is stored in the 
-data file of the cache.
-
-### Cache Structure
-The actual structure of the cache is different than it appears on disk.
-Each archive contains a set of groups and each group contains a set of
-files. A file in a group represents a single game asset. Each index in
-an index file points to a group. And index can thus point to multiple
-game assets files. Groups are the smallest data volume that can be
-read/written from/to the cache. When you want to change a file in a 
-group you have to read/write the whole group. Archives, groups and files
-all have unique ids in their own domains. Each file has thus an unique 
-id in their group and each group has an unique id in their archive. Both 
-groups and files can have names and can also be retrieved by their names. 
-The names however are stored as a hash inside the cache and can thus not 
-be retrieved from the cache.
+## Cache Structure
+The internal cache structure is different than how it is organized on disk.
+A cache contains a set of archives which represent a single type of game asset.
+Each archive contains a set of groups. A group, as the name suggest is a group of 1 or 
+more files. Game assets are read and written from and to the cache on a group basis. 
+It is thus not possible to read a single file from the cache. When you want to
+access a file you have to read the whole group. Each archive, group and file has
+an unique id in their own scope. So every group belonging to a single archive has
+an unique id and every file in a single group has an unique id. Groups can also have names
+which are stored as hashes in the settings.
 
 ![JS5 cache content](docs/images/HighLevelOverview.svg)
 
-An uncompressed, unencrypted and undecoded volume from the cache is called 
-a container. The index in an index file points to a container which can 
-later be decoded into either a group or archive settings data. A 
-container can be compressed and encrypted. The encryption uses XTEA
-encryption and the compression algorithm can be either BZIP2, GZIP
-or LZMA. Both compression and encryption is optional. 
+### Disk Structure
+A JS5 cache is made out of multiple files on disk. Each cache at least
+1 data file (.dat2 extension), 1 master index (.idx255 extension) and multiple
+archive index files (.idx0 until .idx254 extension). The index files contain
+indexes which serve as pointers to data in the data file. The master index file
+is a special type of index file which contains pointers to various archive 
+meta-data, also stored in the data file. Every index in the master index file points
+to meta-data from a different archive.
+
+![JS5 cache stored on disk](docs/images/FileOverview.svg)
+
+Every index file other than the master index file represents a single archive.
+Every index points to a different set of data. For the archive files this is the
+group data and for the master index files this is the archive settings data.
+The data read from the .dat2 file can be decompressed an decrypted. The resulting
+data is what we call a container. The container can than be decoded into a group or
+archive settings. Containers can optionally have versions stored with them. This is
+used to check whether a container needs to be updated when updating the cache to a 
+newer version.
 
 ## Usage
-The Guthix JS5 library allows for reading and writing groups from and to
-the cache. This can be done by creating a `Js5Cache` object. The 
-`Js5Cache` requires a `Js5ContainerReader` and an optional `Js5ContainerWriter`. 
-The Guthix library provides 2 different readers/writers. First is 
-`Js5DiskStore` which is both capable of being a reader and a writer.
-The `Js5DiskStore` is used for reading/writing from and to a cache on 
-disk. The other option is to use the `Js5SocketReader` which can only 
-read. The `Js5SocketReader` can be used for reading container data from
-a JS5 server. Writing to a JS5 server is not possible.
+The Guthix JS5 library provides an API for reading and writing to the cache in an
+efficient way. The `Js5DiskStore` provides an API for reading and writing the raw data 
+from the cache from disk without doing any decoding or encoding. The `Js5SocketReader`
+provides the same raw data access but it can be used to read data from a JS5 server.
+The raw data is not really useful for most use cases. The `Js5Cache` provides a 
+higher level cache overview that handles all the encoding, encryption, compression.
+
+### Examples
+Below are some small examples for common cache operations. More advanced cache operations 
+using the `Js5lDiskStore` and the `Js5SocketReader` can be found in the toolbox.
+
+Opening a cache:
+```kotlin
+val ds = Js5DiskStore.open(Path.of("ROOT_CACHE_PATH"))
+val cache = Js5Cache(ds)
+```
+Reading a group by id
+```kotlin
+val archive0 = cache.readArchive(0)
+val group0 = archive0.readGroup(0)
+```
+Reading a group by name
+```kotlin
+val group0 = archive0.readGroup("GROUP_NAME")
+```
+Writing a group
+```kotlin
+archive0.writeGroup(group0, appendVersion = true)
+```
+Removing a group
+```kotlin
+archive0.removeGroup(group0.id)
+```
 
 ## Group and file names
 The names of groups and files are stored as hashes. This makes it so 
