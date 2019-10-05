@@ -11,10 +11,12 @@ jobs:
         java: [ '11', '12' ]
     steps:
     - uses: actions/checkout@master
-    - name:  Set up the JDK
+    - name:  Set up the JDK ${{ matrix.java }}
       uses: actions/setup-java@master
       with:
         java-version: ${{ matrix.java }}
         architecture: x64
     - name: Building
-      run: gradlew build --stacktrace --console=plain
+      run: gradlew classes
+    - name: Testing
+      run: gradlew test
