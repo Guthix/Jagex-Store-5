@@ -28,22 +28,20 @@ import java.nio.file.StandardOpenOption
 import kotlin.math.ceil
 
 /**
- * The data channel containing all cache data stored as [Sector]s.
+ * The [Dat2File] containing all cache data stored as [Sector]s. Dat2 files have the .dat2 file extension and are
+ * encoded as an array of [Sector]s. Data is stored as a set of [Sector]s inside the [Dat2File]. The [Sector]s belonging
+ * to can be stored non-sequentially.
  *
  * @property fileChannel The [FileChannel] to read the data from.
  */
 internal class Dat2File private constructor(private val fileChannel: FileChannel) : AutoCloseable {
     /**
-     * The size of the file.
+     * The size of the [Dat2File].
      */
     val size get() = fileChannel.size()
 
     /**
-     * Reads the container data.
-     *
-     * @param indexFileId The index file id the [index] came from.
-     * @param containerId The container file to read.
-     * @param index The [Index] to read.
+     * Reads data from the [Dat2File].
      */
     fun read(indexFileId: Int, containerId: Int, index: Index): ByteBuf {
         val totalData = Unpooled.compositeBuffer(
@@ -70,25 +68,18 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
     }
 
     /**
-     * Write the container data.
-     *
-     * @param indexFileId The index id to write.
-     * @param containerId The container id to write.
-     * @param index The [Index] to write.
-     * @param totalData The data to write.
+     * Write data to the [Dat2File].
      */
-    fun write(indexFileId: Int, containerId: Int, index: Index, totalData: ByteBuf) {
+    fun write(indexFileId: Int, containerId: Int, index: Index, data: ByteBuf) {
         val sectorDataSize = if(Sector.isExtended(containerId))  Sector.EXTENDED_DATA_SIZE else Sector.DATA_SIZE
         var sectorsWritten = 0
         var dataToWrite = index.dataSize
         var curSegByteStart = index.sectorNumber.toLong() * Sector.SIZE.toLong()
         do {
-            val overwrite = containsSector(curSegByteStart)
-            val sectorData = if(dataToWrite < sectorDataSize) {
-                totalData.slice(sectorsWritten * sectorDataSize, dataToWrite)
-            } else {
-                totalData.slice(sectorsWritten * sectorDataSize, sectorDataSize)
-            }
+            val overwrite = containsData(curSegByteStart)
+            val sectorData = data.slice(
+                sectorsWritten * sectorDataSize, if(dataToWrite < sectorDataSize) dataToWrite else sectorDataSize
+            )
             val sector = if(overwrite) {
                 readSector(containerId, curSegByteStart).validate(indexFileId, containerId, sectorsWritten)
                     .copy(data = sectorData)
@@ -104,11 +95,11 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
     }
 
     /**
-     * Checks if data exists at [ptr].
+     * Checks if data exists at [pos].
      *
-     * @param ptr The position in the [fileChannel] the check.
+     * @param pos The position in the [Dat2File] to check.
      */
-    private fun containsSector(ptr: Long) = ptr < fileChannel.size()
+    private fun containsData(pos: Long) = pos < fileChannel.size()
 
     /**
      * Reads a [Sector] from the [fileChannel].
@@ -124,7 +115,6 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
     /**
      * Writes a [Sector] to the [fileChannel].
      *
-     * @param sector The [Sector] to write.
      * @param byteStart The position to start writing.
      */
     private fun writeSector(sector: Sector, byteStart: Long) {
@@ -193,8 +183,6 @@ internal data class Sector(
 
     /**
      * Encodes the [Sector].
-     *
-     * @param buf The buf to encode the [Sector] to.
      */
     fun encode(buf: ByteBuf = Unpooled.buffer(SIZE)): ByteBuf {
         if (isExtended) {
@@ -209,6 +197,9 @@ internal data class Sector(
         return buf
     }
 
+    /**
+     * Encodes the [Sector] without the data.
+     */
     fun encodeHeader(): ByteBuf = if(isExtended) {
         Unpooled.buffer(EXTENDED_HEADER_SIZE).writeInt(containerId)
     } else {
@@ -251,16 +242,11 @@ internal data class Sector(
 
         /**
          * Whether a [Sector] should be an extended [Sector].
-         *
-         * @param containerId The container id to check.
          */
         fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
 
         /**
          * Decodes a [Sector].
-         *
-         * @param containerId The container id belonging to the [Sector] to decode.
-         * @param data The buffer to decode.
          */
         fun decode(containerId: Int, data: ByteBuf): Sector = if(isExtended(containerId)) {
             decodeExtended(data)
@@ -270,8 +256,6 @@ internal data class Sector(
 
         /**
          * Decodes a normal [Sector].
-         *
-         * @param buf The buffer to decode.
          */
         private fun decode(buf: ByteBuf): Sector {
             val containerId = buf.readUnsignedShort()
@@ -284,8 +268,6 @@ internal data class Sector(
 
         /**
          * Decodes an extended [Sector].
-         *
-         * @param buf The buf to decode.
          */
         private fun decodeExtended(buf: ByteBuf): Sector {
             val containerId = buf.readInt()

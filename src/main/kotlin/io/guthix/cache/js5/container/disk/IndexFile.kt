@@ -23,26 +23,22 @@ import java.io.FileNotFoundException
 import java.nio.channels.FileChannel
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import io.guthix.cache.js5.container.Js5Container
 
 /**
- * An index file for writing and reading [Index]es.
+ * An [IdxFile] containing [Index]es of data in a [Dat2File]. The [IdxFile] contains a sequence of [Index]es.
+ * The position of an [Index] in the [IdxFile] determines the container id of the data the index points to.
  *
- * An index is a pointer to a file in a [Dat2File]. They are sequentially stored in index files as fixed sized volumes
- * indexed by the [Js5Container] id.
- *
- * @property fileChannel The [FileChannel] to read the indices from.
+ * @property id The id belonging to this [IdxFile].
+ * @property fileChannel The [FileChannel] to read the [Index]es from.
  */
 class IdxFile private constructor(val id: Int, private val fileChannel: FileChannel) : AutoCloseable {
     /**
-     * The size of the file.
+     * The size of the [IdxFile].
      */
-    val size get() = fileChannel.size()
+    internal val size get() = fileChannel.size()
 
     /**
-     * Reads an index from the [fileChannel].
-     *
-     * @param containerId The container to read.
+     * Reads an [Index] from the [fileChannel].
      */
     internal fun read(containerId: Int): Index {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
@@ -55,10 +51,7 @@ class IdxFile private constructor(val id: Int, private val fileChannel: FileChan
     }
 
     /**
-     * Writes an index to the [fileChannel].
-     *
-     * @param containerId The container to write.
-     * @param index The index to write.
+     * Writes an [Index] to the [fileChannel].
      */
     internal fun write(containerId: Int, index: Index) {
         val buf = index.encode()
@@ -66,15 +59,15 @@ class IdxFile private constructor(val id: Int, private val fileChannel: FileChan
     }
 
     /**
-     * Removes an index from the [fileChannel].
+     * Removes an [Index] from the [fileChannel].
      */
     internal fun remove(containerId: Int) {
         val ptr = containerId.toLong() * Index.SIZE.toLong()
-        Index.EMPTY_BUF.getBytes(0, fileChannel, ptr, 6)
+        Index.EMPTY_BUF.getBytes(0, fileChannel, ptr, Index.SIZE)
     }
 
     /**
-     * Checks whether an index exists in this file.
+     * Checks whether an [Index] exists in this file.
      *
      * @param containerId The container to check.
      */
@@ -86,8 +79,14 @@ class IdxFile private constructor(val id: Int, private val fileChannel: FileChan
     override fun close() = fileChannel.close()
 
     companion object {
-        const val EXTENSION = "idx"
+        /**
+         * The prefix of the [IdxFile] file extension.
+         */
+        internal const val EXTENSION = "idx"
 
+        /**
+         * Opens an [IdxFile].
+         */
         fun open(id: Int, path: Path): IdxFile {
             return IdxFile(id, FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE))
         }
@@ -97,12 +96,12 @@ class IdxFile private constructor(val id: Int, private val fileChannel: FileChan
 /**
  * An [Index] stored in an [IdxFile].
  *
- * @property dataSize The size of the data of which the index points to.
+ * @property dataSize The size of the data in [Byte]s of which the index points to.
  * @property sectorNumber The [Sector] where the data starts in the [Dat2File].
  */
 internal data class Index(val dataSize: Int, val sectorNumber: Int) {
     /**
-     * Encodes the index.
+     * Encodes the [Index].
      */
     fun encode(): ByteBuf {
         val buf = Unpooled.buffer(SIZE)
@@ -113,16 +112,17 @@ internal data class Index(val dataSize: Int, val sectorNumber: Int) {
 
     companion object {
         /**
-         * Byte size of the [Index].
+         * [Byte] size of the [Index].
          */
         const val SIZE = 6
 
+        /**
+         * An empty encoded [Index].
+         */
         val EMPTY_BUF = Index(dataSize = 0, sectorNumber = 0).encode()
 
         /**
          * Decodes an [Index].
-         *
-         * @param data The data to decode.
          */
         fun decode(data: ByteBuf): Index {
             val dataSize = data.readUnsignedMedium()

@@ -18,7 +18,6 @@
 package io.guthix.cache.js5.util
 
 import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -41,15 +40,21 @@ fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int 
  */
 internal const val WHIRLPOOL_HASH_SIZE = 64
 
-private val messageDigest: MessageDigest by lazy {
+/**
+ * The whirlpool digest.
+ */
+private val wpDigest: MessageDigest by lazy {
     Security.addProvider(BouncyCastleProvider())
     MessageDigest.getInstance("Whirlpool")
 }
 
+/**
+ * Calculates the whirlpool hash for a [ByteBuf].
+ */
 fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
     Security.addProvider(BouncyCastleProvider())
-    messageDigest.update(this.array(), index, length)
-    return messageDigest.digest()
+    wpDigest.update(this.array(), index, length)
+    return wpDigest.digest()
 }
 
 /**
@@ -57,8 +62,3 @@ fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableByte
  */
 internal fun rsaCrypt(data: ByteArray, mod: BigInteger, key: BigInteger) =
     BigInteger(data).modPow(key, mod).toByteArray()
-
-fun ByteBuf.splitOf(index: Int, length: Int): ByteBuf {
-    val start = index * length
-    return slice(index * length, if(start + length > writerIndex()) writerIndex() - start else length)
-}

@@ -26,7 +26,7 @@ import java.nio.ByteBuffer
 const val XTEA_KEY_SIZE = 4
 
 /**
- * An XTEA key filled with 0s.
+ * A 0 XTEA key.
  */
 val XTEA_ZERO_KEY = IntArray(XTEA_KEY_SIZE)
 
@@ -41,7 +41,7 @@ private const val GOLDEN_RATIO = -0x61c88647
 private const val ROUNDS = 32
 
 /**
- * XTEA encrypts a [ByteBuffer].
+ * Encrypts a [ByteBuf] using XTEA encryption.
  */
 @Suppress("MagicNumber")
 internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
@@ -64,7 +64,7 @@ internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capac
 
 
 /**
- * XTEA decrypts a [ByteBuffer].
+ * Decrypts a [ByteBuf] using XTEA encryption.
  */
 @Suppress("INTEGER_OVERFLOW")
 internal fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {

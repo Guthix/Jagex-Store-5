@@ -18,20 +18,16 @@
 package io.guthix.cache.js5.container.disk
 
 import io.guthix.cache.js5.iterationFill
-import io.kotlintest.matchers.startWith
-import io.kotlintest.should
 import io.kotlintest.shouldBe
-import io.kotlintest.shouldThrow
 import io.kotlintest.specs.StringSpec
 import io.netty.buffer.Unpooled
-import java.lang.IllegalArgumentException
 import java.nio.file.Files
 
 class Js5DiskStoreTest : StringSpec() {
     init {
         val fsFolder = Files.createTempDirectory("js5")
         val diskStore = autoClose(Js5DiskStore.open(fsFolder))
-        val index0 = diskStore.createIdxFile()
+        val index0 = diskStore.createArchiveIdxFile()
         val containerId1 = 0
         val data1 = Unpooled.buffer(34720).iterationFill()
         "After writing and reading the data should be the same as the original" {

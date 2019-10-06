@@ -41,36 +41,30 @@ const val JS5_CONNECTION_TYPE = 15
 /**
  * A Js5 request to the server.
  */
-internal enum class Js5Request(val opcode: Int) {
+private enum class Js5Request(val opcode: Int) {
     NORMAL_FILE_REQUEST(0),
     PRIORITY_FILE_REQUEST(1),
-    CLIENT_LOGGED_IN(2),
-    CLIENT_LOGGED_OUT(3),
     ENCRYPTION_KEY_UPDATE(4);
 }
 
 /**
- * A file request response from the server.
+ * A file response from the server.
  */
 data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteBuf) : DefaultByteBufHolder(data)
 
 /**
  * A socket reader for reading [Js5Container]s.
  *
- * Theere are 2 types of file requests which can be send using the socket reader. Prioritised requests and normal
- * requests. Prioritised file requests are used by the client for requesting files that are required to render the game.
- * The server prioritizes priority file requests over normal file requests when responding to requests.
- *
- * @param sockAddr Ine address to connect to.
- * @param revision The current game version.
- * @property xorKey XOR encryption key.
+ * @property socketChannel The [SocketChannel] to read and write the data.
  * @property priorityMode Whether to make priority file requests.
- * @property archiveCount The amount of archives on the server.
  */
-class Js5SocketReader(
+class Js5SocketReader private constructor(
     private val socketChannel: SocketChannel,
     var priorityMode: Boolean = false
-)  {
+)  : AutoCloseable {
+    /**
+     * The encryption key.
+     */
     private var xorKey: Byte = 0
 
     /**
@@ -134,7 +128,7 @@ class Js5SocketReader(
     }
 
     /**
-     * Updates the XOR encryption key.
+     * Updates the XOR encryption key and sends out a request to change the encryption key to the server.
      *
      * @param key The key to update.
      */
@@ -176,9 +170,7 @@ class Js5SocketReader(
         buf.readBytes(socketChannel, buf.readableBytes())
     }
 
-    fun close() {
-        socketChannel.close()
-    }
+    override fun close() = socketChannel.close()
 
     companion object {
         /**
@@ -196,6 +188,14 @@ class Js5SocketReader(
          */
         private const val BYTES_AFTER_BLOCK = Sector.DATA_SIZE - 1
 
+        /**
+         * Opens a [Js5SocketReader] and initializes the JS5 connection.
+         *
+         * @param sockAddr The address to connect to.
+         * @param revision The current game revision to connect to.
+         * @param xorKey The encryption key to use.
+         * @param priorityMode Whether to use [Js5SocketReader.priorityMode]
+         */
         fun open(
             sockAddr: InetSocketAddress,
             revision: Int,

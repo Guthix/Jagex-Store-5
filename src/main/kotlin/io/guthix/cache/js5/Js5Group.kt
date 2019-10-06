@@ -21,27 +21,51 @@ import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Uncompressed
 import io.guthix.cache.js5.container.XTEA_ZERO_KEY
-import io.guthix.cache.js5.util.splitOf
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.CompositeByteBuf
 import io.netty.buffer.Unpooled
 import kotlin.math.ceil
+import java.util.zip.CRC32
 
+/**
+ * A set of files in the cache. A [Js5Group] is the smallest amount of data that can be read from the cache and
+ * represents a set of [Js5File]s. Multiple [Js5Group]s can belong to a [Js5Archive]. To read a group from the cache
+ * a [Js5Archive] must be created first. The [Js5Group] class is used as an API data class to represent the
+ * [Js5GroupData] and [Js5GroupSettings] in a simple way.
+ *
+ * @param id The unique identifier of the group.
+ * @param version The version of the group.
+ * @param chunkCount The chunk count used to encode the group (only used when the group contains multiple files).
+ * @param nameHash (Optional) The [String.hashCode] of the name of the group.
+ * @param unknownHash (Optional) An unknown value in the group.
+ * @param files The [Js5File]s belonging to this [Js5Group] indexed by their [Js5File.id].
+ * @param xteaKey The XTEA key used to encrypt the [Js5Group].
+ * @param compression The compression used to compress the [Js5Group].
+ * @param crc The [CRC32] of the encoded group data.
+ * @param whirlpoolHash The whirlpool hash of the encoded group data.
+ * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
+ */
 data class Js5Group(
     var id: Int,
     var version: Int,
-    internal var crc: Int = 0,
     var chunkCount: Int,
     var nameHash: Int? = null,
     var unknownHash: Int? = null,
-    internal var whirlpoolHash: ByteArray? = null,
-    internal var sizes: Js5Container.Size? = null,
     val files: MutableMap<Int, Js5File> = mutableMapOf(),
     var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed()
+    var compression: Js5Compression = Uncompressed(),
+    internal var crc: Int = 0,
+    internal var whirlpoolHash: ByteArray? = null,
+    internal var sizes: Js5Container.Size? = null
 ) {
+    /**
+     * The [Js5GroupData] of this [Js5Group].
+     */
     val groupData get() = Js5GroupData(files.values.map { it.data }.toTypedArray(), chunkCount, xteaKey, compression)
 
+    /**
+     * The [Js5GroupSettings] of this [Js5Group]
+     */
     val groupSettings get() = Js5GroupSettings(id, version, crc, files.mapValues { (fileId, file) ->
         Js5FileSettings(fileId, file.nameHash) }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
     )
@@ -64,7 +88,6 @@ data class Js5Group(
         if (files != other.files) return false
         if (!xteaKey.contentEquals(other.xteaKey)) return false
         if (compression != other.compression) return false
-
         return true
     }
 
@@ -84,6 +107,9 @@ data class Js5Group(
     }
 
     companion object {
+        /**
+         * Creates a [Js5Group] from the [Js5GroupData] and the [Js5GroupSettings].
+         */
         fun create(data: Js5GroupData, settings: Js5GroupSettings): Js5Group {
             var i = 0
             val files = mutableMapOf<Int, Js5File>()
@@ -91,25 +117,39 @@ data class Js5Group(
                 files[fileId] = Js5File(fileId, fileSettings.nameHash, data.fileData[i])
                 i++
             }
-            return Js5Group(settings.id, settings.version, settings.crc, data.chunkCount, settings.nameHash,
-                settings.unknownHash, settings.whirlpoolHash, settings.sizes, files, data.xteaKey, data.compression
+            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.unknownHash,
+                files, data.xteaKey, data.compression, settings.crc, settings.whirlpoolHash, settings.sizes
             )
         }
     }
 }
 
+/**
+ * The data of a [Js5Group] to store in the cache.
+ *
+ * @param fileData The domain data for the [Js5File]s.
+ * @param chunkCount The chunk count used to encode the group (only used when the group contains multiple files).
+ * @param xteaKey The XTEA key used to encrypt the [Js5Container].
+ * @param compression The compression used to compress the [Js5GroupData].
+ */
 data class Js5GroupData(
     val fileData: Array<ByteBuf>,
     var chunkCount: Int = 1,
     var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed()
 ) {
+    /**
+     * Encodes the [Js5GroupData] into a [Js5Container].
+     */
     fun encode(version: Int? = null) = if(fileData.size == 1) {
         Js5Container(fileData.first(), xteaKey, compression, version)
     } else {
         Js5Container(encodeMultipleFiles(fileData, chunkCount), xteaKey, compression, version)
     }
 
+    /**
+     * Encodes the [Js5GroupData] when the group contains multiple files.
+     */
     private fun encodeMultipleFiles(data: Array<ByteBuf>, chunkCount: Int): ByteBuf {
         val chunks = splitIntoChunks(data, chunkCount)
         val buf = Unpooled.compositeBuffer(
@@ -134,6 +174,9 @@ data class Js5GroupData(
         return buf
     }
 
+    /**
+     * Divides the file data into multiple chunks and split it evenly.
+     */
     private fun splitIntoChunks(fileData: Array<ByteBuf>, chunkCount: Int): Array<Array<ByteBuf>> {
         val chunkSize = fileData.map { ceil(it.writerIndex().toDouble() / chunkCount).toInt() }.toTypedArray()
         return Array(chunkCount) { group ->
@@ -143,15 +186,20 @@ data class Js5GroupData(
         }
     }
 
+    /**
+     * Takes a split of a [ByteBuf] at index [index] with splits of size [length]
+     */
+    private fun ByteBuf.splitOf(index: Int, length: Int): ByteBuf {
+        val start = index * length
+        return slice(index * length, if(start + length > writerIndex()) writerIndex() - start else length)
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as Js5GroupData
-
         if (!fileData.contentEquals(other.fileData)) return false
         if (chunkCount != other.chunkCount) return false
-
         return true
     }
 
@@ -163,9 +211,7 @@ data class Js5GroupData(
 
     companion object {
         /**
-         * Decodes a [Js5Container] into a [Js5GroupData]. If the [Js5GroupData] contains a single file the whole [Js5Container]
-         * data is used as [Js5File] data. If the [Js5GroupData] contains more than 1 file the files could be split up in
-         * multiple chunks of data
+         * Decodes a [Js5Container] into a [Js5GroupData].
          *
          * @param container The container to decode from.
          * @param fileCount The amount of files to decode.

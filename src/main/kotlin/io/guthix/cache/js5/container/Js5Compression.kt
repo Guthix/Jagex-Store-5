@@ -33,12 +33,29 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
+/**
+ * Data compression used in the [Js5Container] encoding.
+ *
+ * @property opcode The opcode to identify the compression type.
+ * @property headerSize The size of the extra data required to use this compression type.
+ */
 sealed class Js5Compression(val opcode: Int, val headerSize: Int) {
+    /**
+     * Compresses the data.
+     */
     abstract fun compress(input: ByteBuf): ByteBuf
 
+    /**
+     * Decompresses the data.
+     *
+     * @param length The expected uncompressed length.
+     */
     abstract fun decompress(input: ByteBuf, length: Int): ByteBuf
 
     companion object {
+        /**
+         * Creates a new [Js5Compression] instance based on the [Js5Compression.opcode].
+         */
         fun getByOpcode(opcode: Int): Js5Compression = when(opcode) {
             0 -> Uncompressed()
             1 -> BZIP2()
@@ -52,7 +69,7 @@ sealed class Js5Compression(val opcode: Int, val headerSize: Int) {
 
 class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
     override fun compress(input: ByteBuf) = input
-    override fun decompress(input: ByteBuf, length: Int) = input.slice(input.readerIndex(), length)
+    override fun decompress(input: ByteBuf, length: Int): ByteBuf = input.slice(input.readerIndex(), length)
 
     override fun equals(other: Any?): Boolean {
         if(other !is Uncompressed) return false
@@ -94,7 +111,7 @@ class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
     }
 
     companion object {
-        private val BLOCK_SIZE = 1
+        private const val BLOCK_SIZE = 1
 
         private val HEADER = "BZh$BLOCK_SIZE".toByteArray(StandardCharsets.US_ASCII)
     }

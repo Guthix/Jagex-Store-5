@@ -82,7 +82,7 @@ fun main(args: Array<String>) {
     }
     val archiveSettings = checkSettingsData(checksum, settingsData)
     settingsData.mapIndexed { archiveId, data ->
-        ds.write(ds.masterIndex, archiveId, data)
+        ds.write(ds.masterIdxFile, archiveId, data)
     }
 
     val readThread = Thread { // start thread that sends requests
@@ -97,7 +97,7 @@ fun main(args: Array<String>) {
 
     val writeThread = Thread { // start thread that reads requests
         archiveSettings.forEachIndexed { archiveId, archiveSettings ->
-            val idxFile = if(!ds.idxFileExists(archiveId)) ds.createIdxFile() else ds.openIdxFile(archiveId)
+            val idxFile = if(archiveId !in 0 until ds.archiveCount) ds.createArchiveIdxFile() else ds.openArchiveIdxFile(archiveId)
             archiveSettings.groupSettings.forEach { (_, groupSettings) ->
                 val response = sr.readFileResponse()
                 if(response.data.crc() != groupSettings.crc) throw IOException(
@@ -118,6 +118,8 @@ fun main(args: Array<String>) {
     writeThread.start()
     readThread.join()
     writeThread.join()
+    ds.close()
+    sr.close()
 }
 
 private fun checkSettingsData(

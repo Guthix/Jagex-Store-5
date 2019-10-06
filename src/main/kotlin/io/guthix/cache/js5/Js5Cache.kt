@@ -19,6 +19,7 @@ package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.*
 import io.guthix.cache.js5.container.disk.Js5DiskStore
+import io.guthix.cache.js5.container.disk.IdxFile
 import io.guthix.cache.js5.util.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -26,30 +27,45 @@ import java.io.IOException
 import java.math.BigInteger
 
 /**
- * A readable and writeable [Js5Cache].
+ * A modifiable Jagex Store 5 cache. The [Js5Cache] serves as a wrapper around the [Js5DiskStore] to provide domain
+ * encoded data access to game assets.
  *
- * Every [Js5Cache] needs to have a [Js5ContainerReader] and a [Js5ContainerWriter] or a [Js5ContainerReaderWriter].
- * The [Js5ContainerReader] is where all read operations are done and the [Js5ContainerWriter] is where all write
- * operations are done. Every cache has archives paired with settings. When creating a [Js5Cache] object all
- * [Js5ArchiveSettings] are loading from cache into [archiveSettings].
- *
- * @property rw The container read writer.
- * @property archiveSettings The [Js5ArchiveSettings].
+ * @property store The [Js5DiskStore] to modify.
  */
 class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
+    /**
+     * The amount of achives in this [Js5Cache].
+     */
     val archiveCount get() = store.archiveCount
 
+    /**
+     * Reads an archive from the [Js5Cache].
+     *
+     * @param archiveId The archive id to read.
+     * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings] of this [Js5Archive].
+     */
     fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
-        val data = store.read(store.masterIndex, archiveId)
+        val data = store.read(store.masterIdxFile, archiveId)
         if(data == Unpooled.EMPTY_BUFFER) throw IOException(
             "Settings for archive $archiveId do not exist."
         )
         val container = Js5Container.decode(data, xteaKey)
         val archiveSettings = Js5ArchiveSettings.decode(container)
-        val archiveIndexFile = store.openIdxFile(archiveId)
+        val archiveIndexFile = store.openArchiveIdxFile(archiveId)
         return Js5Archive.create(store, archiveIndexFile, archiveSettings, container.xteaKey, container.compression)
     }
 
+    /**
+     * Adds an archive to the [Js5Cache]. The index of this archive will be the next unused [IdxFile].
+     *
+     * @param version The version of this [Js5Archive].
+     * @param containsNameHash Whether this archive contains names.
+     * @param containsWpHash Whether this archive contains whirlpool hashes.
+     * @param containsSizes Whether this archive contains the [Js5Container.Size] in the [Js5ArchiveSettings].
+     * @param containsUnknownHash Whether this archive contains an yet unknown hash.
+     * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings].
+     * @param compression The [Js5Compression] used to store the [Js5ArchiveSettings].
+     */
     fun addArchive(
         version: Int? = null,
         containsNameHash: Boolean = false,
@@ -58,15 +74,20 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
         containsUnknownHash: Boolean = false,
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
-    ) =  Js5Archive(store, store.createIdxFile(), version, containsNameHash, containsWpHash,
-            containsSizes, containsUnknownHash, xteaKey, compression
+    ) =  Js5Archive(version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, xteaKey, compression,
+        mutableMapOf(), store, store.createArchiveIdxFile()
     )
 
-    fun generateChecksum(xteaKeys: Map<Int, IntArray>): Js5CacheValidator  {
+    /**
+     * Generates the [Js5CacheValidator] for this [Js5Cache].
+     *
+     * @param xteaKeys The XTEA keys to decrypt the [Js5ArchiveSettings].
+     */
+    fun generateValidator(xteaKeys: Map<Int, IntArray>): Js5CacheValidator  {
         val archiveCount = store.archiveCount
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for(archiveIndex in 0 until archiveCount) {
-            val data = store.read(store.masterIndex, archiveIndex)
+            val data = store.read(store.masterIdxFile, archiveIndex)
             if(data == Unpooled.EMPTY_BUFFER) continue
             val settings = Js5ArchiveSettings.decode(
                 Js5Container.decode(data, xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
@@ -86,10 +107,10 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
 }
 
 /**
- * Contains meta-daa for calculating the checksum of a [Js5Cache]. Cache checksums can optionally contain a whirlpool
- * hash which can optionally be encrypted using RSA.
+ * Contains meta-daa for validating data from a [Js5Cache]. There are multiple versions of the validator encoding. The
+ * validator can also be encrypted with an RSA encryption.
  *
- * @property archiveValidators The checksum data for each archive.
+ * @property archiveValidators The validators for each [Js5Archive].
  */
 data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) {
     val containsWhirlpool get() = archiveValidators.all { it.whirlpoolDigest != null }
@@ -100,17 +121,21 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
     /**
      * Encodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
      *
-     * @param whirlpool Whether to add the whirlpool hash to the checksum.
      * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
      * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
+     * @param newFormat Whether to use the new format, only used when the validator also contains whirlpool hashes.
      */
     fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null, newFormat: Boolean = false): ByteBuf {
-        archiveValidators.all { it.whirlpoolDigest != null }
-        val buf = Unpooled.buffer(if(containsWhirlpool)
-            WP_ENCODED_SIZE + Js5ArchiveValidator.WP_ENCODED_SIZE * archiveValidators.size
-        else
-            Js5ArchiveValidator.ENCODED_SIZE * archiveValidators.size
-        )
+        val buf = when {
+            containsWhirlpool && newFormat -> Unpooled.buffer(
+                WP_ENCODED_SIZE + Js5ArchiveValidator.ENCODED_SIZE_WP_NEW * archiveValidators.size
+            )
+            containsWhirlpool && !newFormat -> Unpooled.buffer(
+                WP_ENCODED_SIZE + Js5ArchiveValidator.WP_ENCODED_SIZE * archiveValidators.size
+
+            )
+            else -> Unpooled.buffer(Js5ArchiveValidator.ENCODED_SIZE * archiveValidators.size)
+        }
         if(containsWhirlpool) buf.writeByte(archiveValidators.size)
         for(archiveChecksum in archiveValidators) {
             buf.writeInt(archiveChecksum.crc)
@@ -144,6 +169,9 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
     }
 
     companion object {
+        /**
+         * Byte size required when the validator contains whirlpool hashes.
+         */
         const val WP_ENCODED_SIZE = Byte.SIZE_BYTES + WHIRLPOOL_HASH_SIZE
 
         /**
@@ -153,6 +181,7 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
          * @param whirlpool Whether to decode the whirlpool hash.
          * @param mod Modulus for decrypting the whirlpool hash using RSA.
          * @param privateKey The public key to (optionally) encrypt the whirlpool hash.
+         * @param newFormat Whether to decode using the new format.
          */
         fun decode(
             buf: ByteBuf,

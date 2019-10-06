@@ -23,9 +23,9 @@ import io.netty.buffer.Unpooled
 import java.io.IOException
 
 /**
- * An (Optional) encrypted and (Optional) compressed data volume that can be read from a cache.
- *
- * A [Js5Container] is the smallest piece of data that can be read and written from and to the cache.
+ * An (Optional) encrypted and (Optional) compressed data volume that can be read from a cache. A [Js5Container] handles
+ * the encryption and compression of cache files. A [Js5Container] can optionally contain a version to check if the
+ * container is up to date.
  *
  * @property data The raw data of this [Js5Container].
  * @property xteaKey The XTEA key used to encrypt or decrypt this [Js5Container].
@@ -103,9 +103,6 @@ data class Js5Container(
 
         /**
          * Decodes the [Js5Container].
-         *
-         * @param buf The buf to decode.
-         * @param xteaKey (Optional) The XTEA encryption key to decrypt the [buf].
          */
         fun decode(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Container {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
@@ -128,6 +125,9 @@ data class Js5Container(
             return Js5Container(decompBuf, xteaKey, compression, version)
         }
 
+        /**
+         * Decodes the [Js5Container] and returns the [Size] of the container.
+         */
         fun decodeSize(data: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Size {
             val compression = Js5Compression.getByOpcode(data.readUnsignedByte().toInt())
             val compressedSize = data.readInt()

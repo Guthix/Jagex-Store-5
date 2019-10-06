@@ -17,11 +17,12 @@
  */
 package io.guthix.cache.js5.container.disk
 
-import mu.KotlinLogging
-import java.io.IOException
 import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.Js5Archive
+import io.guthix.cache.js5.Js5ArchiveSettings
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import mu.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.math.ceil
@@ -29,38 +30,51 @@ import kotlin.math.ceil
 private val logger = KotlinLogging.logger {}
 
 /**
- * A JS5 filesystem on disk for reading [Js5Container]s.
+ * A [Js5DiskStore] used to read and write [Js5Container] data. A [Js5DiskStore] contains at least 1 [Dat2File] and 1
+ * [IdxFile] called the [masterIdxFile]. The [Js5DiskStore] also contains multiple [IdxFile]s each containing [Index]es
+ * to a different [Js5Archive]. All the data of the [Js5DiskStore] is stored in the [Dat2File] the [IdxFile]s contain
+ * [Index]es which act like pointers to data in the [Dat2File]. The [masterIdxFile] contains [Index]es pointing to
+ * meta-data for all the [Js5Archive]s stored as [Js5ArchiveSettings]. When creating a [Js5DiskStore] the [dat2File] and
+ * the [masterIdxFile] are always opened because they are required for every cache operation.
  *
- * Each filesystem contains of 1 data file 0 or more archive index files and a master index. The actually data is stored
- * in the data file. The index files serve as pointers to data in the data file. The master index is a special index
- * pointing to meta data of archives. The archive indices should be sequentially numbered starting from 0.
- *
- * @property dataFile The data channel of the file system.
+ * @property root The root folder containing the cache data.
+ * @property dat2File The [Dat2File] containing the cache data.
+ * @property masterIdxFile The master index file containing [Index]es to meta-data.
+ * @property archiveCount The amount of archives in the [Js5DiskStore].
  */
 class Js5DiskStore private constructor(
     private val root: Path,
-    private val dataFile: Dat2File,
-    val masterIndex: IdxFile,
+    private val dat2File: Dat2File,
+    val masterIdxFile: IdxFile,
     var archiveCount: Int
 ) : AutoCloseable {
-    fun openIdxFile(indexFileId: Int) = IdxFile.open(
-        indexFileId, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
-    )
-
-    fun idxFileExists(indexFileId: Int) = Files.exists(
-        root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
-    )
-
-    fun createIdxFile(): IdxFile {
-        val indexFileId = archiveCount
-        val indexFile = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
+    /**
+     * Creates a new archive [IdxFile] in this [Js5DiskStore].
+     */
+    fun createArchiveIdxFile(): IdxFile {
+        val indexFile = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$archiveCount")
         logger.debug { "Created index file ${indexFile.fileName}" }
         Files.createFile(indexFile)
-        archiveCount++
-        return IdxFile.open(indexFileId, indexFile)
+        return IdxFile.open(archiveCount++, indexFile)
     }
 
+    /**
+     * Opens an [IdxFile] in this [Js5DiskStore].
+     */
+    fun openArchiveIdxFile(indexFileId: Int): IdxFile {
+        require(indexFileId in 0 until archiveCount) {
+            "Can not open index file because $FILE_NAME.${IdxFile.EXTENSION}$indexFileId does not exist."
+        }
+        return IdxFile.open(indexFileId, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId"))
+    }
+
+    /**
+     * Reads data from the [Js5DiskStore].
+     */
     fun read(indexFile: IdxFile, containerId: Int): ByteBuf {
+        require(indexFile.id in 0 until archiveCount) {
+            "Can not read data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
+        }
         val index = indexFile.read(containerId)
         if(index.dataSize == 0) {
             logger.warn {
@@ -70,43 +84,64 @@ class Js5DiskStore private constructor(
         } else {
             logger.debug { "Reading index file ${indexFile.id} container $containerId" }
         }
-        return dataFile.read(indexFile.id, containerId, index)
+        return dat2File.read(indexFile.id, containerId, index)
     }
 
+    /**
+     * Writes data to the [Js5DiskStore].
+     */
     fun write(indexFile: IdxFile, containerId: Int, data: ByteBuf) {
+        require(indexFile.id in 0 until archiveCount) {
+            "Can not write data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
+        }
         logger.debug { "Writing index file ${indexFile.id} container $containerId" }
         val overWriteIndex = indexFile.containsIndex(containerId)
         val firstSegNumber = if(overWriteIndex) {
             indexFile.read(containerId).sectorNumber
         } else {
-            ceil(dataFile.size.toDouble() / Sector.SIZE).toInt() // last sector of the data file
+            ceil(dat2File.size.toDouble() / Sector.SIZE).toInt() // last sector of the data file
         }
         val index = Index(data.readableBytes(), firstSegNumber)
         indexFile.write(containerId, index)
-        dataFile.write(indexFile.id, containerId, index, data)
+        dat2File.write(indexFile.id, containerId, index, data)
     }
 
-    fun remove(indexFile: IdxFile, containerId: Int) = indexFile.remove(containerId)
-
-    override fun close() {
-        logger.debug { "Closing JS5 filesystem at $root" }
-        dataFile.close()
-        masterIndex.close()
+    /**
+     * Removes an [Index] from the [Js5DiskStore]. Note that this method does not remove the actual data but only the
+     * reference to the data. It is recommended to defragment the cache after calling this method.
+     */
+    fun remove(indexFile: IdxFile, containerId: Int) {
+        require(indexFile.id in 0 until archiveCount) {
+            "Can not remove data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
+        }
+        logger.debug { "Removing index file ${indexFile.id} container $containerId" }
+        indexFile.remove(containerId)
     }
 
-    companion object {
+        override fun close() {
+            logger.debug { "Closing Js5DiskStore at $root" }
+            dat2File.close()
+            masterIdxFile.close()
+        }
+
+        companion object {
         /**
          * The default cache file name.
          */
         private const val FILE_NAME = "main_file_cache"
 
         /**
-         * The master index.
+         * The master [IdxFile.id].
          */
         const val MASTER_INDEX = 255
 
+        /**
+         * Opens a [Js5DiskStore].
+         *
+         * @param root The folder where the cache is located.
+         */
         fun open(root: Path): Js5DiskStore {
-            if(!Files.isDirectory(root)) throw IOException("$root is not a directory or doesn't exist.")
+            require(Files.isDirectory(root)) { "$root is not a directory or doesn't exist." }
             val dataPath = root.resolve("$FILE_NAME.${Dat2File.EXTENSION}")
             if(Files.exists(dataPath)) {
                 logger.debug { "Found .dat2 file" }

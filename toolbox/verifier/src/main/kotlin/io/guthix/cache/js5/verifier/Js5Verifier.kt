@@ -29,10 +29,10 @@ fun main(args: Array<String>) {
     requireNotNull(inputDir) { "No output directory specified to read the cache from. Pass -i=DIR as an argument." }
     val ds = Js5DiskStore.open(inputDir)
     val settings = Array(ds.archiveCount) { archiveId ->
-        Js5ArchiveSettings.decode(Js5Container.decode(ds.read(ds.masterIndex, archiveId)))
+        Js5ArchiveSettings.decode(Js5Container.decode(ds.read(ds.masterIdxFile, archiveId)))
     }
     settings.forEachIndexed { archiveId, archiveSettings ->
-        val archiveIdxFile = ds.openIdxFile(archiveId)
+        val archiveIdxFile = ds.openArchiveIdxFile(archiveId)
         if(!excludedArchives.contains(archiveId)) {
             archiveSettings.groupSettings.forEach { (groupId, groupSettings) ->
                 val data = ds.read(archiveIdxFile, groupId)
@@ -57,4 +57,5 @@ fun main(args: Array<String>) {
             logger.info("Verified archive $archiveId")
         }
     }
+    ds.close()
 }

@@ -21,18 +21,18 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 
 /**
- * The smallest data unit in a [Js5Cache]. Each file contains data and optionally has a [nameHash].
+ * The smallest data unit in a [Js5Cache]. Each file contains data and optionally has a [nameHash]. A [Js5File] is
+ * always part of a [Js5Group].
  *
- * @property nameHash (Optional) The unique string identifier in the [Js5GroupData] stored as a
- * [java.lang.String.hashCode].
- * @property data The data of the file.
+ * @property nameHash (Optional) The unique string identifier stored as a [String.hashCode].
+ * @property data The domain data of the file.
  */
 data class Js5File(val id: Int, val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
 
 /**
- * The settings for a [Js5GroupData.File].
+ * The settings for a [Js5File].
  *
- * @property id The unique identifier in the group of this file.
- * @property nameHash (Optional) The unique string identifier in the group stored as a [java.lang.String.hashCode].
+ * @property id The unique identifier in the group of this [Js5File].
+ * @property nameHash (Optional) The unique string identifier in the group stored as a [String.hashCode].
  */
 data class Js5FileSettings(val id: Int, val nameHash: Int?)
