@@ -72,7 +72,7 @@ class Js5DiskStore private constructor(
      * Reads data from the [Js5DiskStore].
      */
     fun read(indexFile: IdxFile, containerId: Int): ByteBuf {
-        require(indexFile.id in 0 until archiveCount) {
+        require(indexFile.id in 0 until archiveCount || indexFile == masterIdxFile) {
             "Can not read data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
         }
         val index = indexFile.read(containerId)
@@ -91,7 +91,7 @@ class Js5DiskStore private constructor(
      * Writes data to the [Js5DiskStore].
      */
     fun write(indexFile: IdxFile, containerId: Int, data: ByteBuf) {
-        require(indexFile.id in 0 until archiveCount) {
+        require(indexFile.id in 0 until archiveCount || indexFile == masterIdxFile) {
             "Can not write data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
         }
         logger.debug { "Writing index file ${indexFile.id} container $containerId" }
@@ -111,7 +111,7 @@ class Js5DiskStore private constructor(
      * reference to the data. It is recommended to defragment the cache after calling this method.
      */
     fun remove(indexFile: IdxFile, containerId: Int) {
-        require(indexFile.id in 0 until archiveCount) {
+        require(indexFile.id in 0 until archiveCount || indexFile == masterIdxFile) {
             "Can not remove data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
         }
         logger.debug { "Removing index file ${indexFile.id} container $containerId" }
