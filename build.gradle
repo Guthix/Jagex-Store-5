@@ -34,6 +34,9 @@ ext {
     apacheCompressVersion = '1.19'
 }
 
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_12
+
 allprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
 
@@ -43,16 +46,16 @@ allprojects {
     }
 
     compileKotlin {
-        sourceCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = rootProject.sourceCompatibility
         kotlinOptions {
-            jvmTarget = "11"
+            jvmTarget = rootProject.targetCompatibility
             freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
         }
     }
     compileTestKotlin {
-        sourceCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = rootProject.sourceCompatibility
         kotlinOptions {
-            jvmTarget = "11"
+            jvmTarget = rootProject.targetCompatibility
             freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
         }
     }

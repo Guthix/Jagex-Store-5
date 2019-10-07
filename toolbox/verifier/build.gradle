@@ -22,11 +22,3 @@ dependencies {
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
     implementation rootProject
 }
-
-compileKotlin {
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
-    }
-}
