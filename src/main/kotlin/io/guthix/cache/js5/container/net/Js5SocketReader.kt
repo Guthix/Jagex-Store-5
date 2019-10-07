@@ -36,7 +36,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * Connection type used for establishing a JS5 connection.
  */
-const val JS5_CONNECTION_TYPE = 15
+private const val JS5_CONNECTION_TYPE = 15
 
 /**
  * A Js5 request to the server.
