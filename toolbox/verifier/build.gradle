@@ -19,7 +19,7 @@
 dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
     implementation rootProject
 }
 
