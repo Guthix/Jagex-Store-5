@@ -21,7 +21,7 @@ plugins {
 }
 
 group 'io.guthix.cache.js5'
-version '0.1-SNAPSHOT'
+version '0.2'
 
 allprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
@@ -29,7 +29,6 @@ allprojects {
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }
-        jcenter()
     }
 
     compileKotlin {
@@ -53,13 +52,13 @@ test {
 }
 
 dependencies {
-    api group: 'com.github.guthix', name: 'Jagex-ByteBuf', version: 'd01debc583'
+    api group: 'com.github.guthix', name: 'Jagex-ByteBuf', version: jagexByteBufCommit
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'org.tukaani', name: 'xz', version: xzVersion
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: bouncyCastleVersion
     implementation group: 'org.apache.commons', name: 'commons-compress', version: apacheCompressVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.4.1'
+    testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    testImplementation group: 'io.kotlintest', name: 'kotlintest-runner-junit5', version: kotlintestVersion
 }
 
