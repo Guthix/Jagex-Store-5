@@ -85,7 +85,7 @@ task javadocJar(type: Jar) {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
+        register(MavenPublication) {
             from components.java
             artifact sourcesJar
             artifact javadocJar
