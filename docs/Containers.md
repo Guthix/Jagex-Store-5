@@ -7,14 +7,14 @@ compressed blocks of data. The data can either represent a group
 the master index).
 
 Containers can be encrypted with an XTEA block cipher. The cache also 
-supports 3 different type of compressions: BZIP2, GZIP and LZMA. Some
-games only support a subset of those compressions. Encryption and 
-compression is optional.
+supports 3 different types of compressions: BZIP2, GZIP and LZMA. 
+Encryption and compression are both optional. The compression type is
+encoded in the format.
 
 ![Container Encoding](images/Container.svg)
 
 The type of compression is indicated by an opcode with the following 
-mapping.
+mapping:
 
 | Opcode | Compression |
 |--------|-------------|
@@ -27,4 +27,7 @@ Every container also contains the compressed and uncompressed size. The
 compressed size is used to determine how many bytes needs to be 
 compressed when reading and the uncompressed size can be used for 
 verification. Containers can also optionally contain a version. This 
-version is different from the archive and archive settings version.
+version is used to check if the container is up to date. This is done
+by comparing it to the version that is stored in the archive settings.
+It thus only makes sense to add this version to containers that encode
+group data.
