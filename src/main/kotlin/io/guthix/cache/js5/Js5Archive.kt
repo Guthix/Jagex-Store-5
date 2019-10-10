@@ -238,7 +238,7 @@ data class Js5ArchiveSettings(
         val format = if(this.version == -1) {
             Format.UNVERSIONED
         } else {
-            if(groupSettings.size <= UShort.MAX_VALUE.toInt()) {
+            if(groupSettings.size <= 0xFFFF) {
                 Format.VERSIONED
             } else {
                 Format.VERSIONED_LARGE

@@ -243,7 +243,7 @@ internal data class Sector(
         /**
          * Whether a [Sector] should be an extended [Sector].
          */
-        fun isExtended(containerId: Int) = containerId > UShort.MAX_VALUE.toInt()
+        fun isExtended(containerId: Int) = containerId > 0xFFFF
 
         /**
          * Decodes a [Sector].
