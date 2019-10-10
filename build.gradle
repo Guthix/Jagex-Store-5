@@ -25,7 +25,7 @@ group 'io.guthix.cache'
 version '0.2.1'
 
 ext {
-    jagexByteBufCommit = 'd01debc583'
+    jagexByteBufCommit = '1e41a728ae'
     kotlinLoggingVersion = '1.7.6'
     logbackVersion = '1.2.3'
     kotlintestVersion = '3.4.2'
