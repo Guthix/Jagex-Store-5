@@ -62,8 +62,8 @@ data class Js5Archive internal constructor(
     var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed(),
     val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
-    private val store: Js5DiskStore,
-    private val indexFile: IdxFile
+    val indexFile: IdxFile,
+    private val store: Js5DiskStore
 ) : AutoCloseable {
     /**
      * The unique id of the archive.
@@ -200,13 +200,13 @@ data class Js5Archive internal constructor(
 
     companion object {
         internal fun create(
-            store: Js5DiskStore,
             indexFile: IdxFile,
+            store: Js5DiskStore,
             settings: Js5ArchiveSettings,
             xteaKey: IntArray,
             compression: Js5Compression
         ) = Js5Archive(settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
-            settings.containsUnknownHash, xteaKey, compression, settings.groupSettings, store, indexFile
+            settings.containsUnknownHash, xteaKey, compression, settings.groupSettings, indexFile, store
         )
     }
 }

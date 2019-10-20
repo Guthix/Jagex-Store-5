@@ -52,7 +52,7 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
         val container = Js5Container.decode(data, xteaKey)
         val archiveSettings = Js5ArchiveSettings.decode(container)
         val archiveIndexFile = store.openArchiveIdxFile(archiveId)
-        return Js5Archive.create(store, archiveIndexFile, archiveSettings, container.xteaKey, container.compression)
+        return Js5Archive.create(archiveIndexFile, store, archiveSettings, container.xteaKey, container.compression)
     }
 
     /**
@@ -75,7 +75,7 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
     ) =  Js5Archive(version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, xteaKey, compression,
-        mutableMapOf(), store, store.createArchiveIdxFile()
+        mutableMapOf(), store.createArchiveIdxFile(), store
     )
 
     /**
