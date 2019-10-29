@@ -46,7 +46,7 @@ data class Js5Container(
     /**
      * Encodes the container into data that can be stored on the cache.
      */
-    fun encode(): ByteBuf {
+    fun encode(appendVersion: Boolean = false): ByteBuf {
         val uncompressedSize = data.readableBytes()
         val compressedData = compression.compress(data)
         val compressedSize = compressedData.writerIndex()
@@ -58,7 +58,7 @@ data class Js5Container(
         buf.writeInt(compressedSize)
         if(compression !is Uncompressed) buf.writeInt(uncompressedSize)
         buf.writeBytes(compressedData)
-        buf.writeShort(version ?: -1)
+        if(appendVersion) buf.writeShort(version ?: -1)
         return if(!xteaKey.isZeroKey()) {
             buf.xteaEncrypt(xteaKey, start = ENC_HEADER_SIZE, end = totalHeaderSize + compressedSize)
         } else buf

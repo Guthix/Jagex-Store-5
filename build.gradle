@@ -22,7 +22,7 @@ plugins {
 }
 
 group 'io.guthix.cache'
-version '0.2.3'
+version '0.2.4'
 
 ext {
     jagexByteBufCommit = '59bfa6e402'
