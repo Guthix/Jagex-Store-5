@@ -129,7 +129,7 @@ data class Js5Archive internal constructor(
     fun writeGroup(group: Js5Group, appendVersion: Boolean) {
         val container = group.groupData.encode(if(appendVersion) group.version else null)
         val uncompressedSize = container.data.writerIndex()
-        val data = container.encode(appendVersion)
+        val data = container.encode()
         val compressedSize = if(appendVersion) data.writerIndex() - 2 else data.writerIndex()
         group.crc = data.crc(length = compressedSize)
         if(containsWpHash) group.whirlpoolHash = data.whirlPoolHash(length = compressedSize)

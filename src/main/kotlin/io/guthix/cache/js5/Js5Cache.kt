@@ -74,7 +74,7 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
         containsUnknownHash: Boolean = false,
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
-    ) =  Js5Archive(version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, xteaKey, compression,
+    ) = Js5Archive(version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, xteaKey, compression,
         mutableMapOf(), store.createArchiveIdxFile(), store
     )
 
