@@ -44,7 +44,7 @@ private const val ROUNDS = 32
  * Encrypts a [ByteBuf] using XTEA encryption.
  */
 @Suppress("MagicNumber")
-internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
+fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
@@ -67,7 +67,7 @@ internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capac
  * Decrypts a [ByteBuf] using XTEA encryption.
  */
 @Suppress("INTEGER_OVERFLOW")
-internal fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
+fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
