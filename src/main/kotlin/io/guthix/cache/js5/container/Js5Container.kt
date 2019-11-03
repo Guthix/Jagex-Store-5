@@ -17,6 +17,9 @@
  */
 package io.guthix.cache.js5.container
 
+import io.guthix.cache.js5.util.XTEA_ZERO_KEY
+import io.guthix.cache.js5.util.xteaDecrypt
+import io.guthix.cache.js5.util.xteaEncrypt
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
@@ -33,10 +36,10 @@ import java.io.IOException
  * @property version (Optional) The version of this [Js5Container].
  */
 data class Js5Container(
-    var data: ByteBuf,
-    var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed(),
-    var version: Int? = null
+        var data: ByteBuf,
+        var xteaKey: IntArray = XTEA_ZERO_KEY,
+        var compression: Js5Compression = Uncompressed(),
+        var version: Int? = null
 ) : DefaultByteBufHolder(data) {
     /**
      * Whether this [Js5Container] contains a version.

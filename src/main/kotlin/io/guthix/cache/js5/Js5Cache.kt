@@ -67,13 +67,13 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
      * @param compression The [Js5Compression] used to store the [Js5ArchiveSettings].
      */
     fun addArchive(
-        version: Int? = null,
-        containsNameHash: Boolean = false,
-        containsWpHash: Boolean = false,
-        containsSizes: Boolean = false,
-        containsUnknownHash: Boolean = false,
-        xteaKey: IntArray = XTEA_ZERO_KEY,
-        compression: Js5Compression = Uncompressed()
+            version: Int? = null,
+            containsNameHash: Boolean = false,
+            containsWpHash: Boolean = false,
+            containsSizes: Boolean = false,
+            containsUnknownHash: Boolean = false,
+            xteaKey: IntArray = XTEA_ZERO_KEY,
+            compression: Js5Compression = Uncompressed()
     ) = Js5Archive(version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, xteaKey, compression,
         mutableMapOf(), store.createArchiveIdxFile(), store
     )

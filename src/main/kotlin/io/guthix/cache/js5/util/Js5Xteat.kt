@@ -15,10 +15,9 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package io.guthix.cache.js5.container
+package io.guthix.cache.js5.util
 
 import io.netty.buffer.ByteBuf
-import java.nio.ByteBuffer
 
 /**
  * The amount of [Int] keys in a XTEA key.
@@ -44,7 +43,7 @@ private const val ROUNDS = 32
  * Encrypts a [ByteBuf] using XTEA encryption.
  */
 @Suppress("MagicNumber")
-fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
+fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
@@ -67,7 +66,7 @@ fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = 0, end: Int = capacity()): B
  * Decrypts a [ByteBuf] using XTEA encryption.
  */
 @Suppress("INTEGER_OVERFLOW")
-fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = 0, end: Int = capacity()): ByteBuf {
+fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
