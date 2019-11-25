@@ -50,8 +50,6 @@ publishing {
     publications {
         register(MavenPublication) {
             from components.java
-            artifact sourcesJar
-            artifact javadocJar
             pom {
                 name = 'jagex-store-5'
                 description = 'A library for modifying Jagex Store 5 caches'
