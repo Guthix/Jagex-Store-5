@@ -51,14 +51,9 @@ dependencies {
     testImplementation group: 'io.kotlintest', name: 'kotlintest-runner-junit5', version: kotlintestVersion
 }
 
-task sourcesJar(type: Jar) {
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar) {
-    archiveClassifier = 'javadoc'
-    from javadoc.destinationDir
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 publishing {
@@ -92,10 +87,3 @@ publishing {
         }
     }
 }
-
-javadoc {
-    if(JavaVersion.current().isJava9Compatible()) {
-        options.addBooleanOption('html5', true)
-    }
-}
-
