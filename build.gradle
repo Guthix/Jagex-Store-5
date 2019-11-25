@@ -53,7 +53,7 @@ publishing {
             artifact sourcesJar
             artifact javadocJar
             pom {
-                name = 'Jagex-Store-5'
+                name = 'jagex-store-5'
                 description = 'A library for modifying Jagex Store 5 caches'
                 url = "https://github.com/guthix/Jagex-Store-5.git"
                 licenses {
