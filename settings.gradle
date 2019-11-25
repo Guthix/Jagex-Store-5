@@ -1,4 +1,4 @@
-rootProject.name = 'Jagex-Store-5'
+rootProject.name = 'jagex-store-5'
 
 include 'toolbox'
 include 'toolbox:downloader'
