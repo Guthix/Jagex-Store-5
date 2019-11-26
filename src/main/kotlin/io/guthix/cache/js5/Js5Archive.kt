@@ -53,16 +53,16 @@ private val logger = KotlinLogging.logger { }
  * @property indexFile The [IdxFile] that contains the [Index]es for this [Js5Archive].
  */
 data class Js5Archive internal constructor(
-        var version: Int? = null,
-        val containsNameHash: Boolean = false,
-        val containsWpHash: Boolean = false,
-        val containsSizes: Boolean = false,
-        val containsUnknownHash: Boolean = false,
-        var xteaKey: IntArray = XTEA_ZERO_KEY,
-        var compression: Js5Compression = Uncompressed(),
-        val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
-        val indexFile: IdxFile,
-        private val store: Js5DiskStore
+    var version: Int? = null,
+    val containsNameHash: Boolean = false,
+    val containsWpHash: Boolean = false,
+    val containsSizes: Boolean = false,
+    val containsUnknownHash: Boolean = false,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed(),
+    val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
+    val indexFile: IdxFile,
+    private val store: Js5DiskStore
 ) : AutoCloseable {
     /**
      * The unique id of the archive.
