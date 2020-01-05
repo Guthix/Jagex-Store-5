@@ -14,10 +14,31 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
+apply plugin: 'application'
+
+def homePath = System.properties['user.home']
+
+def revision = 187 // change this to latest revision before running
+def includeVersions = false // whether to append versions to every group
 
 dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    implementation group: 'me.tongfei', name: 'progressbar', version: progressBarVersion
     implementation rootProject
+}
+
+application {
+    mainClassName = 'io.guthix.cache.js5.downloader.Js5Downloader'
+}
+
+run {
+    args(
+            '-o=' + homePath + '\\OldScape\\' + revision,
+            '-a=oldschool1.runescape.com',
+            '-r=' + revision,
+            '-p=43594'
+    )
+    if(includeVersions) args(args + '-v')
 }

@@ -26,6 +26,9 @@ import io.guthix.cache.js5.util.crc
 import io.guthix.cache.js5.util.whirlPoolHash
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import me.tongfei.progressbar.DelegatingProgressBarConsumer
+import me.tongfei.progressbar.ProgressBarBuilder
+import me.tongfei.progressbar.ProgressBarStyle
 import mu.KotlinLogging
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -34,116 +37,149 @@ import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
-/**
- * Downloads a cache from a JS5 server.
- *
- * Arguments:
- *  -o= The location where the cache should be stored
- *  -a= The address of the JS5 server
- *  -r= The game revision of the JS5 server
- *  -c= The amount of archives to download
- *  -p= The port to connect to
- *  -v  Whether to store versions at the end of every file
- */
-fun main(args: Array<String>) {
-    var outputDir: Path? = null
-    var address: String? = null
-    var port: Int? = null
-    var revision: Int? = null
-    var includeVersions = false
-    for(arg in args) {
-        when {
-            arg.startsWith("-o=") -> outputDir = Path.of(arg.substring(3))
-            arg.startsWith("-a=") -> address = arg.substring(3)
-            arg.startsWith("-r=") -> revision = arg.substring(3).toInt()
-            arg.startsWith("-p=") -> port = arg.substring(3).toInt()
-            arg.startsWith("-v") -> includeVersions = true
-        }
-    }
-    requireNotNull(outputDir) { "No output directory specified to store the cache. Pass -o=DIR as an argument." }
-    requireNotNull(address) {
-        "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument."
-    }
-    requireNotNull(port) { "No port has been specified to download the cache from. Pass -p=PORT as an argument." }
-    requireNotNull(revision) { "No game revision has been specified. Pass -r=REVISION as an argument." }
-    if(!Files.isDirectory(outputDir)) Files.createDirectory(outputDir)
-    val ds = Js5DiskStore.open(outputDir)
-    val sr = Js5SocketReader.open(
-        sockAddr = InetSocketAddress(address, port),
-        revision = revision,
-        priorityMode = false
-    )
-    val checksum = Js5CacheValidator.decode(Js5Container.decode(
-        sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
-    ).data)
-    val settingsData = Array(checksum.archiveValidators.size) {
-        sr.read(Js5DiskStore.MASTER_INDEX, it)
-    }
-    val archiveSettings = checkSettingsData(checksum, settingsData)
-    settingsData.mapIndexed { archiveId, data ->
-        ds.write(ds.masterIdxFile, archiveId, data)
-    }
-
-    val readThread = Thread { // start thread that sends requests
-        archiveSettings.forEachIndexed { archiveId, archiveSettings ->
-            archiveSettings.groupSettings.forEach { (groupId, _) ->
-                sr.sendFileRequest(archiveId, groupId)
-                Thread.sleep(25) // prevent remote from closing the connection
+object Js5Downloader {
+    /**
+     * Downloads a cache from a JS5 server.
+     *
+     * Arguments:
+     *  -o= The location where the cache should be stored
+     *  -a= The address of the JS5 server
+     *  -r= The game revision of the JS5 server
+     *  -c= The amount of archives to download
+     *  -p= The port to connect to
+     *  -v  Whether to store versions at the end of every file
+     */
+    @JvmStatic
+    fun main(args: Array<String>) {
+        var outputDir: Path? = null
+        var address: String? = null
+        var port: Int? = null
+        var revision: Int? = null
+        var includeVersions = false
+        for(arg in args) {
+            when {
+                arg.startsWith("-o=") -> outputDir = Path.of(arg.substring(3))
+                arg.startsWith("-a=") -> address = arg.substring(3)
+                arg.startsWith("-r=") -> revision = arg.substring(3).toInt()
+                arg.startsWith("-p=") -> port = arg.substring(3).toInt()
+                arg.startsWith("-v") -> includeVersions = true
             }
         }
-        logger.info("Done sending requests")
-    }
-
-    val writeThread = Thread { // start thread that reads requests
-        archiveSettings.forEachIndexed { archiveId, archiveSettings ->
-            val idxFile = if(archiveId !in 0 until ds.archiveCount) ds.createArchiveIdxFile() else ds.openArchiveIdxFile(archiveId)
-            archiveSettings.groupSettings.forEach { (_, groupSettings) ->
-                val response = sr.readFileResponse()
-                if(response.data.crc() != groupSettings.crc) throw IOException(
-                    "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
-                )
-                val writeData = if(groupSettings.version != -1 && includeVersions) { // add version if exists
-                    Unpooled.buffer(response.data.capacity() + 2).run {
-                        writeBytes(response.data)
-                        writeShort(groupSettings.version)
-                    }
-                } else response.data
-                ds.write(idxFile, response.containerId, writeData)
-            }
+        requireNotNull(outputDir) { "No output directory specified to store the cache. Pass -o=DIR as an argument." }
+        requireNotNull(address) {
+            "No address has been specified to download the cache from. Pass -a=ADDRESS as an argument."
         }
-        logger.info("Done writing responses")
-    }
-    readThread.start()
-    writeThread.start()
-    readThread.join()
-    writeThread.join()
-    ds.close()
-    sr.close()
-}
-
-private fun checkSettingsData(
-    readValidator: Js5CacheValidator,
-    settingsData: Array<ByteBuf>
-): MutableList<Js5ArchiveSettings> {
-    val newFormat = readValidator.newFormat
-    val containsWhirlool = readValidator.containsWhirlpool
-    val archiveSettings = mutableListOf<Js5ArchiveSettings>()
-    val archiveValidators = settingsData.map { data ->
-        val settings = Js5ArchiveSettings.decode(
-            Js5Container.decode(data)
+        requireNotNull(port) { "No port has been specified to download the cache from. Pass -p=PORT as an argument." }
+        requireNotNull(revision) { "No game revision has been specified. Pass -r=REVISION as an argument." }
+        logger.info { "Downloading cache to $outputDir" }
+        if(!Files.isDirectory(outputDir)) outputDir.toFile().mkdirs()
+        val ds = Js5DiskStore.open(outputDir)
+        val sr = Js5SocketReader.open(
+            sockAddr = InetSocketAddress(address, port),
+            revision = revision,
+            priorityMode = false
         )
-        archiveSettings.add(settings)
-        val whirlpoolHash = if(containsWhirlool) data.whirlPoolHash() else null
-        val fileCount = if(newFormat) settings.groupSettings.size else null
-        val uncompressedSize = if(newFormat) settings.groupSettings.values.sumBy {
-            it.sizes?.uncompressed ?: 0
-        } else null
-        data.readerIndex(0)
-        Js5ArchiveValidator(data.crc(), settings.version ?: 0, fileCount, uncompressedSize, whirlpoolHash)
-    }.toTypedArray()
-    val calcValidator = Js5CacheValidator(archiveValidators)
-    if(readValidator != calcValidator) throw IOException(
-        "Checksum does not match, archive settings are corrupted."
-    )
-    return archiveSettings
+        logger.info { "Downloading validator" }
+        val validator = Js5CacheValidator.decode(Js5Container.decode(
+            sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
+        ).data)
+        logger.info { "Downloading archives" }
+        val archiveCount = validator.archiveValidators.size
+        val progressBarSettings = ProgressBarBuilder()
+            .setInitialMax(archiveCount.toLong())
+            .setTaskName("Downloader")
+            .setStyle(ProgressBarStyle.ASCII)
+            .setConsumer(DelegatingProgressBarConsumer(logger::info))
+            .build()
+        progressBarSettings.extraMessage = "Downloading settings"
+        val settingsData = progressBarSettings.use { pb ->
+            Array(archiveCount) {
+                pb.step()
+                sr.read(Js5DiskStore.MASTER_INDEX, it)
+            }
+        }
+
+        val archiveSettings = checkSettingsData(validator, settingsData)
+        settingsData.mapIndexed { archiveId, data ->
+            ds.write(ds.masterIdxFile, archiveId, data)
+        }
+        val amountOfDownloads = archiveSettings.sumBy { it.groupSettings.keys.size }
+
+        val readThread = Thread { // start thread that sends requests
+            archiveSettings.forEachIndexed { archiveId, archiveSettings ->
+                archiveSettings.groupSettings.forEach { (groupId, _) ->
+                    sr.sendFileRequest(archiveId, groupId)
+                    Thread.sleep(15) // requesting to fast makes the server close the connection
+                }
+            }
+            logger.info("Done sending requests")
+        }
+        val writeThread = Thread { // start thread that reads requests
+            val progressBarGroups = ProgressBarBuilder()
+                .setInitialMax(amountOfDownloads.toLong())
+                .setTaskName("Downloader")
+                .setStyle(ProgressBarStyle.ASCII)
+                .setConsumer(DelegatingProgressBarConsumer(logger::info))
+                .build()
+            progressBarGroups.use { pb ->
+                archiveSettings.forEachIndexed { archiveId, archiveSettings ->
+                    val idxFile = if(archiveId !in 0 until ds.archiveCount){
+                        ds.createArchiveIdxFile()
+                    } else {
+                        ds.openArchiveIdxFile(archiveId)
+                    }
+                    pb.extraMessage = "Downloading archive $archiveId"
+                    archiveSettings.groupSettings.forEach { (_, groupSettings) ->
+                        val response = sr.readFileResponse()
+                        if(response.data.crc() != groupSettings.crc) throw IOException(
+                            "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
+                        )
+                        val writeData = if(groupSettings.version != -1 && includeVersions) { // add version if exists
+                            Unpooled.buffer(response.data.capacity() + 2).run {
+                                writeBytes(response.data)
+                                writeShort(groupSettings.version)
+                            }
+                        } else response.data
+                        pb.step()
+                        ds.write(idxFile, response.containerId, writeData)
+                    }
+                }
+            }
+            logger.info("Done writing responses")
+        }
+        readThread.start()
+        writeThread.start()
+        readThread.join()
+        writeThread.join()
+        ds.close()
+        sr.close()
+    }
+
+    private fun checkSettingsData(
+        readValidator: Js5CacheValidator,
+        settingsData: Array<ByteBuf>
+    ): MutableList<Js5ArchiveSettings> {
+        val newFormat = readValidator.newFormat
+        val containsWhirlool = readValidator.containsWhirlpool
+        val archiveSettings = mutableListOf<Js5ArchiveSettings>()
+        val archiveValidators = settingsData.map { data ->
+            val settings = Js5ArchiveSettings.decode(
+                Js5Container.decode(data)
+            )
+            archiveSettings.add(settings)
+            val whirlpoolHash = if(containsWhirlool) data.whirlPoolHash() else null
+            val fileCount = if(newFormat) settings.groupSettings.size else null
+            val uncompressedSize = if(newFormat) settings.groupSettings.values.sumBy {
+                it.sizes?.uncompressed ?: 0
+            } else null
+            data.readerIndex(0)
+            Js5ArchiveValidator(data.crc(), settings.version ?: 0, fileCount, uncompressedSize, whirlpoolHash)
+        }.toTypedArray()
+        val calcValidator = Js5CacheValidator(archiveValidators)
+        if(readValidator != calcValidator) throw IOException(
+            "Checksum does not match, archive settings are corrupted."
+        )
+        return archiveSettings
+    }
 }
+
