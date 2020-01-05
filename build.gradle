@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'io.guthix.cache'
-version '0.2.10'
+version '0.2.11'
 
 allprojects {
     apply plugin: 'org.jetbrains.kotlin.jvm'
