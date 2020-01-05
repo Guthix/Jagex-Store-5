@@ -35,10 +35,10 @@ import java.io.IOException
  * @property version (Optional) The version of this [Js5Container].
  */
 data class Js5Container(
-        var data: ByteBuf,
-        var xteaKey: IntArray = XTEA_ZERO_KEY,
-        var compression: Js5Compression = Uncompressed(),
-        var version: Int? = null
+    var data: ByteBuf,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed(),
+    var version: Int? = null
 ) : DefaultByteBufHolder(data) {
     /**
      * Whether this [Js5Container] contains a version.
@@ -61,7 +61,7 @@ data class Js5Container(
         if(compression !is Uncompressed) buf.writeInt(uncompressedSize)
         buf.writeBytes(compressedData)
         version?.let { buf.writeShort(it) }
-        return if(!xteaKey.isZeroKey()) {
+        return if(!xteaKey.isZeroKey) {
             buf.xteaEncrypt(xteaKey, start = ENC_HEADER_SIZE, end = totalHeaderSize + compressedSize)
         } else buf
     }
@@ -101,7 +101,7 @@ data class Js5Container(
          */
         const val ENC_HEADER_SIZE = Byte.SIZE_BYTES + Int.SIZE_BYTES
 
-        private fun IntArray.isZeroKey() = this.contentEquals(XTEA_ZERO_KEY)
+        private val IntArray.isZeroKey get() = contentEquals(XTEA_ZERO_KEY)
 
         /**
          * Decodes the [Js5Container].
@@ -111,7 +111,7 @@ data class Js5Container(
             val compressedSize = buf.readInt()
             val totalHeaderSize = ENC_HEADER_SIZE + compression.headerSize
             val indexAfterCompression = totalHeaderSize + compressedSize
-            if(!xteaKey.isZeroKey()) {
+            if(!xteaKey.isZeroKey) {
                 buf.xteaDecrypt(xteaKey, start = ENC_HEADER_SIZE, end = indexAfterCompression)
             }
             val decompBuf = if(compression !is Uncompressed) {
@@ -136,7 +136,7 @@ data class Js5Container(
             if(compression is Uncompressed) return Size(compressedSize, compressedSize)
             val totalHeaderSize = ENC_HEADER_SIZE + compression.headerSize
             val indexAfterCompression = totalHeaderSize + compressedSize
-            if(!xteaKey.isZeroKey()) {
+            if(!xteaKey.isZeroKey) {
                 data.xteaDecrypt(xteaKey, start = ENC_HEADER_SIZE, end = indexAfterCompression)
             }
             val uncompressedSize = data.readInt()
