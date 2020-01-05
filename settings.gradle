@@ -8,6 +8,5 @@ rootProject.name = 'jagex-store-5'
 
 include 'toolbox'
 include 'toolbox:downloader'
-include 'toolbox:verifier'
 
 
