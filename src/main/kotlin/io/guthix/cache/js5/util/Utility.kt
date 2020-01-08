@@ -33,10 +33,9 @@ fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int 
     if(hasArray()) {
         crc.update(this.array(), index, length)
     } else {
-        val bufLength = readableBytes()
-        val array = ByteArray(bufLength)
-        getBytes(readerIndex(), array)
-        crc.update(array, index, length)
+        val copyArray = ByteArray(length)
+        getBytes(index, copyArray)
+        crc.update(copyArray, 0, length)
     }
     return crc.value.toInt()
 }
@@ -59,7 +58,13 @@ private val wpDigest: MessageDigest by lazy {
  */
 fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
     Security.addProvider(BouncyCastleProvider())
-    wpDigest.update(this.array(), index, length)
+    if(hasArray()) {
+        wpDigest.update(this.array(), index, length)
+    } else {
+        val copyArray = ByteArray(length)
+        getBytes(index, copyArray)
+        wpDigest.update(copyArray, 0, length)
+    }
     return wpDigest.digest()
 }
 
