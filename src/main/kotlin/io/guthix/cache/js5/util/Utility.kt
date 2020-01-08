@@ -30,7 +30,14 @@ private val crc = CRC32()
  */
 fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int {
     crc.reset()
-    crc.update(this.array(), index, length)
+    if(hasArray()) {
+        crc.update(this.array(), index, length)
+    } else {
+        val bufLength = readableBytes()
+        val array = ByteArray(bufLength)
+        getBytes(readerIndex(), array)
+        crc.update(array, index, length)
+    }
     return crc.value.toInt()
 }
 

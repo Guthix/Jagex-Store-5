@@ -82,7 +82,7 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
      *
      * @param xteaKeys The XTEA keys to decrypt the [Js5ArchiveSettings].
      */
-    fun generateValidator(xteaKeys: Map<Int, IntArray>): Js5CacheValidator  {
+    fun generateValidator(xteaKeys: Map<Int, IntArray> = emptyMap()): Js5CacheValidator  {
         val archiveCount = store.archiveCount
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for(archiveIndex in 0 until archiveCount) {
