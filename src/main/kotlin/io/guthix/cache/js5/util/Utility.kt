@@ -17,6 +17,7 @@
 package io.guthix.cache.js5.util
 
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.CompositeByteBuf
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -31,7 +32,8 @@ private val crc = CRC32()
 fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int {
     crc.reset()
     if(hasArray()) {
-        crc.update(this.array(), index, length)
+        val start = if(this is CompositeByteBuf) component(0).readerIndex() else index
+        crc.update(array(), start, length)
     } else {
         val copyArray = ByteArray(length)
         getBytes(index, copyArray)
@@ -59,7 +61,8 @@ private val wpDigest: MessageDigest by lazy {
 fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
     Security.addProvider(BouncyCastleProvider())
     if(hasArray()) {
-        wpDigest.update(this.array(), index, length)
+        val start = if(this is CompositeByteBuf) component(0).readerIndex() else index
+        wpDigest.update(array(), start, length)
     } else {
         val copyArray = ByteArray(length)
         getBytes(index, copyArray)
