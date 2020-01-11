@@ -26,10 +26,10 @@ import java.io.IOException
 import java.math.BigInteger
 
 /**
- * A modifiable Jagex Store 5 cache. The [Js5Cache] serves as a wrapper around the [Js5DiskStore] to provide domain
+ * A modifiable Jagex Store 5 cache. The [Js5Cache] serves as a wrapper around the [Js5Store] to provide domain
  * encoded data access to game assets.
  *
- * @property store The [Js5DiskStore] to modify.
+ * @property store The [Js5Store] to modify.
  */
 class Js5Cache(private val store: Js5Store) : AutoCloseable {
     /**
@@ -54,7 +54,7 @@ class Js5Cache(private val store: Js5Store) : AutoCloseable {
     }
 
     /**
-     * Adds an archive to the [Js5Cache]. The index of this archive will be the next unused [IdxFile].
+     * Adds an archive to the [Js5Cache]. The index of this archive will be the next unused index id.
      *
      * @param version The version of this [Js5Archive].
      * @param containsNameHash Whether this archive contains names.

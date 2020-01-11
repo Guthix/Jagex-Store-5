@@ -43,9 +43,6 @@ class Js5DiskStore private constructor(
     private val indexFiles: MutableMap<Int, IdxFile>,
     override var archiveCount: Int
 ) : Js5Store {
-    /**
-     * Reads data from the [Js5DiskStore].
-     */
     override fun read(indexId: Int, containerId: Int): ByteBuf {
         require(indexId in 0 until archiveCount || indexId == Js5Store.MASTER_INDEX) {
             "Can't read data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist."
@@ -63,9 +60,6 @@ class Js5DiskStore private constructor(
         return dat2File.read(indexFile.id, containerId, index)
     }
 
-    /**
-     * Writes data to the [Js5DiskStore].
-     */
     override fun write(indexId: Int, containerId: Int, data: ByteBuf) {
         require(indexId in 0..archiveCount || indexId == Js5Store.MASTER_INDEX) {
             "Can't write data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist and can't be created."

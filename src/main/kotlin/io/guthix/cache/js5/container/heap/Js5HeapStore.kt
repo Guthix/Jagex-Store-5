@@ -29,6 +29,9 @@ class Js5HeapStore private constructor(
     override fun close() { }
 
     companion object {
+        /**
+         * Opens a [Js5HeapStore] by reading the data from a [Js5DiskStore].
+         */
         fun open(path: Path) = Js5DiskStore.open(path).run {
             val data = mutableMapOf<Int, MutableMap<Int, ByteBuf>>()
             val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>() // used for reading group data
