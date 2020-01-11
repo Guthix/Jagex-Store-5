@@ -31,7 +31,7 @@ import java.math.BigInteger
  *
  * @property store The [Js5DiskStore] to modify.
  */
-class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
+class Js5Cache(private val store: Js5Store) : AutoCloseable {
     /**
      * The amount of achives in this [Js5Cache].
      */
@@ -44,14 +44,13 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
      * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings] of this [Js5Archive].
      */
     fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
-        val data = store.read(store.masterIdxFile, archiveId)
+        val data = store.read(Js5Store.MASTER_INDEX, archiveId)
         if(data == Unpooled.EMPTY_BUFFER) throw IOException(
             "Settings for archive $archiveId do not exist."
         )
         val container = Js5Container.decode(data, xteaKey)
         val archiveSettings = Js5ArchiveSettings.decode(container)
-        val archiveIndexFile = store.openArchiveIdxFile(archiveId)
-        return Js5Archive.create(archiveIndexFile, store, archiveSettings, container.xteaKey, container.compression)
+        return Js5Archive.create(archiveId, archiveSettings, container.xteaKey, container.compression, store)
     }
 
     /**
@@ -66,15 +65,15 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
      * @param compression The [Js5Compression] used to store the [Js5ArchiveSettings].
      */
     fun addArchive(
-            version: Int? = null,
-            containsNameHash: Boolean = false,
-            containsWpHash: Boolean = false,
-            containsSizes: Boolean = false,
-            containsUnknownHash: Boolean = false,
-            xteaKey: IntArray = XTEA_ZERO_KEY,
-            compression: Js5Compression = Uncompressed()
-    ) = Js5Archive(version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, xteaKey, compression,
-        mutableMapOf(), store.createArchiveIdxFile(), store
+        version: Int? = null,
+        containsNameHash: Boolean = false,
+        containsWpHash: Boolean = false,
+        containsSizes: Boolean = false,
+        containsUnknownHash: Boolean = false,
+        xteaKey: IntArray = XTEA_ZERO_KEY,
+        compression: Js5Compression = Uncompressed()
+    ) = Js5Archive(store.archiveCount, version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash,
+        xteaKey, compression, mutableMapOf(), store
     )
 
     /**
@@ -86,7 +85,7 @@ class Js5Cache(private val store: Js5DiskStore) : AutoCloseable {
         val archiveCount = store.archiveCount
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for(archiveIndex in 0 until archiveCount) {
-            val data = store.read(store.masterIdxFile, archiveIndex)
+            val data = store.read(Js5Store.MASTER_INDEX, archiveIndex)
             if(data == Unpooled.EMPTY_BUFFER) continue
             val settings = Js5ArchiveSettings.decode(
                 Js5Container.decode(data, xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })

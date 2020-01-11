@@ -20,6 +20,7 @@ import io.guthix.cache.js5.Js5ArchiveValidator
 import io.guthix.cache.js5.Js5ArchiveSettings
 import io.guthix.cache.js5.Js5CacheValidator
 import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.container.Js5Store
 import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.container.net.Js5SocketReader
 import io.guthix.cache.js5.util.crc
@@ -81,7 +82,7 @@ object Js5Downloader {
         )
         logger.info { "Downloading validator" }
         val validator = Js5CacheValidator.decode(Js5Container.decode(
-            sr.read(Js5DiskStore.MASTER_INDEX, Js5DiskStore.MASTER_INDEX)
+            sr.read(Js5Store.MASTER_INDEX, Js5Store.MASTER_INDEX)
         ).data)
         logger.info { "Downloading archives" }
         val archiveCount = validator.archiveValidators.size
@@ -95,13 +96,13 @@ object Js5Downloader {
         val settingsData = progressBarSettings.use { pb ->
             Array(archiveCount) {
                 pb.step()
-                sr.read(Js5DiskStore.MASTER_INDEX, it)
+                sr.read(Js5Store.MASTER_INDEX, it)
             }
         }
 
         val archiveSettings = checkSettingsData(validator, settingsData)
         settingsData.mapIndexed { archiveId, data ->
-            ds.write(ds.masterIdxFile, archiveId, data)
+            ds.write(Js5Store.MASTER_INDEX, archiveId, data)
         }
         val amountOfDownloads = archiveSettings.sumBy { it.groupSettings.keys.size }
 
@@ -123,11 +124,6 @@ object Js5Downloader {
                 .build()
             progressBarGroups.use { pb ->
                 archiveSettings.forEachIndexed { archiveId, archiveSettings ->
-                    val idxFile = if(archiveId !in 0 until ds.archiveCount){
-                        ds.createArchiveIdxFile()
-                    } else {
-                        ds.openArchiveIdxFile(archiveId)
-                    }
                     pb.extraMessage = "Downloading archive $archiveId"
                     archiveSettings.groupSettings.forEach { (_, groupSettings) ->
                         val response = sr.readFileResponse()
@@ -141,7 +137,7 @@ object Js5Downloader {
                             }
                         } else response.data
                         pb.step()
-                        ds.write(idxFile, response.containerId, writeData)
+                        ds.write(archiveId, response.containerId, writeData)
                     }
                 }
             }

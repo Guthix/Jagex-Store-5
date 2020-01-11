@@ -20,6 +20,7 @@ import io.guthix.buffer.readLargeSmart
 import io.guthix.buffer.writeLargeSmart
 import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.container.Js5Store
 import io.guthix.cache.js5.container.Uncompressed
 import io.guthix.cache.js5.util.XTEA_ZERO_KEY
 import io.guthix.cache.js5.container.disk.IdxFile
@@ -37,10 +38,11 @@ import kotlin.math.abs
 private val logger = KotlinLogging.logger { }
 
 /**
- * An rchive in the cache. The [Js5Archive] class can be used for reading, writing anr removing [Js5Group]s from the
+ * An archive in the cache. The [Js5Archive] class can be used for reading, writing anr removing [Js5Group]s from the
  * cache. After working with the [Js5Archive] it is required to call the [Js5Archive.close] method to confirm all the
  * modifications.
  *
+ * @property id The archive id of this archive.
  * @property version The version of the archive.
  * @property containsNameHash Whether this archive contains names.
  * @property containsWpHash Whether this archive contains whirlpool hashes.
@@ -50,9 +52,9 @@ private val logger = KotlinLogging.logger { }
  * @property compression The [Js5Compression] used to store the [Js5ArchiveSettings].
  * @property groupSettings The [Js5GroupSettings] which contains settings for all the [Js5Group]s.
  * @property store The [Js5DiskStore] this archive belongs to.
- * @property indexFile The [IdxFile] that contains the [Index]es for this [Js5Archive].
  */
 data class Js5Archive internal constructor(
+    val id: Int,
     var version: Int? = null,
     val containsNameHash: Boolean = false,
     val containsWpHash: Boolean = false,
@@ -61,14 +63,8 @@ data class Js5Archive internal constructor(
     var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed(),
     val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
-    val indexFile: IdxFile,
-    private val store: Js5DiskStore
+    private val store: Js5Store
 ) : AutoCloseable {
-    /**
-     * The unique id of the archive.
-     */
-    val id get() = indexFile.id
-
     /**
      * The [Js5ArchiveSettings] belonging to this [Js5Archive].
      */
@@ -86,7 +82,7 @@ data class Js5Archive internal constructor(
         val settings = groupSettings.getOrElse(groupId) {
             throw IllegalArgumentException("Unable to read group $groupId because it does not exist.")
         }
-        return readGroup(indexFile.id, settings, xteaKey)
+        return readGroup(id, settings, xteaKey)
     }
 
     /**
@@ -103,7 +99,7 @@ data class Js5Archive internal constructor(
         val nameHash = groupName.hashCode()
         val settings =  groupSettings.values.firstOrNull { it.nameHash == nameHash }
             ?: throw IllegalArgumentException("Unable to read group `$groupName` because it does not exist.")
-        return readGroup(indexFile.id, settings, xteaKey)
+        return readGroup(id, settings, xteaKey)
     }
 
     /**
@@ -111,7 +107,7 @@ data class Js5Archive internal constructor(
      */
     private fun readGroup(archiveId: Int, groupSettings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
         val groupData = Js5GroupData.decode(
-            Js5Container.decode(store.read(indexFile, groupSettings.id), xteaKey),
+            Js5Container.decode(store.read(id, groupSettings.id), xteaKey),
             groupSettings.fileSettings.size
         )
         val group = Js5Group.create(groupData, groupSettings)
@@ -142,9 +138,9 @@ data class Js5Archive internal constructor(
      */
     fun removeGroup(groupId: Int) {
         groupSettings.remove(groupId) ?: throw IllegalArgumentException(
-            "Unable to remove group $groupId from archive ${indexFile.id} because the group does not exist."
+            "Unable to remove group $groupId from archive $id because the group does not exist."
         )
-        store.remove(indexFile, groupId)
+        store.remove(id, groupId)
     }
 
     /**
@@ -152,23 +148,20 @@ data class Js5Archive internal constructor(
      */
     private fun writeGroupData(groupId: Int, data: ByteBuf): Int {
         val compressedSize = data.readableBytes()
-        store.write(indexFile, groupId, data)
+        store.write(id, groupId, data)
         return compressedSize
     }
 
     override fun close() {
-        val settings = archiveSettings
-        logger.debug { "Writing archive settings for archive ${indexFile.id}" }
-        store.write(store.masterIdxFile, indexFile.id, settings.encode(xteaKey, compression).encode())
-        indexFile.close()
+        logger.debug { "Writing archive settings for archive $id" }
+        store.write(Js5Store.MASTER_INDEX, id, archiveSettings.encode(xteaKey, compression).encode())
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as Js5Archive
-
+        if (id != other.id) return false
         if (version != other.version) return false
         if (containsNameHash != other.containsNameHash) return false
         if (containsWpHash != other.containsWpHash) return false
@@ -178,13 +171,13 @@ data class Js5Archive internal constructor(
         if (compression != other.compression) return false
         if (groupSettings != other.groupSettings) return false
         if (store != other.store) return false
-        if (indexFile != other.indexFile) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = version ?: 0
+        var result = id
+        result = 31 * result + (version ?: 0)
         result = 31 * result + containsNameHash.hashCode()
         result = 31 * result + containsWpHash.hashCode()
         result = 31 * result + containsSizes.hashCode()
@@ -193,19 +186,18 @@ data class Js5Archive internal constructor(
         result = 31 * result + compression.hashCode()
         result = 31 * result + groupSettings.hashCode()
         result = 31 * result + store.hashCode()
-        result = 31 * result + indexFile.hashCode()
         return result
     }
 
     companion object {
         internal fun create(
-            indexFile: IdxFile,
-            store: Js5DiskStore,
+            id: Int,
             settings: Js5ArchiveSettings,
             xteaKey: IntArray,
-            compression: Js5Compression
-        ) = Js5Archive(settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
-            settings.containsUnknownHash, xteaKey, compression, settings.groupSettings, indexFile, store
+            compression: Js5Compression,
+            store: Js5Store
+        ) = Js5Archive(id, settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
+            settings.containsUnknownHash, xteaKey, compression, settings.groupSettings, store
         )
     }
 }

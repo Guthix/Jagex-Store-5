@@ -26,24 +26,23 @@ class Js5DiskStoreTest : StringSpec() {
     init {
         val fsFolder = Files.createTempDirectory("js5")
         val diskStore = autoClose(Js5DiskStore.open(fsFolder))
-        val index0 = diskStore.createArchiveIdxFile()
         val containerId1 = 0
         val data1 = Unpooled.buffer(34720).iterationFill()
         "After writing and reading the data should be the same as the original" {
-            diskStore.write(index0, containerId1, data1.copy())
-            diskStore.read(index0, containerId1) shouldBe data1
+            diskStore.write(0, containerId1, data1.copy())
+            diskStore.read(0, containerId1) shouldBe data1
         }
 
         val containerId2 = 1
         val data2 = Unpooled.buffer(3865).iterationFill()
         "After writing and reading a second time the data should be the same as the original" {
-            diskStore.write(index0, containerId2, data2)
-            diskStore.read(index0, containerId2) shouldBe data2
+            diskStore.write(0, containerId2, data2)
+            diskStore.read(0, containerId2) shouldBe data2
         }
 
         "After overwriting and reading the data should be the same as the overwritten data" {
-            diskStore.write(index0, containerId1, data2)
-            diskStore.read(index0, containerId1) shouldBe data2
+            diskStore.write(0, containerId1, data2)
+            diskStore.read(0, containerId1) shouldBe data2
         }
     }
 }

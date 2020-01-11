@@ -19,6 +19,7 @@ package io.guthix.cache.js5.container.disk
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.Js5Archive
 import io.guthix.cache.js5.Js5ArchiveSettings
+import io.guthix.cache.js5.container.Js5Store
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import mu.KotlinLogging
@@ -29,51 +30,27 @@ import kotlin.math.ceil
 private val logger = KotlinLogging.logger {}
 
 /**
- * A [Js5DiskStore] used to read and write [Js5Container] data. A [Js5DiskStore] contains at least 1 [Dat2File] and 1
- * [IdxFile] called the [masterIdxFile]. The [Js5DiskStore] also contains multiple [IdxFile]s each containing [Index]es
- * to a different [Js5Archive]. All the data of the [Js5DiskStore] is stored in the [Dat2File] the [IdxFile]s contain
- * [Index]es which act like pointers to data in the [Dat2File]. The [masterIdxFile] contains [Index]es pointing to
- * meta-data for all the [Js5Archive]s stored as [Js5ArchiveSettings]. When creating a [Js5DiskStore] the [dat2File] and
- * the [masterIdxFile] are always opened because they are required for every cache operation.
+ * A [Js5DiskStore] used to read and write [Js5Container] data to and from disk a store on disk.
  *
  * @property root The root folder containing the cache data.
  * @property dat2File The [Dat2File] containing the cache data.
- * @property masterIdxFile The master index file containing [Index]es to meta-data.
+ * @property indexFiles The index files
  * @property archiveCount The amount of archives in the [Js5DiskStore].
  */
 class Js5DiskStore private constructor(
     private val root: Path,
     private val dat2File: Dat2File,
-    val masterIdxFile: IdxFile,
-    var archiveCount: Int
-) : AutoCloseable {
-    /**
-     * Creates a new archive [IdxFile] in this [Js5DiskStore].
-     */
-    fun createArchiveIdxFile(): IdxFile {
-        val indexFile = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$archiveCount")
-        logger.debug { "Created index file ${indexFile.fileName}" }
-        Files.createFile(indexFile)
-        return IdxFile.open(archiveCount++, indexFile)
-    }
-
-    /**
-     * Opens an [IdxFile] in this [Js5DiskStore].
-     */
-    fun openArchiveIdxFile(indexFileId: Int): IdxFile {
-        require(indexFileId in 0 until archiveCount) {
-            "Can not open index file because $FILE_NAME.${IdxFile.EXTENSION}$indexFileId does not exist."
-        }
-        return IdxFile.open(indexFileId, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId"))
-    }
-
+    private val indexFiles: MutableMap<Int, IdxFile>,
+    override var archiveCount: Int
+) : Js5Store {
     /**
      * Reads data from the [Js5DiskStore].
      */
-    fun read(indexFile: IdxFile, containerId: Int): ByteBuf {
-        require(indexFile.id in 0 until archiveCount || indexFile == masterIdxFile) {
-            "Can not read data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
+    override fun read(indexId: Int, containerId: Int): ByteBuf {
+        require(indexId in 0 until archiveCount || indexId == Js5Store.MASTER_INDEX) {
+            "Can't read data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist."
         }
+        val indexFile = indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
         val index = indexFile.read(containerId)
         if(index.dataSize == 0) {
             logger.warn {
@@ -89,11 +66,16 @@ class Js5DiskStore private constructor(
     /**
      * Writes data to the [Js5DiskStore].
      */
-    fun write(indexFile: IdxFile, containerId: Int, data: ByteBuf) {
-        require(indexFile.id in 0 until archiveCount || indexFile == masterIdxFile) {
-            "Can not write data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
+    override fun write(indexId: Int, containerId: Int, data: ByteBuf) {
+        require(indexId in 0..archiveCount || indexId == Js5Store.MASTER_INDEX) {
+            "Can't write data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist and can't be created."
         }
-        logger.debug { "Writing index file ${indexFile.id} container $containerId" }
+        logger.debug { "Writing index file $indexId container $containerId" }
+        val indexFile = if(indexId == archiveCount) {
+            createNewArchive()
+        } else {
+            indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
+        }
         val overWriteIndex = indexFile.containsIndex(containerId)
         val firstSegNumber = if(overWriteIndex) {
             indexFile.read(containerId).sectorNumber
@@ -109,30 +91,45 @@ class Js5DiskStore private constructor(
      * Removes an [Index] from the [Js5DiskStore]. Note that this method does not remove the actual data but only the
      * reference to the data. It is recommended to defragment the cache after calling this method.
      */
-    fun remove(indexFile: IdxFile, containerId: Int) {
-        require(indexFile.id in 0 until archiveCount || indexFile == masterIdxFile) {
-            "Can not remove data because $FILE_NAME.${IdxFile.EXTENSION}${indexFile.id} does not exist."
+    override fun remove(indexId: Int, containerId: Int) {
+        require(indexId in 0 until archiveCount || indexId == Js5Store.MASTER_INDEX) {
+            "Can't remove data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist."
         }
+        val indexFile = indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
         logger.debug { "Removing index file ${indexFile.id} container $containerId" }
         indexFile.remove(containerId)
     }
 
-        override fun close() {
-            logger.debug { "Closing Js5DiskStore at $root" }
-            dat2File.close()
-            masterIdxFile.close()
-        }
+    /**
+     * Creates a new archive [IdxFile] in this [Js5DiskStore].
+     */
+    private fun createNewArchive(): IdxFile {
+        val file = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$archiveCount")
+        logger.debug { "Created index file ${file.fileName}" }
+        Files.createFile(file)
+        val indexFile = IdxFile.open(archiveCount++, file)
+        indexFiles[archiveCount] = indexFile
+        return indexFile
+    }
 
-        companion object {
+    /**
+     * Opens an [IdxFile] in this [Js5DiskStore].
+     */
+    private fun openIndexFile(indexFileId: Int) = IdxFile.open(
+        indexFileId, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
+    )
+
+    override fun close() {
+        logger.debug { "Closing Js5DiskStore at $root" }
+        dat2File.close()
+        indexFiles.values.forEach { it.close() }
+    }
+
+    companion object {
         /**
          * The default cache file name.
          */
         private const val FILE_NAME = "main_file_cache"
-
-        /**
-         * The master [IdxFile.id].
-         */
-        const val MASTER_INDEX = 255
 
         /**
          * Opens a [Js5DiskStore].
@@ -150,7 +147,7 @@ class Js5DiskStore private constructor(
                 logger.debug { "Created empty .dat2 file\"" }
             }
             val dataFile = Dat2File.open(dataPath)
-            val masterIndexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$MASTER_INDEX")
+            val masterIndexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}${Js5Store.MASTER_INDEX}")
             if(Files.exists(masterIndexPath)) {
                 logger.debug { "Found .idx255 file" }
             } else {
@@ -158,9 +155,9 @@ class Js5DiskStore private constructor(
                 Files.createFile(masterIndexPath)
                 logger.debug { "Created empty .idx255 file" }
             }
-            val masterIndexFile = IdxFile.open(MASTER_INDEX, masterIndexPath)
+            val masterIndexFile = IdxFile.open(Js5Store.MASTER_INDEX, masterIndexPath)
             var archiveCount = 0
-            for (indexFileId in 0 until MASTER_INDEX) {
+            for (indexFileId in 0 until Js5Store.MASTER_INDEX) {
                 val indexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
                 if(!Files.exists(indexPath)) {
                     archiveCount = indexFileId
@@ -168,7 +165,7 @@ class Js5DiskStore private constructor(
                 }
             }
             logger.debug { "Created disk store with archive count $archiveCount" }
-            return Js5DiskStore(root, dataFile, masterIndexFile, archiveCount)
+            return Js5DiskStore(root, dataFile, mutableMapOf(Js5Store.MASTER_INDEX to masterIndexFile), archiveCount)
         }
     }
 }

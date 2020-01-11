@@ -30,7 +30,7 @@ import java.nio.file.StandardOpenOption
  * @property id The id belonging to this [IdxFile].
  * @property fileChannel The [FileChannel] to read the [Index]es from.
  */
-class IdxFile private constructor(val id: Int, private val fileChannel: FileChannel) : AutoCloseable {
+internal class IdxFile private constructor(val id: Int, private val fileChannel: FileChannel) : AutoCloseable {
     /**
      * The size of the [IdxFile].
      */

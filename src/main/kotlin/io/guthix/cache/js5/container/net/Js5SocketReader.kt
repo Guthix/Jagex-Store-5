@@ -60,7 +60,7 @@ data class FileResponse(val indexFileId: Int, val containerId: Int, val data: By
 class Js5SocketReader private constructor(
     private val socketChannel: SocketChannel,
     var priorityMode: Boolean = false
-)  : AutoCloseable {
+) : AutoCloseable {
     /**
      * The encryption key.
      */
