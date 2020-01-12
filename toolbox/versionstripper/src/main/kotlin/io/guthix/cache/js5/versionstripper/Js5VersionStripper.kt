@@ -41,12 +41,10 @@ object Js5VersionStripper {
             archiveSettings.forEach { (archiveId, archiveSettings) ->
                 pb.extraMessage = "Removing from archive $archiveId"
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
-                    if(archiveId != 5) {
-                        val data = store.read(archiveId, groupId)
-                        val version = Js5Container.decodeVersion(data.duplicate())
-                        if(version != null) {
-                            store.write(archiveId, groupId, data.slice(0, data.readableBytes() - Short.SIZE_BYTES))
-                        }
+                    val data = store.read(archiveId, groupId)
+                    val version = Js5Container.decodeVersion(data.duplicate())
+                    if(version != null) {
+                        store.write(archiveId, groupId, data.slice(0, data.readableBytes() - Short.SIZE_BYTES))
                     }
                     pb.step()
                 }
