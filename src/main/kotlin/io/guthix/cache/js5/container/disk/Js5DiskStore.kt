@@ -99,8 +99,8 @@ class Js5DiskStore private constructor(
         val file = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$archiveCount")
         logger.debug { "Created index file ${file.fileName}" }
         Files.createFile(file)
-        val indexFile = IdxFile.open(archiveCount++, file)
-        indexFiles[archiveCount] = indexFile
+        val indexFile = IdxFile.open(archiveCount, file)
+        indexFiles[archiveCount++] = indexFile
         return indexFile
     }
 
