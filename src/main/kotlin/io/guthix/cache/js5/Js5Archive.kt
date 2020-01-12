@@ -14,18 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("unused", "DuplicatedCode")
 package io.guthix.cache.js5
 
 import io.guthix.buffer.readLargeSmart
 import io.guthix.buffer.writeLargeSmart
-import io.guthix.cache.js5.container.Js5Compression
-import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.container.Js5Store
-import io.guthix.cache.js5.container.Uncompressed
+import io.guthix.cache.js5.container.*
 import io.guthix.cache.js5.util.XTEA_ZERO_KEY
-import io.guthix.cache.js5.container.disk.IdxFile
-import io.guthix.cache.js5.container.disk.Index
-import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
 import io.guthix.cache.js5.util.crc
 import io.guthix.cache.js5.util.whirlPoolHash
@@ -51,7 +46,8 @@ private val logger = KotlinLogging.logger { }
  * @property xteaKey The XTEA key to decrypt the [Js5ArchiveSettings].
  * @property compression The [Js5Compression] used to store the [Js5ArchiveSettings].
  * @property groupSettings The [Js5GroupSettings] which contains settings for all the [Js5Group]s.
- * @property store The [Js5DiskStore] this archive belongs to.
+ * @property readStore The [Js5ReadStore] where all read operations are done.
+ * @property writeStore The [Js5WriteStore] where all the write operations are done.
  */
 data class Js5Archive internal constructor(
     val id: Int,
@@ -63,7 +59,8 @@ data class Js5Archive internal constructor(
     var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed(),
     val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
-    private val store: Js5Store
+    private val readStore: Js5ReadStore,
+    private val writeStore: Js5WriteStore?
 ) : AutoCloseable {
     /**
      * The [Js5ArchiveSettings] belonging to this [Js5Archive].
@@ -103,11 +100,11 @@ data class Js5Archive internal constructor(
     }
 
     /**
-     * Reads a group from the [store] using the [Js5GroupSettings].
+     * Reads a group from the [readStore] using the [Js5GroupSettings].
      */
     private fun readGroup(archiveId: Int, groupSettings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
         val groupData = Js5GroupData.decode(
-            Js5Container.decode(store.read(id, groupSettings.id), xteaKey),
+            Js5Container.decode(readStore.read(id, groupSettings.id), xteaKey),
             groupSettings.fileSettings.size
         )
         val group = Js5Group.create(groupData, groupSettings)
@@ -137,24 +134,26 @@ data class Js5Archive internal constructor(
      * Removes a [Js5Group] from this [Js5Archive].
      */
     fun removeGroup(groupId: Int) {
+        writeStore ?: throw IllegalStateException("No Js5WriteStore provided.")
         groupSettings.remove(groupId) ?: throw IllegalArgumentException(
             "Unable to remove group $groupId from archive $id because the group does not exist."
         )
-        store.remove(id, groupId)
+        writeStore.remove(id, groupId)
     }
 
     /**
-     * Writes the group [Js5Container] data to the [store].
+     * Writes the group [Js5Container] data to the [writeStore].
      */
     private fun writeGroupData(groupId: Int, data: ByteBuf): Int {
+        writeStore ?: throw IllegalStateException("No Js5WriteStore provided.")
         val compressedSize = data.readableBytes()
-        store.write(id, groupId, data)
+        writeStore.write(id, groupId, data)
         return compressedSize
     }
 
     override fun close() {
         logger.debug { "Writing archive settings for archive $id" }
-        store.write(Js5Store.MASTER_INDEX, id, archiveSettings.encode(xteaKey, compression).encode())
+        writeStore?.write(Js5Store.MASTER_INDEX, id, archiveSettings.encode(xteaKey, compression).encode())
     }
 
     override fun equals(other: Any?): Boolean {
@@ -170,7 +169,8 @@ data class Js5Archive internal constructor(
         if (!xteaKey.contentEquals(other.xteaKey)) return false
         if (compression != other.compression) return false
         if (groupSettings != other.groupSettings) return false
-        if (store != other.store) return false
+        if (readStore != other.readStore) return false
+        if (writeStore != other.writeStore) return false
 
         return true
     }
@@ -185,7 +185,8 @@ data class Js5Archive internal constructor(
         result = 31 * result + xteaKey.contentHashCode()
         result = 31 * result + compression.hashCode()
         result = 31 * result + groupSettings.hashCode()
-        result = 31 * result + store.hashCode()
+        result = 31 * result + readStore.hashCode()
+        result = 31 * result + writeStore.hashCode()
         return result
     }
 
@@ -195,9 +196,10 @@ data class Js5Archive internal constructor(
             settings: Js5ArchiveSettings,
             xteaKey: IntArray,
             compression: Js5Compression,
-            store: Js5Store
+            readStore: Js5ReadStore,
+            writeStore: Js5WriteStore?
         ) = Js5Archive(id, settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
-            settings.containsUnknownHash, xteaKey, compression, settings.groupSettings, store
+            settings.containsUnknownHash, xteaKey, compression, settings.groupSettings, readStore, writeStore
         )
     }
 }

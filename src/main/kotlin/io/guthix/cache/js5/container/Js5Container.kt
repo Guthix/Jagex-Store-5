@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("unused", "DuplicatedCode")
 package io.guthix.cache.js5.container
 
 import io.guthix.cache.js5.util.XTEA_ZERO_KEY

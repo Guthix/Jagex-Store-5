@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("unused")
 package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.*
-import io.guthix.cache.js5.container.disk.Js5DiskStore
-import io.guthix.cache.js5.container.disk.IdxFile
 import io.guthix.cache.js5.util.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -29,13 +28,18 @@ import java.math.BigInteger
  * A modifiable Jagex Store 5 cache. The [Js5Cache] serves as a wrapper around the [Js5Store] to provide domain
  * encoded data access to game assets.
  *
- * @property store The [Js5Store] to modify.
+ * @property readStore The [Js5ReadStore] where all read operations are done.
+ * @property writeStore The [Js5WriteStore] where all the write operations are done.
  */
-class Js5Cache(private val store: Js5Store) : AutoCloseable {
+class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5WriteStore? = null) : AutoCloseable {
+    constructor(store: Js5Store): this(store, store)
+
     /**
      * The amount of achives in this [Js5Cache].
      */
-    val archiveCount get() = store.archiveCount
+    val archiveCount get() = writeStore?.archiveCount ?: throw IllegalStateException(
+        "No write store provided, archive count unknown."
+    )
 
     /**
      * Reads an archive from the [Js5Cache].
@@ -44,13 +48,15 @@ class Js5Cache(private val store: Js5Store) : AutoCloseable {
      * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings] of this [Js5Archive].
      */
     fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
-        val data = store.read(Js5Store.MASTER_INDEX, archiveId)
+        val data = readStore.read(Js5Store.MASTER_INDEX, archiveId)
         if(data == Unpooled.EMPTY_BUFFER) throw IOException(
             "Settings for archive $archiveId do not exist."
         )
         val container = Js5Container.decode(data, xteaKey)
         val archiveSettings = Js5ArchiveSettings.decode(container)
-        return Js5Archive.create(archiveId, archiveSettings, container.xteaKey, container.compression, store)
+        return Js5Archive.create(
+            archiveId, archiveSettings, container.xteaKey, container.compression, readStore, writeStore
+        )
     }
 
     /**
@@ -72,9 +78,12 @@ class Js5Cache(private val store: Js5Store) : AutoCloseable {
         containsUnknownHash: Boolean = false,
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
-    ) = Js5Archive(store.archiveCount, version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash,
-        xteaKey, compression, mutableMapOf(), store
-    )
+    ): Js5Archive {
+        writeStore ?: throw IllegalStateException("No Js5WriteStore provided.")
+        return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash,
+            xteaKey, compression, mutableMapOf(), readStore, writeStore
+        )
+    }
 
     /**
      * Generates the [Js5CacheValidator] for this [Js5Cache].
@@ -82,10 +91,12 @@ class Js5Cache(private val store: Js5Store) : AutoCloseable {
      * @param xteaKeys The XTEA keys to decrypt the [Js5ArchiveSettings].
      */
     fun generateValidator(xteaKeys: Map<Int, IntArray> = emptyMap()): Js5CacheValidator  {
-        val archiveCount = store.archiveCount
+        val archiveCount = writeStore?.archiveCount ?: throw IllegalStateException(
+            "No write store provided, archive count unknown."
+        )
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for(archiveIndex in 0 until archiveCount) {
-            val data = store.read(Js5Store.MASTER_INDEX, archiveIndex)
+            val data = readStore.read(Js5Store.MASTER_INDEX, archiveIndex)
             if(data == Unpooled.EMPTY_BUFFER) continue
             val settings = Js5ArchiveSettings.decode(
                 Js5Container.decode(data, xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
@@ -101,7 +112,7 @@ class Js5Cache(private val store: Js5Store) : AutoCloseable {
         return Js5CacheValidator(archiveChecksums.toTypedArray())
     }
 
-    override fun close() =  store.close()
+    override fun close() =  readStore.close()
 }
 
 /**

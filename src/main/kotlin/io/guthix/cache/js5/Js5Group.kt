@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("DuplicatedCode")
 package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.Js5Compression
@@ -45,17 +46,17 @@ import java.util.zip.CRC32
  * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
  */
 data class Js5Group(
-        var id: Int,
-        var version: Int,
-        var chunkCount: Int,
-        var nameHash: Int? = null,
-        var unknownHash: Int? = null,
-        val files: MutableMap<Int, Js5File> = mutableMapOf(),
-        var xteaKey: IntArray = XTEA_ZERO_KEY,
-        var compression: Js5Compression = Uncompressed(),
-        internal var crc: Int = 0,
-        internal var whirlpoolHash: ByteArray? = null,
-        internal var sizes: Js5Container.Size? = null
+    var id: Int,
+    var version: Int,
+    var chunkCount: Int,
+    var nameHash: Int? = null,
+    var unknownHash: Int? = null,
+    val files: MutableMap<Int, Js5File> = mutableMapOf(),
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed(),
+    internal var crc: Int = 0,
+    internal var whirlpoolHash: ByteArray? = null,
+    internal var sizes: Js5Container.Size? = null
 ) {
     /**
      * The [Js5GroupData] of this [Js5Group].
@@ -63,7 +64,7 @@ data class Js5Group(
     val groupData get() = Js5GroupData(files.values.map { it.data }.toTypedArray(), chunkCount, xteaKey, compression)
 
     /**
-     * The [Js5GroupSettings] of this [Js5Group]
+     * The [Js5GroupSettings] of this [Js5Group].
      */
     val groupSettings get() = Js5GroupSettings(id, version, crc, files.mapValues { (fileId, file) ->
         Js5FileSettings(fileId, file.nameHash) }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
@@ -132,10 +133,10 @@ data class Js5Group(
  * @param compression The compression used to compress the [Js5GroupData].
  */
 data class Js5GroupData(
-        val fileData: Array<ByteBuf>,
-        var chunkCount: Int = 1,
-        var xteaKey: IntArray = XTEA_ZERO_KEY,
-        var compression: Js5Compression = Uncompressed()
+    val fileData: Array<ByteBuf>,
+    var chunkCount: Int = 1,
+    var xteaKey: IntArray = XTEA_ZERO_KEY,
+    var compression: Js5Compression = Uncompressed()
 ) {
     /**
      * Encodes the [Js5GroupData] into a [Js5Container].

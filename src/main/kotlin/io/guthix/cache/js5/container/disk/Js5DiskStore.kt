@@ -17,8 +17,6 @@
 package io.guthix.cache.js5.container.disk
 
 import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.Js5Archive
-import io.guthix.cache.js5.Js5ArchiveSettings
 import io.guthix.cache.js5.container.Js5Store
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
