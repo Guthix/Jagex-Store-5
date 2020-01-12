@@ -51,8 +51,8 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
         var curSegByteStart = index.sectorNumber * Sector.SIZE.toLong()
         do {
             val dataSector = readSector(containerId, curSegByteStart)
+            dataSector.validate(indexFileId, containerId, sectorsRead)
             if (dataToRead > dataSector.data.writerIndex()) {
-                dataSector.validate(indexFileId, containerId, sectorsRead)
                 totalData.addComponent(true, dataSector.data)
                 dataToRead -= dataSector.data.writerIndex()
                 sectorsRead++
