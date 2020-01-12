@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <logger name="io.netty" level="WARN" />
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%msg%n</Pattern>
+        </encoder>
+    </appender>
+    <logger name="io.guthix" level="DEBUG"/>
+    <logger name="io.guthix.cache.js5.container" level="ERROR"/>
+    <root level="debug">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

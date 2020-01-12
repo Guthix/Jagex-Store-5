@@ -18,9 +18,6 @@ apply plugin: 'application'
 
 def homePath = System.properties['user.home']
 
-def revision = 187 // change this to latest revision before running
-def includeVersions = true // whether to append versions to every group
-
 dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
@@ -30,15 +27,11 @@ dependencies {
 }
 
 application {
-    mainClassName = 'io.guthix.cache.js5.downloader.Js5Downloader'
+    mainClassName = 'io.guthix.cache.js5.versionstripper.Js5VersionStripper'
 }
 
 run {
     args(
-            '-o=' + homePath + '\\OldScape\\' + revision,
-            '-a=oldschool1.runescape.com',
-            '-r=' + revision,
-            '-p=43594'
+            '-i=' + homePath + '\\OldScape\\187',
     )
-    if(includeVersions) args(args + '-v')
 }
