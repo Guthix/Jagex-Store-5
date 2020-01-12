@@ -19,6 +19,7 @@ package io.guthix.cache.js5.container.net
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.disk.Sector
 import io.guthix.cache.js5.container.Js5Compression
+import io.guthix.cache.js5.container.Js5ReadStore
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
@@ -60,7 +61,7 @@ data class FileResponse(val indexFileId: Int, val containerId: Int, val data: By
 class Js5SocketReader private constructor(
     private val socketChannel: SocketChannel,
     var priorityMode: Boolean = false
-) : AutoCloseable {
+) : Js5ReadStore {
     /**
      * The encryption key.
      */
@@ -69,11 +70,11 @@ class Js5SocketReader private constructor(
     /**
      * Requests container data and blocks until the response arrives.
      *
-     * @param indexFileId The index to request.
+     * @param indexId The index to request.
      * @param containerId the container to request.
      */
-    fun read(indexFileId: Int, containerId: Int): ByteBuf {
-        sendFileRequest(indexFileId, containerId, priorityMode)
+    override fun read(indexId: Int, containerId: Int): ByteBuf {
+        sendFileRequest(indexId, containerId, priorityMode)
         return readFileResponse().data
     }
 

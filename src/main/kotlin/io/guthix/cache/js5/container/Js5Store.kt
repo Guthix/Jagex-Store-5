@@ -18,8 +18,6 @@ interface Js5Store : Js5ReadStore, Js5WriteStore {
  * [Js5Container] reader.
  */
 interface Js5ReadStore : AutoCloseable {
-    val archiveCount: Int
-
     fun read(indexId: Int, containerId: Int): ByteBuf
 }
 
