@@ -84,7 +84,7 @@ object Js5Downloader {
         val validator = Js5CacheValidator.decode(Js5Container.decode(
             sr.read(Js5Store.MASTER_INDEX, Js5Store.MASTER_INDEX)
         ).data)
-        logger.info { "Downloading archives" }
+        logger.info { "Downloading archive settings" }
         val archiveCount = validator.archiveValidators.size
         val progressBarSettings = ProgressBarBuilder()
             .setInitialMax(archiveCount.toLong())
@@ -105,12 +105,12 @@ object Js5Downloader {
             ds.write(Js5Store.MASTER_INDEX, archiveId, data)
         }
         val amountOfDownloads = archiveSettings.sumBy { it.groupSettings.keys.size }
-
+        logger.info { "Downloading archives" }
         val readThread = Thread { // start thread that sends requests
             archiveSettings.forEachIndexed { archiveId, archiveSettings ->
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
                     sr.sendFileRequest(archiveId, groupId)
-                    Thread.sleep(15) // requesting to fast makes the server close the connection
+                    Thread.sleep(20) // requesting to fast makes the server close the connection
                 }
             }
             logger.info("Done sending requests")
@@ -131,10 +131,8 @@ object Js5Downloader {
                             "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
                         )
                         val writeData = if(groupSettings.version != -1 && includeVersions) { // add version if exists
-                            Unpooled.buffer(response.data.capacity() + 2).run {
-                                writeBytes(response.data)
-                                writeShort(groupSettings.version)
-                            }
+                            val versionBuffer = Unpooled.buffer(2).apply { writeShort(groupSettings.version) }
+                            Unpooled.compositeBuffer(2).addComponents(true, response.data, versionBuffer)
                         } else response.data
                         pb.step()
                         ds.write(archiveId, response.containerId, writeData)
