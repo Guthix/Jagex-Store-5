@@ -50,12 +50,4 @@ object Js5VersionStripper {
             }
         }
     }
-
-    private fun Js5Container.Companion.decodeVersion(buf: ByteBuf): Int? {
-        val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
-        val compressedSize = buf.readInt()
-        val indexAfterCompression = ENC_HEADER_SIZE + compression.headerSize + compressedSize
-        buf.readerIndex(indexAfterCompression)
-        return if(buf.readableBytes() >= 2) buf.readShort().toInt() else null
-    }
 }

@@ -18,6 +18,7 @@
 package io.guthix.cache.js5.container.heap
 
 import io.guthix.cache.js5.Js5ArchiveSettings
+import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5Store
 import io.guthix.cache.js5.container.disk.Js5DiskStore
@@ -48,8 +49,10 @@ class Js5HeapStore private constructor(
     companion object {
         /**
          * Opens a [Js5HeapStore] by reading the data from a [Js5DiskStore].
+         *
+         * @param appendVersions Whether to append versions to the buffers in the [Js5HeapStore].
          */
-        fun open(path: Path) = Js5DiskStore.open(path).run {
+        fun open(path: Path, appendVersions: Boolean = false) = Js5DiskStore.open(path).run {
             val data = mutableMapOf<Int, MutableMap<Int, ByteBuf>>()
             val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>() // used for reading group data
 
@@ -65,7 +68,11 @@ class Js5HeapStore private constructor(
                 val archiveData = data.getOrPut(archiveId, { mutableMapOf() })
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
                     val rawGroup = read(archiveId, groupId)
-                    archiveData[groupId] = rawGroup
+                    if(Js5Container.decodeVersion(rawGroup.duplicate()) == null || appendVersions) {
+                        archiveData[groupId] = rawGroup
+                    } else {
+                        archiveData[groupId] = rawGroup.slice(0, rawGroup.readerIndex() - 2)
+                    }
                 }
             }
             Js5HeapStore(data, archiveSettings.size)
