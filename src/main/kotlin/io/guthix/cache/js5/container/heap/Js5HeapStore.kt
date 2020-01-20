@@ -33,7 +33,7 @@ class Js5HeapStore private constructor(
     private val containerData: MutableMap<Int, MutableMap<Int, ByteBuf>>,
     override var archiveCount: Int
 ) : Js5Store {
-    override fun read(indexId: Int, containerId: Int) = containerData[indexId]?.get(containerId)
+    override fun read(indexId: Int, containerId: Int) = containerData[indexId]?.get(containerId)?.duplicate()
         ?: throw FileNotFoundException("Can't read data because index $indexId container $containerId does not exist.")
 
     override fun write(indexId: Int, containerId: Int, data: ByteBuf) {
@@ -52,13 +52,13 @@ class Js5HeapStore private constructor(
          *
          * @param appendVersions Whether to append versions to the buffers in the [Js5HeapStore].
          */
-        fun open(path: Path, appendVersions: Boolean = false) = Js5DiskStore.open(path).run {
+        fun open(store: Js5DiskStore, appendVersions: Boolean = false): Js5HeapStore {
             val data = mutableMapOf<Int, MutableMap<Int, ByteBuf>>()
             val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>() // used for reading group data
 
             val archiveSettingsData = data.getOrPut(Js5Store.MASTER_INDEX, { mutableMapOf() })
-            for(archiveId in 0 until archiveCount) {
-                val rawSettings = read(Js5Store.MASTER_INDEX, archiveId)
+            for(archiveId in 0 until store.archiveCount) {
+                val rawSettings = store.read(Js5Store.MASTER_INDEX, archiveId)
                 archiveSettingsData[archiveId] = rawSettings
                 val settings = Js5ArchiveSettings.decode(Js5Container.decode(rawSettings.duplicate()))
                 archiveSettings[archiveId] = settings
@@ -67,15 +67,15 @@ class Js5HeapStore private constructor(
             archiveSettings.forEach { (archiveId, archiveSettings) ->
                 val archiveData = data.getOrPut(archiveId, { mutableMapOf() })
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
-                    val rawGroup = read(archiveId, groupId)
+                    val rawGroup = store.read(archiveId, groupId)
                     if(Js5Container.decodeVersion(rawGroup.duplicate()) == null || appendVersions) {
                         archiveData[groupId] = rawGroup
                     } else {
-                        archiveData[groupId] = rawGroup.slice(0, rawGroup.readerIndex() - 2)
+                        archiveData[groupId] = rawGroup.slice(0, rawGroup.writerIndex() - 2)
                     }
                 }
             }
-            Js5HeapStore(data, archiveSettings.size)
+            return Js5HeapStore(data, archiveSettings.size)
         }
     }
 }
