@@ -37,11 +37,6 @@ class Js5CacheValidatorTest : StringSpec({
         )
     ))
     "After encoding and decoding the checksum should be the same as the original" {
-        Js5CacheValidator.decode(checksum.encode())
-    }
-
-    checksum.archiveValidators.forEach { it.whirlpoolDigest = ByteArray(WHIRLPOOL_HASH_SIZE) }
-    "After encoding and decoding the checksum with whirlpool it should be the same as the original" {
-        Js5CacheValidator.decode(checksum.encode(), whirlpool = true)
+        Js5CacheValidator.decode(checksum.encode(), whirlpoolIncluded = false, sizeIncluded= false)
     }
 })

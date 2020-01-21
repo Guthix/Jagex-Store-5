@@ -83,7 +83,7 @@ object Js5Downloader {
         logger.info { "Downloading validator" }
         val validator = Js5CacheValidator.decode(Js5Container.decode(
             sr.read(Js5Store.MASTER_INDEX, Js5Store.MASTER_INDEX)
-        ).data)
+        ).data, whirlpoolIncluded = false, sizeIncluded = false)
         logger.info { "Downloading archive settings" }
         val archiveCount = validator.archiveValidators.size
         val progressBarSettings = ProgressBarBuilder()
@@ -167,7 +167,7 @@ object Js5Downloader {
                 it.sizes?.uncompressed ?: 0
             } else null
             data.readerIndex(0)
-            Js5ArchiveValidator(data.crc(), settings.version ?: 0, fileCount, uncompressedSize, whirlpoolHash)
+            Js5ArchiveValidator(data.crc(), settings.version ?: 0, whirlpoolHash, fileCount, uncompressedSize)
         }.toTypedArray()
         val calcValidator = Js5CacheValidator(archiveValidators)
         if(readValidator != calcValidator) throw IOException(

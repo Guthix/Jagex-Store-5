@@ -416,9 +416,9 @@ data class Js5ArchiveSettings(
 data class Js5ArchiveValidator(
     var crc: Int,
     var version: Int?,
+    var whirlpoolDigest: ByteArray?,
     var fileCount: Int?,
-    var uncompressedSize: Int?,
-    var whirlpoolDigest: ByteArray?
+    var uncompressedSize: Int?
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

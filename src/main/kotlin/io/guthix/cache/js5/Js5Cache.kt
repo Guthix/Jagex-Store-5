@@ -89,8 +89,14 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
      * Generates the [Js5CacheValidator] for this [Js5Cache].
      *
      * @param xteaKeys The XTEA keys to decrypt the [Js5ArchiveSettings].
+     * @param includeWhirlpool Whether to include a whirlpool hash of the archive.
+     * @param includeSizes Whether to include the uncompressed size and group count for every archive.
      */
-    fun generateValidator(xteaKeys: Map<Int, IntArray> = emptyMap()): Js5CacheValidator  {
+    fun generateValidator(
+        includeWhirlpool: Boolean,
+        includeSizes: Boolean,
+        xteaKeys: Map<Int, IntArray> = emptyMap()
+    ): Js5CacheValidator  {
         val archiveCount = writeStore?.archiveCount ?: throw IllegalStateException(
             "No write store provided, archive count unknown."
         )
@@ -101,13 +107,18 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
             val settings = Js5ArchiveSettings.decode(
                 Js5Container.decode(data, xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
             )
-            val uncompressedSize = settings.groupSettings.values.sumBy {
-                it.sizes?.uncompressed ?: 0
+            val whirlPool = if(includeWhirlpool) data.whirlPoolHash() else null
+            val (groupCount, uncompressedSize) = if(includeSizes) {
+                val uncompressedSize = settings.groupSettings.values.sumBy {
+                    it.sizes?.uncompressed ?: 0
+                }
+                Pair(settings.groupSettings.size, uncompressedSize)
+            } else {
+                Pair(null, null)
             }
             archiveChecksums.add(Js5ArchiveValidator(
-                data.crc(), settings.version ?: 0, settings.groupSettings.size, uncompressedSize,
-                data.whirlPoolHash()
-            ))
+                data.crc(), settings.version ?: 0, whirlPool, groupCount, uncompressedSize)
+            )
         }
         return Js5CacheValidator(archiveChecksums.toTypedArray())
     }
@@ -132,9 +143,8 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
      *
      * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
      * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
-     * @param newFormat Whether to use the new format, only used when the validator also contains whirlpool hashes.
      */
-    fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null, newFormat: Boolean = false): ByteBuf {
+    fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuf {
         val buf = when {
             containsWhirlpool && newFormat -> Unpooled.buffer(
                 WP_ENCODED_SIZE + Js5ArchiveValidator.ENCODED_SIZE_WP_NEW * archiveValidators.size
@@ -187,19 +197,19 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
          * Decodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
          *
          * @param buf The buf to decode
-         * @param whirlpool Whether to decode the whirlpool hash.
+         * @param whirlpoolIncluded Whether to decode the whirlpool hash.
          * @param mod Modulus for decrypting the whirlpool hash using RSA.
          * @param privateKey The public key to (optionally) encrypt the whirlpool hash.
-         * @param newFormat Whether to decode using the new format.
+         * @param sizeIncluded Whether to decode using the new format.
          */
         fun decode(
             buf: ByteBuf,
-            whirlpool: Boolean = false,
+            whirlpoolIncluded: Boolean,
+            sizeIncluded: Boolean,
             mod: BigInteger? = null,
-            privateKey: BigInteger? = null,
-            newFormat: Boolean = false
+            privateKey: BigInteger? = null
         ): Js5CacheValidator {
-            val archiveCount = if (whirlpool) {
+            val archiveCount = if (whirlpoolIncluded) {
                 buf.readUnsignedByte().toInt()
             } else {
                 buf.writerIndex() / Js5ArchiveValidator.ENCODED_SIZE
@@ -207,16 +217,16 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
             val archiveChecksums = Array(archiveCount) {
                 val crc = buf.readInt()
                 val version = buf.readInt()
-                val fileCount = if (whirlpool && newFormat) buf.readInt() else null
-                val indexFileSize = if (whirlpool && newFormat) buf.readInt() else null
-                val whirlPoolDigest = if (whirlpool) {
+                val fileCount = if (whirlpoolIncluded && sizeIncluded) buf.readInt() else null
+                val indexFileSize = if (whirlpoolIncluded && sizeIncluded) buf.readInt() else null
+                val whirlPoolDigest = if (whirlpoolIncluded) {
                     val digest = ByteArray(WHIRLPOOL_HASH_SIZE)
                     buf.readBytes(digest)
                     digest
                 } else null
-                Js5ArchiveValidator(crc, version, fileCount, indexFileSize, whirlPoolDigest)
+                Js5ArchiveValidator(crc, version, whirlPoolDigest, fileCount, indexFileSize)
             }
-            if (whirlpool) {
+            if (whirlpoolIncluded) {
                 val calcDigest = buf.whirlPoolHash(1, buf.readerIndex() - 1)
                 val readDigest =  buf.array().sliceArray(buf.readerIndex() until buf.writerIndex())
                 val decReadDigest= if (mod != null && privateKey != null) {
