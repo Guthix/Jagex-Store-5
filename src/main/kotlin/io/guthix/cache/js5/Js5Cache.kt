@@ -105,7 +105,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
             val data = readStore.read(Js5Store.MASTER_INDEX, archiveIndex)
             if(data == Unpooled.EMPTY_BUFFER) continue
             val settings = Js5ArchiveSettings.decode(
-                Js5Container.decode(data, xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
+                Js5Container.decode(data.duplicate(), xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
             )
             val whirlPool = if(includeWhirlpool) data.whirlPoolHash() else null
             val (groupCount, uncompressedSize) = if(includeSizes) {
