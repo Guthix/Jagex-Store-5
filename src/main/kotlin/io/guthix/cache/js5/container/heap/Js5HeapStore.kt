@@ -59,7 +59,7 @@ class Js5HeapStore private constructor(
             val archiveSettingsData = data.getOrPut(Js5Store.MASTER_INDEX, { mutableMapOf() })
             for(archiveId in 0 until store.archiveCount) {
                 val rawSettings = store.read(Js5Store.MASTER_INDEX, archiveId)
-                archiveSettingsData[archiveId] = rawSettings
+                archiveSettingsData[archiveId] = rawSettings.copy()
                 val settings = Js5ArchiveSettings.decode(Js5Container.decode(rawSettings.duplicate()))
                 archiveSettings[archiveId] = settings
             }
@@ -69,9 +69,9 @@ class Js5HeapStore private constructor(
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
                     val rawGroup = store.read(archiveId, groupId)
                     if(Js5Container.decodeVersion(rawGroup.duplicate()) == null || appendVersions) {
-                        archiveData[groupId] = rawGroup
+                        archiveData[groupId] = rawGroup.copy()
                     } else {
-                        archiveData[groupId] = rawGroup.slice(0, rawGroup.writerIndex() - 2)
+                        archiveData[groupId] = rawGroup.slice(0, rawGroup.writerIndex() - 2).copy()
                     }
                 }
             }
