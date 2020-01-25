@@ -18,13 +18,11 @@
 package io.guthix.cache.js5.container.heap
 
 import io.guthix.cache.js5.Js5ArchiveSettings
-import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5Store
 import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.netty.buffer.ByteBuf
 import java.io.FileNotFoundException
-import java.nio.file.Path
 
 /**
  * A [Js5Store] that holds all data into heap memory.
