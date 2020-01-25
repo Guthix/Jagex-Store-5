@@ -22,7 +22,7 @@ import io.guthix.cache.js5.Js5CacheValidator
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5Store
 import io.guthix.cache.js5.container.disk.Js5DiskStore
-import io.guthix.cache.js5.container.net.Js5SocketReader
+import io.guthix.cache.js5.container.net.Js5NetReader
 import io.guthix.cache.js5.util.crc
 import io.guthix.cache.js5.util.whirlPoolHash
 import io.netty.buffer.ByteBuf
@@ -75,7 +75,7 @@ object Js5Downloader {
         logger.info { "Downloading cache to $outputDir" }
         if(!Files.isDirectory(outputDir)) outputDir.toFile().mkdirs()
         val ds = Js5DiskStore.open(outputDir)
-        val sr = Js5SocketReader.open(
+        val sr = Js5NetReader.open(
             sockAddr = InetSocketAddress(address, port),
             revision = revision,
             priorityMode = false

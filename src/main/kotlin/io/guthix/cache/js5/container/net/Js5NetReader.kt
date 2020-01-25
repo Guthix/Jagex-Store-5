@@ -20,6 +20,7 @@ import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.disk.Sector
 import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5ReadStore
+import io.guthix.cache.js5.Js5ArchiveSettings
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
@@ -53,12 +54,13 @@ private enum class Js5Request(val opcode: Int) {
 data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteBuf) : DefaultByteBufHolder(data)
 
 /**
- * A socket reader for reading [Js5Container]s.
+ * A [Js5ReadStore] for reading files for a remote JS5 connection. This reader only works for caches that don't use the
+ * [Js5ArchiveSettings.Format.VERSIONED_LARGE] format.
  *
  * @property socketChannel The [SocketChannel] to read and write the data.
  * @property priorityMode Whether to make priority file requests.
  */
-class Js5SocketReader private constructor(
+class Js5NetReader private constructor(
     private val socketChannel: SocketChannel,
     var priorityMode: Boolean = false
 ) : Js5ReadStore {
@@ -82,7 +84,7 @@ class Js5SocketReader private constructor(
      * Reads the file response and blocks until it has been completely read.
      */
     fun readFileResponse(): FileResponse {
-        val headerBuffer = Unpooled.buffer(8)
+        val headerBuffer = Unpooled.buffer(HEADER_RESPONSE_SIZE)
         while(headerBuffer.isWritable) headerBuffer.writeBytes(socketChannel, headerBuffer.writableBytes())
         headerBuffer.forEachByte { it xor xorKey; true }
         val indexFileId = headerBuffer.readUnsignedByte().toInt()
@@ -99,9 +101,7 @@ class Js5SocketReader private constructor(
         )
         containerBuffer.writeByte(compression.opcode)
         containerBuffer.writeInt(compressedSize)
-        while(dataBuf.isWritable) {
-            dataBuf.writeBytes(socketChannel, dataBuf.writableBytes())
-        }
+        while(dataBuf.isWritable) dataBuf.writeBytes(socketChannel, dataBuf.writableBytes())
         dataBuf.forEachByte { it xor xorKey; true }
         val headerDataSize = if(dataBuf.readableBytes() < BYTES_AFTER_HEADER) { // write all data after header
             dataBuf.readableBytes()
@@ -179,6 +179,16 @@ class Js5SocketReader private constructor(
         private const val REQUEST_PACKET_SIZE = 4
 
         /**
+         * Size of the header of the response.
+         */
+        private const val HEADER_RESPONSE_SIZE = Byte.SIZE_BYTES + Short.SIZE_BYTES + Byte.SIZE_BYTES + Int.SIZE_BYTES
+
+        /**
+         * Size of the version handshake packet.
+         */
+        private const val HANSHAKE_PACKET_SIZE = Int.SIZE_BYTES + Byte.SIZE_BYTES
+
+        /**
          * Amount of bytes to read after decoding the header.
          */
         private const val BYTES_AFTER_HEADER = Sector.DATA_SIZE - 8
@@ -189,35 +199,39 @@ class Js5SocketReader private constructor(
         private const val BYTES_AFTER_BLOCK = Sector.DATA_SIZE - 1
 
         /**
-         * Opens a [Js5SocketReader] and initializes the JS5 connection.
+         * Opens a [Js5NetReader] and initializes the JS5 connection.
          *
          * @param sockAddr The address to connect to.
          * @param revision The current game revision to connect to.
          * @param xorKey The encryption key to use.
-         * @param priorityMode Whether to use [Js5SocketReader.priorityMode]
+         * @param priorityMode Whether to use [Js5NetReader.priorityMode]
          */
         fun open(
             sockAddr: InetSocketAddress,
             revision: Int,
             xorKey: Byte = 0,
             priorityMode: Boolean = false
-        ): Js5SocketReader {
-            val socketChannel = SocketChannel.open(sockAddr)
+        ): Js5NetReader {
             logger.info("Initializing JS5 connection to ${sockAddr.address}")
-            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
-            socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
+            val socketChannel = SocketChannel.open(sockAddr).apply {
+                setOption(StandardSocketOptions.TCP_NODELAY, true)
+                setOption(StandardSocketOptions.SO_KEEPALIVE, true)
+            }
+            logger.info("Successfully connected to ${sockAddr.address}")
             logger.info("Sending version handshake for revision $revision")
-            val buffer = Unpooled.buffer(5).apply {
+            val hsBuf = Unpooled.buffer(HANSHAKE_PACKET_SIZE).apply {
                 writeByte(JS5_CONNECTION_TYPE)
                 writeInt(revision)
             }
-            buffer.readBytes(socketChannel, buffer.readableBytes())
-            val buf = Unpooled.buffer(1)
-            buf.writeBytes(socketChannel, buf.writableBytes())
-            val statusCode = buf.readUnsignedByte().toInt()
-            if(statusCode != 0) throw IOException("Could not establish connection with JS5 Server error code $statusCode.")
+            hsBuf.readBytes(socketChannel, hsBuf.readableBytes())
+            val statusCode = Unpooled.buffer(Byte.SIZE_BYTES).apply {
+                writeBytes(socketChannel, writableBytes())
+            }.readUnsignedByte().toInt()
+            if(statusCode != 0) throw IOException(
+                "Could not establish connection with JS5 Server status code: $statusCode."
+            )
             logger.info("JS5 connection successfully established")
-            val js5SocketReader = Js5SocketReader(socketChannel, priorityMode)
+            val js5SocketReader = Js5NetReader(socketChannel, priorityMode)
             if(xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
             return js5SocketReader
         }
