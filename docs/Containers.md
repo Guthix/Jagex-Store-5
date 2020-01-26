@@ -1,20 +1,16 @@
 # Containers
 
-Containers are the smallest possible unit which can be read and written
-to the cache. Containers are optionally encrypted and optionally 
-compressed blocks of data. The data can either represent a group
-(loaded from archive indexes) or archive settings (loaded from
-the master index).
-
-Containers can be encrypted with an XTEA block cipher. The cache also 
-supports 3 different types of compressions: BZIP2, GZIP and LZMA. 
-Encryption and compression are both optional. The compression type is
-encoded in the format.
+Containers are optionally encrypted and optionally compressed 
+blocks of data. Containers are the smallest possible unit 
+which can be read and written to the cache. The data can either 
+represent a group (loaded from archive indexes) or archive 
+settings (loaded from the master index).
 
 ![Container Encoding](images/Container.svg)
 
-The type of compression is indicated by an opcode with the following 
-mapping:
+The first byte in a container is the the compression type opcode. The opcode
+represents what compression is used to compress the data. There are 4 possible
+compression types supported:
 
 | Opcode | Compression |
 |--------|-------------|
@@ -23,11 +19,12 @@ mapping:
 | 2      | GZIP        |
 | 3      | LZMA        |
 
-Every container also contains the compressed and uncompressed size. The
-compressed size is used to determine how many bytes needs to be 
-compressed when reading and the uncompressed size can be used for 
-verification. Containers can also optionally contain a version. This 
-version is used to check if the container is up to date. This is done
-by comparing it to the version that is stored in the archive settings.
-It thus only makes sense to add this version to containers that encode
-group data.
+After that the container encodes the size of the compressed data. The
+rest of the container except for the version is (optionally) 
+encrypted using an XTEA block cipher. An XTEA key (128 bit key) is required
+to decipher the uncompressed size and compressed data. The end of the container
+can also have a version attached. This version is optional and also not
+send when transferring a cache over a network. The version is appended by the client.
+The client uses this version to verify if the container is out of date by 
+comparing it with the version in the group settings. The containers that contain
+settings files thus can never have versions attached.

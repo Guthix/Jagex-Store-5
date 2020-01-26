@@ -1,32 +1,25 @@
 # File Store
 
-The file store describes how the groups and files are stored on disk.
+The disk store describes how the groups and files are stored on disk.
 The structure of the files on disk looks as follows: 
 
 ![Cache stored on disk](images/FileOverview.svg)
 
-A cache should always have at least 1 data file(.dat2), 1 settings 
+A JS5 cache should always have at least 1 data file(.dat2), 1 settings 
 file(.idx255) and 1 archive(.idxi) file. There can be multiple 
 archive files in one cache. Each archive file represents a type of
 data. Examples of data types are models, compiled scripts, configuration
-data, songs. The amount of archives in a cache depends on the game.
-Archive files should always be sequential and can go from .idx0 up to
-.idx254. It is thus not possible to have an .idx0 file and an .idx2 file
-without an .idx1 file.
-
-When looking at the size of the cache you might notice that the .idx 
-files are really small. This is because all cache data is stored in the
-data file. The archive and settings files just contain references
-to the data stored in the data file. Every .idx file including the 
-settings file contains a list of pointers which points to locations
-in the data file.
+data, songs.
 
 ## Index files
 
-Index files contain pointers to data in the data files. Both archive
-files and settings files are considered index files. Index files have
-the .idxi file extension where is the a number ranging from 0 up to 255.
-Index files have the following structure:
+Index files contain pointers to data in the data files. We call these pointers
+indices. There are 2 types of index files: archive index files and settings
+index files. Archive index files have the file extension .idxi where i ranges from
+0 to 254 inclusive. Archive index files have to be sequential. A cache containing
+only index file .idx0 and .idx2 without .idx1 is invalid. The settings index file 
+always has the file extension .idx255 and there can only be one per cache. We also
+call the settings index file the master index file.
 
 ![Index File](images/IndexFile.svg)
 
@@ -39,15 +32,17 @@ It looks as follows:
 
 ![Index Encoding](images/Index.svg)
 
+If data is removed from the cache the data size can be set to 0.
+
 ## Data file
 
 The data file is where the actual cache data is stored. The data file is
 a list of sectors. sectors are of fixed size and multiple sectors can
-represent a file. A data file has the following structure:
+represent a container. A data file has the following structure:
 
 ![Data File](images/DataFile.svg)
 
-sectors are made out of 2 parts. The sector header and the data part.
+Sectors are made out of 2 parts. The sector header and the data part.
 The sector header contains the id of the index file it belongs to
 (the file extension number), the next sector which belongs to the same
 container, its position in the list of sectors belonging to that 
