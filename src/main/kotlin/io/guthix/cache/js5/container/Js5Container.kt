@@ -110,21 +110,20 @@ data class Js5Container(
         fun decode(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Container {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
             val compressedSize = buf.readInt()
-            val totalHeaderSize = ENC_HEADER_SIZE + compression.headerSize
-            val indexAfterCompression = totalHeaderSize + compressedSize
-            if(!xteaKey.isZeroKey) {
-                buf.xteaDecrypt(xteaKey, start = ENC_HEADER_SIZE, end = indexAfterCompression)
-            }
+            val encComprSize = compression.headerSize + compressedSize
+            val decBuf = if(!xteaKey.isZeroKey) {
+                buf.xteaDecrypt(xteaKey, end = buf.readerIndex() + encComprSize)
+            } else buf.slice(buf.readerIndex(), buf.readableBytes())
             val decompBuf = if(compression !is Uncompressed) {
-                val uncompressedSize = buf.readInt()
-                val uncompressed = compression.decompress(buf, uncompressedSize)
+                val uncompressedSize = decBuf.readInt()
+                val uncompressed = compression.decompress(decBuf, uncompressedSize)
                 if (uncompressed.writerIndex() != uncompressedSize) throw IOException(
                     "Decompressed size was ${uncompressed.writerIndex()} but expected $uncompressedSize."
                 )
                 Unpooled.wrappedBuffer(uncompressed)
-            } else buf.slice(ENC_HEADER_SIZE, compressedSize)
-            buf.readerIndex(indexAfterCompression)
-            val version = if(buf.readableBytes() >= 2) buf.readShort().toInt() else null
+            } else decBuf.slice(0, compressedSize)
+            decBuf.readerIndex(encComprSize)
+            val version = if(decBuf.readableBytes() >= 2) decBuf.readShort().toInt() else null
             return Js5Container(decompBuf, xteaKey, compression, version)
         }
 
@@ -136,24 +135,23 @@ data class Js5Container(
         fun decodeVersion(buf: ByteBuf): Int? {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
             val compressedSize = buf.readInt()
-            val indexAfterCompression = ENC_HEADER_SIZE + compression.headerSize + compressedSize
-            buf.readerIndex(indexAfterCompression)
+            val totalSize = ENC_HEADER_SIZE + compression.headerSize + compressedSize
+            buf.readerIndex(totalSize)
             return if(buf.readableBytes() >= 2) buf.readShort().toInt() else null
         }
 
         /**
          * Returns the version of an encoded [Js5Container.Size].
          */
-        fun decodeSize(data: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Size {
-            val compression = Js5Compression.getByOpcode(data.readUnsignedByte().toInt())
-            val compressedSize = data.readInt()
+        fun decodeSize(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Size {
+            val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
+            val compressedSize = buf.readInt()
             if(compression is Uncompressed) return Size(compressedSize, compressedSize)
-            val totalHeaderSize = ENC_HEADER_SIZE + compression.headerSize
-            val indexAfterCompression = totalHeaderSize + compressedSize
-            if(!xteaKey.isZeroKey) {
-                data.xteaDecrypt(xteaKey, start = ENC_HEADER_SIZE, end = indexAfterCompression)
-            }
-            val uncompressedSize = data.readInt()
+            val encComprSize = compression.headerSize + compressedSize
+            val decBuf = if(!xteaKey.isZeroKey) {
+                buf.xteaDecrypt(xteaKey, end = buf.readerIndex() + encComprSize)
+            } else buf.slice(buf.readerIndex(), buf.readableBytes())
+            val uncompressedSize = decBuf.readInt()
             return Size(compressedSize, uncompressedSize)
         }
     }
