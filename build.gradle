@@ -31,7 +31,7 @@ test {
 }
 
 dependencies {
-    api group: 'com.github.guthix', name: 'Jagex-ByteBuf', version: jagexByteBufCommit
+    implementation group: 'com.github.guthix', name: 'Jagex-ByteBuf', version: jagexByteBufCommit
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
     implementation group: 'org.tukaani', name: 'xz', version: xzVersion
     implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: bouncyCastleVersion
