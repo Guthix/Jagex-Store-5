@@ -37,7 +37,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
     /**
      * The amount of achives in this [Js5Cache].
      */
-    val archiveCount get() = writeStore?.archiveCount ?: throw IllegalStateException(
+    val archiveCount get() = writeStore?.archiveCount ?: error(
         "No write store provided, archive count unknown."
     )
 
@@ -79,7 +79,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
     ): Js5Archive {
-        writeStore ?: throw IllegalStateException("No Js5WriteStore provided.")
+        writeStore ?: error("No Js5WriteStore provided.")
         return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash,
             xteaKey, compression, mutableMapOf(), readStore, writeStore
         )
@@ -97,7 +97,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
         includeSizes: Boolean,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Js5CacheValidator  {
-        val archiveCount = writeStore?.archiveCount ?: throw IllegalStateException(
+        val archiveCount = writeStore?.archiveCount ?: error(
             "No write store provided, archive count unknown."
         )
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()

@@ -134,7 +134,7 @@ data class Js5Archive internal constructor(
      * Removes a [Js5Group] from this [Js5Archive].
      */
     fun removeGroup(groupId: Int) {
-        writeStore ?: throw IllegalStateException("No Js5WriteStore provided.")
+        writeStore ?: error("No Js5WriteStore provided.")
         groupSettings.remove(groupId) ?: throw IllegalArgumentException(
             "Unable to remove group $groupId from archive $id because the group does not exist."
         )
@@ -145,7 +145,7 @@ data class Js5Archive internal constructor(
      * Writes the group [Js5Container] data to the [writeStore].
      */
     private fun writeGroupData(groupId: Int, data: ByteBuf): Int {
-        writeStore ?: throw IllegalStateException("No Js5WriteStore provided.")
+        writeStore ?: error("No Js5WriteStore provided.")
         val compressedSize = data.readableBytes()
         writeStore.write(id, groupId, data)
         return compressedSize
