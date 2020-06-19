@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -35,7 +51,7 @@ import java.io.IOException
  * @property compression The compression used to compress or decompress this [Js5Container].
  * @property version (Optional) The version of this [Js5Container].
  */
-data class Js5Container(
+public data class Js5Container(
     var data: ByteBuf,
     var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed(),
@@ -44,12 +60,12 @@ data class Js5Container(
     /**
      * Whether this [Js5Container] contains a version.
      */
-    val isVersioned get() = version != null
+    public val isVersioned: Boolean get() = version != null
 
     /**
      * Encodes the container into data that can be stored on the cache.
      */
-    fun encode(): ByteBuf {
+    public fun encode(): ByteBuf {
         val uncompressedSize = data.readableBytes()
         val compressedData = compression.compress(data)
         val compressedSize = compressedData.writerIndex()
@@ -94,20 +110,20 @@ data class Js5Container(
      * @property compressed The compressed size of the [Js5Container] without the version.
      * @property uncompressed The uncompressed size of the data of the [Js5Container].
      */
-    data class Size(var compressed: Int, var uncompressed: Int)
+    public data class Size(var compressed: Int, var uncompressed: Int)
 
-    companion object {
+    public companion object {
         /**
          * Amount of bytes before encryption starts.
          */
-        const val ENC_HEADER_SIZE = Byte.SIZE_BYTES + Int.SIZE_BYTES
+        public const val ENC_HEADER_SIZE: Int = Byte.SIZE_BYTES + Int.SIZE_BYTES
 
         private val IntArray.isZeroKey get() = contentEquals(XTEA_ZERO_KEY)
 
         /**
          * Decodes the [Js5Container].
          */
-        fun decode(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Container {
+        public fun decode(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Container {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
             val compressedSize = buf.readInt()
             val encComprSize = compression.headerSize + compressedSize
@@ -132,7 +148,7 @@ data class Js5Container(
          *
          * This method is more efficient than calling [decode] and taking the version of the [Js5Container] object.
          */
-        fun decodeVersion(buf: ByteBuf): Int? {
+        public fun decodeVersion(buf: ByteBuf): Int? {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
             val compressedSize = buf.readInt()
             val totalSize = ENC_HEADER_SIZE + compression.headerSize + compressedSize
@@ -143,7 +159,7 @@ data class Js5Container(
         /**
          * Returns the version of an encoded [Js5Container.Size].
          */
-        fun decodeSize(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Size {
+        public fun decodeSize(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Size {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
             val compressedSize = buf.readInt()
             if(compression is Uncompressed) return Size(compressedSize, compressedSize)

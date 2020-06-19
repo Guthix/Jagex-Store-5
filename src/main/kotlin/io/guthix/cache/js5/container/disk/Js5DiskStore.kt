@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -35,7 +51,7 @@ private val logger = KotlinLogging.logger {}
  * @property indexFiles The index files
  * @property archiveCount The amount of archives in the [Js5DiskStore].
  */
-class Js5DiskStore private constructor(
+public class Js5DiskStore private constructor(
     private val root: Path,
     private val dat2File: Dat2File,
     private val indexFiles: MutableMap<Int, IdxFile>,
@@ -117,7 +133,7 @@ class Js5DiskStore private constructor(
         indexFiles.values.forEach { it.close() }
     }
 
-    companion object {
+    public companion object {
         /**
          * The default cache file name.
          */
@@ -128,7 +144,7 @@ class Js5DiskStore private constructor(
          *
          * @param root The folder where the cache is located.
          */
-        fun open(root: Path): Js5DiskStore {
+        public fun open(root: Path): Js5DiskStore {
             require(Files.isDirectory(root)) { "$root is not a directory or doesn't exist." }
             val dataPath = root.resolve("$FILE_NAME.${Dat2File.EXTENSION}")
             if(Files.exists(dataPath)) {

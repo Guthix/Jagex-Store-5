@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -31,13 +47,16 @@ import java.math.BigInteger
  * @property readStore The [Js5ReadStore] where all read operations are done.
  * @property writeStore The [Js5WriteStore] where all the write operations are done.
  */
-class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5WriteStore? = null) : AutoCloseable {
-    constructor(store: Js5Store): this(store, store)
+public class Js5Cache(
+    private val readStore: Js5ReadStore,
+    private val writeStore: Js5WriteStore? = null
+) : AutoCloseable {
+    public constructor(store: Js5Store): this(store, store)
 
     /**
-     * The amount of achives in this [Js5Cache].
+     * The amount of archive in this [Js5Cache].
      */
-    val archiveCount get() = writeStore?.archiveCount ?: error(
+    public val archiveCount: Int get() = writeStore?.archiveCount ?: error( // TODO change to read store
         "No write store provided, archive count unknown."
     )
 
@@ -47,7 +66,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
      * @param archiveId The archive id to read.
      * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings] of this [Js5Archive].
      */
-    fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
+    public fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
         val data = readStore.read(Js5Store.MASTER_INDEX, archiveId)
         if(data == Unpooled.EMPTY_BUFFER) throw IOException(
             "Settings for archive $archiveId do not exist."
@@ -70,7 +89,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
      * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings].
      * @param compression The [Js5Compression] used to store the [Js5ArchiveSettings].
      */
-    fun addArchive(
+    public fun addArchive(
         version: Int? = null,
         containsNameHash: Boolean = false,
         containsWpHash: Boolean = false,
@@ -79,9 +98,9 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
         xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed()
     ): Js5Archive {
-        writeStore ?: error("No Js5WriteStore provided.")
-        return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash,
-            xteaKey, compression, mutableMapOf(), readStore, writeStore
+        writeStore ?: error("Can't add archive because there is no write store provided.")
+        return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes,
+            containsUnknownHash, xteaKey, compression, mutableMapOf(), readStore, writeStore
         )
     }
 
@@ -92,14 +111,13 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
      * @param includeWhirlpool Whether to include a whirlpool hash of the archive.
      * @param includeSizes Whether to include the uncompressed size and group count for every archive.
      */
-    fun generateValidator(
+    public fun generateValidator(
         includeWhirlpool: Boolean,
         includeSizes: Boolean,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Js5CacheValidator  {
-        val archiveCount = writeStore?.archiveCount ?: error(
-            "No write store provided, archive count unknown."
-        )
+        // TODO change to readstore
+        val archiveCount = writeStore?.archiveCount ?: error("No write store provided, archive count unknown.")
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for(archiveIndex in 0 until archiveCount) {
             val data = readStore.read(Js5Store.MASTER_INDEX, archiveIndex)
@@ -123,7 +141,7 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
         return Js5CacheValidator(archiveChecksums.toTypedArray())
     }
 
-    override fun close() =  readStore.close()
+    override fun close() { readStore.close() }
 }
 
 /**
@@ -132,11 +150,11 @@ class Js5Cache(private val readStore: Js5ReadStore, private val writeStore: Js5W
  *
  * @property archiveValidators The validators for each [Js5Archive].
  */
-data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) {
-    val containsWhirlpool get() = archiveValidators.all { it.whirlpoolDigest != null }
+public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) {
+    public val containsWhirlpool: Boolean get() = archiveValidators.all { it.whirlpoolDigest != null }
 
-    val newFormat get() = archiveValidators.all { it.fileCount != null } &&
-            archiveValidators.all { it.uncompressedSize != null }
+    public val newFormat: Boolean get() = archiveValidators.all { it.fileCount != null }
+        && archiveValidators.all { it.uncompressedSize != null }
 
     /**
      * Encodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
@@ -144,7 +162,7 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
      * @param mod Modulus to (optionally) encrypt the whirlpool hash using RSA.
      * @param pubKey The public key to (optionally) encrypt the whirlpool hash using RSA.
      */
-    fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuf {
+    public fun encode(mod: BigInteger? = null, pubKey: BigInteger? = null): ByteBuf {
         val buf = when {
             containsWhirlpool && newFormat -> Unpooled.buffer(
                 WP_ENCODED_SIZE + Js5ArchiveValidator.ENCODED_SIZE_WP_NEW * archiveValidators.size
@@ -187,11 +205,11 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
         return archiveValidators.contentHashCode()
     }
 
-    companion object {
+    public companion object {
         /**
          * Byte size required when the validator contains whirlpool hashes.
          */
-        const val WP_ENCODED_SIZE = Byte.SIZE_BYTES + WHIRLPOOL_HASH_SIZE
+        private const val WP_ENCODED_SIZE = Byte.SIZE_BYTES + WHIRLPOOL_HASH_SIZE
 
         /**
          * Decodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
@@ -202,7 +220,7 @@ data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) 
          * @param privateKey The public key to (optionally) encrypt the whirlpool hash.
          * @param sizeIncluded Whether to decode using the new format.
          */
-        fun decode(
+        public fun decode(
             buf: ByteBuf,
             whirlpoolIncluded: Boolean,
             sizeIncluded: Boolean,

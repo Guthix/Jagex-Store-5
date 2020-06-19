@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -51,7 +67,11 @@ private enum class Js5Request(val opcode: Int) {
 /**
  * A file response from the server.
  */
-data class FileResponse(val indexFileId: Int, val containerId: Int, val data: ByteBuf) : DefaultByteBufHolder(data)
+public data class FileResponse(
+    val indexFileId: Int,
+    val containerId: Int,
+    val data: ByteBuf
+) : DefaultByteBufHolder(data)
 
 /**
  * A [Js5ReadStore] for reading files for a remote JS5 connection. This reader only works for caches that don't use the
@@ -60,9 +80,9 @@ data class FileResponse(val indexFileId: Int, val containerId: Int, val data: By
  * @property socketChannel The [SocketChannel] to read and write the data.
  * @property priorityMode Whether to make priority file requests.
  */
-class Js5NetReader private constructor(
+public class Js5NetReader private constructor(
     private val socketChannel: SocketChannel,
-    var priorityMode: Boolean = false
+    public var priorityMode: Boolean = false
 ) : Js5ReadStore {
     /**
      * The encryption key.
@@ -83,7 +103,7 @@ class Js5NetReader private constructor(
     /**
      * Reads the file response and blocks until it has been completely read.
      */
-    fun readFileResponse(): FileResponse {
+    public fun readFileResponse(): FileResponse {
         val headerBuffer = Unpooled.buffer(HEADER_RESPONSE_SIZE)
         while(headerBuffer.isWritable) headerBuffer.writeBytes(socketChannel, headerBuffer.writableBytes())
         headerBuffer.forEachByte { it xor xorKey; true }
@@ -132,7 +152,7 @@ class Js5NetReader private constructor(
      *
      * @param key The key to update.
      */
-    fun updateEncryptionKey(key: Byte) {
+    public fun updateEncryptionKey(key: Byte) {
         xorKey = key
         sendEncryptionKeyChange(key)
     }
@@ -157,7 +177,7 @@ class Js5NetReader private constructor(
      * @param containerId The container id to request.
      * @param priority Whether to send a priority request.
      */
-    fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
+    public fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
         logger.debug("Requesting index file $indexFileId container $containerId")
         val buf = Unpooled.buffer(REQUEST_PACKET_SIZE)
         if(priority) {
@@ -170,9 +190,9 @@ class Js5NetReader private constructor(
         buf.readBytes(socketChannel, buf.readableBytes())
     }
 
-    override fun close() = socketChannel.close()
+    override fun close() { socketChannel.close() }
 
-    companion object {
+    public companion object {
         /**
          * Request packet size for any request.
          */
@@ -206,7 +226,7 @@ class Js5NetReader private constructor(
          * @param xorKey The encryption key to use.
          * @param priorityMode Whether to use [Js5NetReader.priorityMode]
          */
-        fun open(
+        public fun open(
             sockAddr: InetSocketAddress,
             revision: Int,
             xorKey: Byte = 0,

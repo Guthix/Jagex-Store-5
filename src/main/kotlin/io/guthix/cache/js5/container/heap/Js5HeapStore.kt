@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -15,6 +31,7 @@
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
 @file:Suppress("unused")
+
 package io.guthix.cache.js5.container.heap
 
 import io.guthix.cache.js5.Js5ArchiveSettings
@@ -27,11 +44,11 @@ import java.io.FileNotFoundException
 /**
  * A [Js5Store] that holds all data into heap memory.
  */
-class Js5HeapStore private constructor(
+public class Js5HeapStore private constructor(
     private val containerData: MutableMap<Int, MutableMap<Int, ByteBuf>>,
     override var archiveCount: Int
 ) : Js5Store {
-    override fun read(indexId: Int, containerId: Int) = containerData[indexId]?.get(containerId)?.duplicate()
+    override fun read(indexId: Int, containerId: Int): ByteBuf = containerData[indexId]?.get(containerId)?.duplicate()
         ?: throw FileNotFoundException("Can't read data because index $indexId container $containerId does not exist.")
 
     override fun write(indexId: Int, containerId: Int, data: ByteBuf) {
@@ -42,20 +59,20 @@ class Js5HeapStore private constructor(
         containerData.remove(indexId)
     }
 
-    override fun close() { }
+    override fun close() {}
 
-    companion object {
+    public companion object {
         /**
          * Opens a [Js5HeapStore] by reading the data from a [Js5DiskStore].
          *
          * @param appendVersions Whether to append versions to the buffers in the [Js5HeapStore].
          */
-        fun open(store: Js5DiskStore, appendVersions: Boolean = false): Js5HeapStore {
+        public fun open(store: Js5DiskStore, appendVersions: Boolean = false): Js5HeapStore {
             val data = mutableMapOf<Int, MutableMap<Int, ByteBuf>>()
-            val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>() // used for reading group data
+            val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>()
 
             val archiveSettingsData = data.getOrPut(Js5Store.MASTER_INDEX, { mutableMapOf() })
-            for(archiveId in 0 until store.archiveCount) {
+            for (archiveId in 0 until store.archiveCount) {
                 val rawSettings = store.read(Js5Store.MASTER_INDEX, archiveId)
                 archiveSettingsData[archiveId] = rawSettings.copy()
                 val settings = Js5ArchiveSettings.decode(Js5Container.decode(rawSettings.duplicate()))
@@ -66,7 +83,7 @@ class Js5HeapStore private constructor(
                 val archiveData = data.getOrPut(archiveId, { mutableMapOf() })
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
                     val rawGroup = store.read(archiveId, groupId)
-                    if(Js5Container.decodeVersion(rawGroup.duplicate()) == null || appendVersions) {
+                    if (Js5Container.decodeVersion(rawGroup.duplicate()) == null || appendVersions) {
                         archiveData[groupId] = rawGroup.copy()
                     } else {
                         archiveData[groupId] = rawGroup.slice(0, rawGroup.writerIndex() - 2).copy()

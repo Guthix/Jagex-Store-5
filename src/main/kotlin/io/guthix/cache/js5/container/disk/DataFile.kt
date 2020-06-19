@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -70,18 +86,18 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
      * Write data to the [Dat2File].
      */
     fun write(indexFileId: Int, containerId: Int, index: Index, data: ByteBuf) {
-        val sectorDataSize = if(Sector.isExtended(containerId))  Sector.EXTENDED_DATA_SIZE else Sector.DATA_SIZE
+        val sectorDataSize = if (Sector.isExtended(containerId)) Sector.EXTENDED_DATA_SIZE else Sector.DATA_SIZE
         var sectorsWritten = 0
         var dataToWrite = index.dataSize
         var curSegByteStart = index.sectorNumber.toLong() * Sector.SIZE.toLong()
         do {
             val containsData = containsData(curSegByteStart)
             val sectorData = data.slice(
-                sectorsWritten * sectorDataSize, if(dataToWrite < sectorDataSize) dataToWrite else sectorDataSize
+                sectorsWritten * sectorDataSize, if (dataToWrite < sectorDataSize) dataToWrite else sectorDataSize
             )
-            val sector = if(containsData) {
+            val sector = if (containsData) {
                 val readSector = readSector(containerId, curSegByteStart)
-                if(readSector.containerId != containerId) { // file doesn't belong to this container so can't overwrite
+                if (readSector.containerId != containerId) { // file doesn't belong to this container so can't overwrite
                     val prevSectorStart = curSegByteStart - Sector.SIZE
                     val prevSector = readSector(containerId, prevSectorStart)
                     val curSector = createEndOfFileSector(containerId, sectorsWritten, indexFileId, sectorData)
@@ -160,7 +176,7 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
         return this
     }
 
-    override fun close() =  fileChannel.close()
+    override fun close() = fileChannel.close()
 
     companion object {
         /**
@@ -217,7 +233,7 @@ internal data class Sector(
     /**
      * Encodes the [Sector] without the data.
      */
-    fun encodeHeader(): ByteBuf = if(isExtended) {
+    fun encodeHeader(): ByteBuf = if (isExtended) {
         Unpooled.buffer(EXTENDED_HEADER_SIZE).writeInt(containerId)
     } else {
         Unpooled.buffer(HEADER_SIZE).writeShort(containerId)
@@ -265,7 +281,7 @@ internal data class Sector(
         /**
          * Decodes a [Sector].
          */
-        fun decode(containerId: Int, data: ByteBuf): Sector = if(isExtended(containerId)) {
+        fun decode(containerId: Int, data: ByteBuf): Sector = if (isExtended(containerId)) {
             decodeExtended(data)
         } else {
             decode(data)

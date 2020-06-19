@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -38,24 +54,24 @@ import java.util.zip.GZIPOutputStream
  * @property opcode The opcode to identify the compression type.
  * @property headerSize The size of the extra data required to use this compression type.
  */
-sealed class Js5Compression(val opcode: Int, val headerSize: Int) {
+public sealed class Js5Compression(public val opcode: Int, public val headerSize: Int) {
     /**
      * Compresses the data.
      */
-    abstract fun compress(input: ByteBuf): ByteBuf
+    public abstract fun compress(input: ByteBuf): ByteBuf
 
     /**
      * Decompresses the data.
      *
      * @param length The expected uncompressed length.
      */
-    abstract fun decompress(input: ByteBuf, length: Int): ByteBuf
+    public abstract fun decompress(input: ByteBuf, length: Int): ByteBuf
 
-    companion object {
+    public companion object {
         /**
          * Creates a new [Js5Compression] instance based on the [Js5Compression.opcode].
          */
-        fun getByOpcode(opcode: Int): Js5Compression = when(opcode) {
+        public fun getByOpcode(opcode: Int): Js5Compression = when(opcode) {
             0 -> Uncompressed()
             1 -> BZIP2()
             2 -> GZIP()
@@ -66,8 +82,8 @@ sealed class Js5Compression(val opcode: Int, val headerSize: Int) {
 }
 
 
-class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
-    override fun compress(input: ByteBuf) = input
+public class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
+    override fun compress(input: ByteBuf): ByteBuf = input
     override fun decompress(input: ByteBuf, length: Int): ByteBuf = input.slice(input.readerIndex(), length)
 
     override fun equals(other: Any?): Boolean {
@@ -80,7 +96,7 @@ class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
     }
 }
 
-class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
+public class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufInputStream(input).use { inStream ->
             val bout = ByteBufOutputStream(Unpooled.buffer())
@@ -109,14 +125,14 @@ class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
         return javaClass.hashCode()
     }
 
-    companion object {
+    private companion object {
         private const val BLOCK_SIZE = 1
 
         private val HEADER = "BZh$BLOCK_SIZE".toByteArray(StandardCharsets.US_ASCII)
     }
 }
 
-class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
+public class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufInputStream(input).use { inStream ->
             val bout = ByteBufOutputStream(Unpooled.buffer())
@@ -145,8 +161,8 @@ class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
     }
 }
 
-class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
-    lateinit var header: ByteBuf
+public class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
+    public lateinit var header: ByteBuf
 
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufOutputStream(Unpooled.buffer()).use { bout ->

@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -30,7 +46,7 @@ private val crc = CRC32()
 /**
  * Calculates the [java.util.zip.CRC32] of a [ByteArray].
  */
-fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int {
+public fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int {
     crc.reset()
     if(hasArray()) {
         val start = if(this is CompositeByteBuf) component(0).readerIndex() else index
@@ -59,7 +75,7 @@ private val wpDigest: MessageDigest by lazy {
 /**
  * Calculates the whirlpool hash for a [ByteBuf].
  */
-fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
+public fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
     Security.addProvider(BouncyCastleProvider())
     if(hasArray()) {
         val start = if(this is CompositeByteBuf) component(0).readerIndex() else index

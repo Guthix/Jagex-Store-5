@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -14,7 +30,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("unused", "DuplicatedCode")
 package io.guthix.cache.js5
 
 import io.guthix.buffer.readLargeSmart
@@ -49,7 +64,7 @@ private val logger = KotlinLogging.logger { }
  * @property readStore The [Js5ReadStore] where all read operations are done.
  * @property writeStore The [Js5WriteStore] where all the write operations are done.
  */
-data class Js5Archive internal constructor(
+public data class Js5Archive internal constructor(
     val id: Int,
     var version: Int? = null,
     val containsNameHash: Boolean = false,
@@ -75,7 +90,7 @@ data class Js5Archive internal constructor(
      * @param groupId The group id to read.
      * @param xteaKey The XTEA encryption key used to encrypt this group.
      */
-    fun readGroup(groupId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+    public fun readGroup(groupId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
         val settings = groupSettings.getOrElse(groupId) {
             throw IllegalArgumentException("Unable to read group $groupId because it does not exist.")
         }
@@ -89,7 +104,7 @@ data class Js5Archive internal constructor(
      * @param groupName The group name to read.
      * @param xteaKey The XTEA encryption key used to encrypt this group.
      */
-    fun readGroup(groupName: String, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+    public fun readGroup(groupName: String, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
         check(containsNameHash) {
             "Unable to read group by name because the archive does not contain name hashes."
         }
@@ -102,7 +117,11 @@ data class Js5Archive internal constructor(
     /**
      * Reads a group from the [readStore] using the [Js5GroupSettings].
      */
-    private fun readGroup(archiveId: Int, groupSettings: Js5GroupSettings, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
+    private fun readGroup(
+        archiveId: Int,
+        groupSettings: Js5GroupSettings,
+        xteaKey: IntArray = XTEA_ZERO_KEY
+    ): Js5Group {
         val groupData = Js5GroupData.decode(
             Js5Container.decode(readStore.read(id, groupSettings.id), xteaKey),
             groupSettings.fileSettings.size
@@ -118,7 +137,7 @@ data class Js5Archive internal constructor(
      * @param group The [Js5Group] to write.
      * @param appendVersion Whether to append the version to the [Js5Container].
      */
-    fun writeGroup(group: Js5Group, appendVersion: Boolean) {
+    public fun writeGroup(group: Js5Group, appendVersion: Boolean) {
         val container = group.groupData.encode(if(appendVersion) group.version else null)
         val uncompressedSize = container.data.writerIndex()
         val data = container.encode()
@@ -133,7 +152,7 @@ data class Js5Archive internal constructor(
     /**
      * Removes a [Js5Group] from this [Js5Archive].
      */
-    fun removeGroup(groupId: Int) {
+    public fun removeGroup(groupId: Int) {
         writeStore ?: error("No Js5WriteStore provided.")
         groupSettings.remove(groupId) ?: throw IllegalArgumentException(
             "Unable to remove group $groupId from archive $id because the group does not exist."
@@ -190,7 +209,7 @@ data class Js5Archive internal constructor(
         return result
     }
 
-    companion object {
+    internal companion object {
         internal fun create(
             id: Int,
             settings: Js5ArchiveSettings,
@@ -215,7 +234,7 @@ data class Js5Archive internal constructor(
  * @property containsUnknownHash Whether this archive contains an yet unknown hash.
  * @property groupSettings A map of [Js5GroupSettings] indexed by their id.
  */
-data class Js5ArchiveSettings(
+public data class Js5ArchiveSettings(
     var version: Int?,
     val containsNameHash: Boolean,
     val containsWpHash: Boolean,
@@ -226,7 +245,7 @@ data class Js5ArchiveSettings(
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
-    fun encode(xteaKey: IntArray = XTEA_ZERO_KEY, compression: Js5Compression = Uncompressed()): Js5Container {
+    public fun encode(xteaKey: IntArray = XTEA_ZERO_KEY, compression: Js5Compression = Uncompressed()): Js5Container {
         val buf = Unpooled.buffer()
         val format = if(this.version == -1) {
             Format.UNVERSIONED
@@ -311,9 +330,11 @@ data class Js5ArchiveSettings(
      *
      * @property opcode The opcode used to encode the format.
      */
-    enum class Format(val opcode: Int) { UNVERSIONED(5), VERSIONED(6), VERSIONED_LARGE(7) }
+    public enum class Format(public val opcode: Int) {
+        UNVERSIONED(5), VERSIONED(6), VERSIONED_LARGE(7)
+    }
 
-    companion object {
+    public companion object {
         private const val MASK_NAME_HASH = 0x01
         private const val MASK_WHIRLPOOL_HASH = 0x02
         private const val MASK_SIZES = 0x04
@@ -322,7 +343,7 @@ data class Js5ArchiveSettings(
         /**
          * Decodes the [Js5Container] into a [Js5ArchiveSettings].
          */
-        fun decode(container: Js5Container): Js5ArchiveSettings {
+        public fun decode(container: Js5Container): Js5ArchiveSettings {
             val buf = container.data
             val formatOpcode = buf.readUnsignedByte().toInt()
             val format = Format.values().firstOrNull { it.opcode == formatOpcode } ?: throw IOException(
@@ -334,7 +355,9 @@ data class Js5ArchiveSettings(
             val containsWpHash = flags and MASK_WHIRLPOOL_HASH != 0
             val containsSizes = flags and MASK_SIZES != 0
             val containsUnknownHash = flags and MASK_UNKNOWN_HASH != 0
-            val groupCount = if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort()
+            val groupCount = if (format == Format.VERSIONED_LARGE) {
+                buf.readLargeSmart()
+            } else buf.readUnsignedShort()
             val groupIds = IntArray(groupCount)
             var groupAccumulator = 0
             for(archiveIndex in groupIds.indices) {
@@ -363,7 +386,9 @@ data class Js5ArchiveSettings(
                 var fileIdAccumulator = 0
                 for(fileIndex in group.indices) {
                     // difference with previous id
-                    val delta = if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort()
+                    val delta = if (format == Format.VERSIONED_LARGE) {
+                        buf.readLargeSmart()
+                    } else buf.readUnsignedShort()
                     fileIdAccumulator += delta
                     group[fileIndex] = fileIdAccumulator
                 }
@@ -413,7 +438,7 @@ data class Js5ArchiveSettings(
  * @property uncompressedSize (Optional) The size of the sum of all [Js5GroupData] data uncompressed.
  * @property whirlpoolDigest (Optional) The whirlpool digest of this archive.
  */
-data class Js5ArchiveValidator(
+public data class Js5ArchiveValidator(
     var crc: Int,
     var version: Int?,
     var whirlpoolDigest: ByteArray?,
@@ -445,7 +470,7 @@ data class Js5ArchiveValidator(
         return result
     }
 
-    companion object {
+    internal companion object {
         /**
          * Size required to encode the [Js5ArchiveValidator] in the old format without whirlpool.
          */

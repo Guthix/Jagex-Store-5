@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,12 +38,12 @@ import io.netty.buffer.Unpooled
 /**
  * The amount of [Int] keys in a XTEA key.
  */
-const val XTEA_KEY_SIZE = 4
+internal const val XTEA_KEY_SIZE = 4
 
 /**
  * A 0 XTEA key.
  */
-val XTEA_ZERO_KEY = IntArray(XTEA_KEY_SIZE)
+internal val XTEA_ZERO_KEY = IntArray(XTEA_KEY_SIZE)
 
 /**
  * The XTEA golden ratio.
@@ -45,7 +61,7 @@ private const val QUAD_ENCODED_SIZE = Int.SIZE_BYTES + Int.SIZE_BYTES
  * Encrypts a [ByteBuf] using XTEA encryption in place.
  */
 @Suppress("MagicNumber")
-fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
+internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
@@ -68,7 +84,7 @@ fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end: Int = wr
  * Decrypts a [ByteBuf] using XTEA encryption and stores the result in a new buffer.
  */
 @Suppress("INTEGER_OVERFLOW")
-fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
+internal fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val result = Unpooled.buffer(readableBytes())
     for (i in 0 until (end - start) / QUAD_ENCODED_SIZE) {

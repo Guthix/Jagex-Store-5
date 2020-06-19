@@ -2,6 +2,22 @@
  * This file is part of Guthix Jagex-Store-5.
  *
  * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Guthix Jagex-Store-5 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+/**
+ * This file is part of Guthix Jagex-Store-5.
+ *
+ * Guthix Jagex-Store-5 is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -26,7 +42,7 @@ import io.netty.buffer.DefaultByteBufHolder
  * @property nameHash (Optional) The unique string identifier stored as a [String.hashCode].
  * @property data The domain data of the file.
  */
-data class Js5File(val id: Int, val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
+public data class Js5File(val id: Int, val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
 
 /**
  * The settings for a [Js5File].
@@ -34,4 +50,4 @@ data class Js5File(val id: Int, val nameHash: Int?, val data: ByteBuf) : Default
  * @property id The unique identifier in the group of this [Js5File].
  * @property nameHash (Optional) The unique string identifier in the group stored as a [String.hashCode].
  */
-data class Js5FileSettings(val id: Int, val nameHash: Int?)
+public data class Js5FileSettings(val id: Int, val nameHash: Int?)
