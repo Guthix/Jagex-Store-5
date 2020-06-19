@@ -31,6 +31,7 @@
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
 @file:Suppress("unused")
+
 package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.*
@@ -51,14 +52,15 @@ public class Js5Cache(
     private val readStore: Js5ReadStore,
     private val writeStore: Js5WriteStore? = null
 ) : AutoCloseable {
-    public constructor(store: Js5Store): this(store, store)
+    public constructor(store: Js5Store) : this(store, store)
 
     /**
      * The amount of archive in this [Js5Cache].
      */
-    public val archiveCount: Int get() = writeStore?.archiveCount ?: error( // TODO change to read store
-        "No write store provided, archive count unknown."
-    )
+    public val archiveCount: Int
+        get() = writeStore?.archiveCount ?: error( // TODO change to read store
+            "No write store provided, archive count unknown."
+        )
 
     /**
      * Reads an archive from the [Js5Cache].
@@ -68,7 +70,7 @@ public class Js5Cache(
      */
     public fun readArchive(archiveId: Int, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Archive {
         val data = readStore.read(Js5Store.MASTER_INDEX, archiveId)
-        if(data == Unpooled.EMPTY_BUFFER) throw IOException(
+        if (data == Unpooled.EMPTY_BUFFER) throw IOException(
             "Settings for archive $archiveId do not exist."
         )
         val container = Js5Container.decode(data, xteaKey)
@@ -115,18 +117,18 @@ public class Js5Cache(
         includeWhirlpool: Boolean,
         includeSizes: Boolean,
         xteaKeys: Map<Int, IntArray> = emptyMap()
-    ): Js5CacheValidator  {
+    ): Js5CacheValidator {
         // TODO change to readstore
         val archiveCount = writeStore?.archiveCount ?: error("No write store provided, archive count unknown.")
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
-        for(archiveIndex in 0 until archiveCount) {
+        for (archiveIndex in 0 until archiveCount) {
             val data = readStore.read(Js5Store.MASTER_INDEX, archiveIndex)
-            if(data == Unpooled.EMPTY_BUFFER) continue
+            if (data == Unpooled.EMPTY_BUFFER) continue
             val settings = Js5ArchiveSettings.decode(
                 Js5Container.decode(data.duplicate(), xteaKeys.getOrElse(archiveIndex) { XTEA_ZERO_KEY })
             )
-            val whirlPool = if(includeWhirlpool) data.whirlPoolHash() else null
-            val (groupCount, uncompressedSize) = if(includeSizes) {
+            val whirlPool = if (includeWhirlpool) data.whirlPoolHash() else null
+            val (groupCount, uncompressedSize) = if (includeSizes) {
                 val uncompressedSize = settings.groupSettings.values.sumBy {
                     it.sizes?.uncompressed ?: 0
                 }
@@ -141,7 +143,9 @@ public class Js5Cache(
         return Js5CacheValidator(archiveChecksums.toTypedArray())
     }
 
-    override fun close() { readStore.close() }
+    override fun close() {
+        readStore.close()
+    }
 }
 
 /**
@@ -153,8 +157,9 @@ public class Js5Cache(
 public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValidator>) {
     public val containsWhirlpool: Boolean get() = archiveValidators.all { it.whirlpoolDigest != null }
 
-    public val newFormat: Boolean get() = archiveValidators.all { it.fileCount != null }
-        && archiveValidators.all { it.uncompressedSize != null }
+    public val newFormat: Boolean
+        get() = archiveValidators.all { it.fileCount != null }
+            && archiveValidators.all { it.uncompressedSize != null }
 
     /**
      * Encodes the [Js5CacheValidator]. The encoding can optionally contain a (encrypted) whirlpool hash.
@@ -173,21 +178,21 @@ public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValid
             )
             else -> Unpooled.buffer(Js5ArchiveValidator.ENCODED_SIZE * archiveValidators.size)
         }
-        if(containsWhirlpool) buf.writeByte(archiveValidators.size)
-        for(archiveChecksum in archiveValidators) {
+        if (containsWhirlpool) buf.writeByte(archiveValidators.size)
+        for (archiveChecksum in archiveValidators) {
             buf.writeInt(archiveChecksum.crc)
             buf.writeInt(archiveChecksum.version ?: 0)
-            if(containsWhirlpool) {
-                if(newFormat) {
+            if (containsWhirlpool) {
+                if (newFormat) {
                     buf.writeInt(archiveChecksum.fileCount ?: 0)
                     buf.writeInt(archiveChecksum.uncompressedSize ?: 0)
                 }
                 buf.writeBytes(archiveChecksum.whirlpoolDigest)
             }
         }
-        if(containsWhirlpool) {
+        if (containsWhirlpool) {
             val digest = buf.whirlPoolHash(1, buf.writerIndex() - 1)
-            val encDigest = if(mod != null && pubKey != null) rsaCrypt(digest, mod, pubKey) else digest
+            val encDigest = if (mod != null && pubKey != null) rsaCrypt(digest, mod, pubKey) else digest
             buf.writeBytes(encDigest)
         }
         return buf
@@ -246,14 +251,14 @@ public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValid
             }
             if (whirlpoolIncluded) {
                 val calcDigest = buf.whirlPoolHash(1, buf.readerIndex() - 1)
-                val readDigest =  buf.array().sliceArray(buf.readerIndex() until buf.writerIndex())
-                val decReadDigest= if (mod != null && privateKey != null) {
+                val readDigest = buf.array().sliceArray(buf.readerIndex() until buf.writerIndex())
+                val decReadDigest = if (mod != null && privateKey != null) {
                     rsaCrypt(readDigest, mod, privateKey)
                 } else {
                     readDigest
                 }
                 if (!decReadDigest!!.contentEquals(calcDigest)) throw IOException("Whirlpool digest does not match,  " +
-                        "calculated ${calcDigest.contentToString()} read ${decReadDigest.contentToString()}."
+                    "calculated ${calcDigest.contentToString()} read ${decReadDigest.contentToString()}."
                 )
             }
             return Js5CacheValidator(archiveChecksums)

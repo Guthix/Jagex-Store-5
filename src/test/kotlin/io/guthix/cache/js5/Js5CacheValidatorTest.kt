@@ -32,8 +32,7 @@
  */
 package io.guthix.cache.js5
 
-import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
 
 class Js5CacheValidatorTest : StringSpec({
     val checksum = Js5CacheValidator(arrayOf(
@@ -53,6 +52,6 @@ class Js5CacheValidatorTest : StringSpec({
         )
     ))
     "After encoding and decoding the checksum should be the same as the original" {
-        Js5CacheValidator.decode(checksum.encode(), whirlpoolIncluded = false, sizeIncluded= false)
+        Js5CacheValidator.decode(checksum.encode(), whirlpoolIncluded = false, sizeIncluded = false)
     }
 })

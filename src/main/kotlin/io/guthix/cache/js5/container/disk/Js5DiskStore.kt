@@ -63,7 +63,7 @@ public class Js5DiskStore private constructor(
         }
         val indexFile = indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
         val index = indexFile.read(containerId)
-        if(index.dataSize == 0) {
+        if (index.dataSize == 0) {
             logger.warn {
                 "Could not read index file ${indexFile.id} container $containerId because the index does not exist"
             }
@@ -79,13 +79,13 @@ public class Js5DiskStore private constructor(
             "Can't write data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist and can't be created."
         }
         logger.debug { "Writing index file $indexId container $containerId" }
-        val indexFile = if(indexId == archiveCount) {
+        val indexFile = if (indexId == archiveCount) {
             createNewArchive()
         } else {
             indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
         }
         val overWriteIndex = indexFile.containsIndex(containerId)
-        val firstSegNumber = if(overWriteIndex) {
+        val firstSegNumber = if (overWriteIndex) {
             indexFile.read(containerId).sectorNumber
         } else {
             ceil(dat2File.size.toDouble() / Sector.SIZE).toInt() // last sector of the data file
@@ -147,7 +147,7 @@ public class Js5DiskStore private constructor(
         public fun open(root: Path): Js5DiskStore {
             require(Files.isDirectory(root)) { "$root is not a directory or doesn't exist." }
             val dataPath = root.resolve("$FILE_NAME.${Dat2File.EXTENSION}")
-            if(Files.exists(dataPath)) {
+            if (Files.exists(dataPath)) {
                 logger.debug { "Found .dat2 file" }
             } else {
                 logger.debug { "Could not find .dat2 file\nCreated empty .dat2 file" }
@@ -156,7 +156,7 @@ public class Js5DiskStore private constructor(
             }
             val dataFile = Dat2File.open(dataPath)
             val masterIndexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}${Js5Store.MASTER_INDEX}")
-            if(Files.exists(masterIndexPath)) {
+            if (Files.exists(masterIndexPath)) {
                 logger.debug { "Found .idx255 file" }
             } else {
                 logger.debug { "Could not find .idx255 file" }
@@ -167,7 +167,7 @@ public class Js5DiskStore private constructor(
             var archiveCount = 0
             for (indexFileId in 0 until Js5Store.MASTER_INDEX) {
                 val indexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")
-                if(!Files.exists(indexPath)) {
+                if (!Files.exists(indexPath)) {
                     archiveCount = indexFileId
                     break
                 }

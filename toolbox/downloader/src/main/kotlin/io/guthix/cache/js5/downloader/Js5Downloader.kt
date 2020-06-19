@@ -32,8 +32,8 @@
  */
 package io.guthix.cache.js5.downloader
 
-import io.guthix.cache.js5.Js5ArchiveValidator
 import io.guthix.cache.js5.Js5ArchiveSettings
+import io.guthix.cache.js5.Js5ArchiveValidator
 import io.guthix.cache.js5.Js5CacheValidator
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5Store
@@ -73,7 +73,7 @@ object Js5Downloader {
         var port: Int? = null
         var revision: Int? = null
         var includeVersions = false
-        for(arg in args) {
+        for (arg in args) {
             when {
                 arg.startsWith("-o=") -> outputDir = Path.of(arg.substring(3))
                 arg.startsWith("-a=") -> address = arg.substring(3)
@@ -89,7 +89,7 @@ object Js5Downloader {
         requireNotNull(port) { "No port has been specified to download the cache from. Pass -p=PORT as an argument." }
         requireNotNull(revision) { "No game revision has been specified. Pass -r=REVISION as an argument." }
         logger.info { "Downloading cache to $outputDir" }
-        if(!Files.isDirectory(outputDir)) outputDir.toFile().mkdirs()
+        if (!Files.isDirectory(outputDir)) outputDir.toFile().mkdirs()
         val ds = Js5DiskStore.open(outputDir)
         val sr = Js5NetReader.open(
             sockAddr = InetSocketAddress(address, port),
@@ -143,10 +143,10 @@ object Js5Downloader {
                     pb.extraMessage = "Downloading archive $archiveId"
                     archiveSettings.groupSettings.forEach { (_, groupSettings) ->
                         val response = sr.readFileResponse()
-                        if(response.data.crc() != groupSettings.crc) throw IOException(
+                        if (response.data.crc() != groupSettings.crc) throw IOException(
                             "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
                         )
-                        val writeData = if(groupSettings.version != -1 && includeVersions) { // add version if exists
+                        val writeData = if (groupSettings.version != -1 && includeVersions) { // add version if exists
                             val versionBuffer = Unpooled.buffer(2).apply { writeShort(groupSettings.version) }
                             Unpooled.compositeBuffer(2).addComponents(true, response.data, versionBuffer)
                         } else response.data
@@ -177,16 +177,16 @@ object Js5Downloader {
                 Js5Container.decode(data)
             )
             archiveSettings.add(settings)
-            val whirlpoolHash = if(containsWhirlool) data.whirlPoolHash() else null
-            val fileCount = if(newFormat) settings.groupSettings.size else null
-            val uncompressedSize = if(newFormat) settings.groupSettings.values.sumBy {
+            val whirlpoolHash = if (containsWhirlool) data.whirlPoolHash() else null
+            val fileCount = if (newFormat) settings.groupSettings.size else null
+            val uncompressedSize = if (newFormat) settings.groupSettings.values.sumBy {
                 it.sizes?.uncompressed ?: 0
             } else null
             data.readerIndex(0)
             Js5ArchiveValidator(data.crc(), settings.version ?: 0, whirlpoolHash, fileCount, uncompressedSize)
         }.toTypedArray()
         val calcValidator = Js5CacheValidator(archiveValidators)
-        if(readValidator != calcValidator) throw IOException(
+        if (readValidator != calcValidator) throw IOException(
             "Checksum does not match, archive settings are corrupted."
         )
         return archiveSettings

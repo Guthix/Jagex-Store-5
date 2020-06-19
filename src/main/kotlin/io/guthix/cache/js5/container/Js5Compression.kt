@@ -71,7 +71,7 @@ public sealed class Js5Compression(public val opcode: Int, public val headerSize
         /**
          * Creates a new [Js5Compression] instance based on the [Js5Compression.opcode].
          */
-        public fun getByOpcode(opcode: Int): Js5Compression = when(opcode) {
+        public fun getByOpcode(opcode: Int): Js5Compression = when (opcode) {
             0 -> Uncompressed()
             1 -> BZIP2()
             2 -> GZIP()
@@ -87,7 +87,7 @@ public class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
     override fun decompress(input: ByteBuf, length: Int): ByteBuf = input.slice(input.readerIndex(), length)
 
     override fun equals(other: Any?): Boolean {
-        if(other !is Uncompressed) return false
+        if (other !is Uncompressed) return false
         return opcode == other.opcode
     }
 
@@ -117,7 +117,7 @@ public class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
     }
 
     override fun equals(other: Any?): Boolean {
-        if(other !is BZIP2) return false
+        if (other !is BZIP2) return false
         return opcode == other.opcode
     }
 
@@ -146,13 +146,13 @@ public class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
     override fun decompress(input: ByteBuf, length: Int): ByteBuf {
         val decompressed = Unpooled.buffer(length)
         GZIPInputStream(ByteBufInputStream(input)).use { inStream ->
-            while(inStream.available() == 1) decompressed.writeBytes(inStream, length)
+            while (inStream.available() == 1) decompressed.writeBytes(inStream, length)
         }
         return decompressed
     }
 
     override fun equals(other: Any?): Boolean {
-        if(other !is GZIP) return false
+        if (other !is GZIP) return false
         return opcode == other.opcode
     }
 
@@ -189,7 +189,7 @@ public class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
     }
 
     override fun equals(other: Any?): Boolean {
-        if(other !is LZMA) return false
+        if (other !is LZMA) return false
         return opcode == other.opcode && header == other.header
     }
 

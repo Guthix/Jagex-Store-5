@@ -17,11 +17,9 @@
 package io.guthix.cache.js5.versionstripper
 
 import io.guthix.cache.js5.Js5ArchiveSettings
-import io.guthix.cache.js5.container.Js5Compression
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.container.Js5Store
 import io.guthix.cache.js5.container.disk.Js5DiskStore
-import io.netty.buffer.ByteBuf
 import me.tongfei.progressbar.DelegatingProgressBarConsumer
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
@@ -42,7 +40,7 @@ object Js5VersionStripper {
         require(cacheDir != null) { "No cache directory specified to read the cache. Pass -i=DIR as an argument." }
         val store = Js5DiskStore.open(cacheDir)
         val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>()
-        for(archiveId in 0 until store.archiveCount) {
+        for (archiveId in 0 until store.archiveCount) {
             val archiveSettingsData = store.read(Js5Store.MASTER_INDEX, archiveId)
             archiveSettings[archiveId] = Js5ArchiveSettings.decode(Js5Container.decode(archiveSettingsData))
         }

@@ -32,7 +32,7 @@
  */
 package io.guthix.cache.js5
 
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
 import io.netty.buffer.Unpooled
 
 class Js5GroupDataTest : StringSpec({

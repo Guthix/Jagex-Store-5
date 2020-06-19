@@ -32,8 +32,9 @@
  */
 package io.guthix.cache.js5.container.disk
 
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.autoClose
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import java.nio.file.Files
 
 class IdxFileTest : StringSpec() {

@@ -39,6 +39,8 @@ import io.netty.buffer.ByteBuf
  */
 internal fun ByteBuf.iterationFill(): ByteBuf {
     var i = 0
-    while(isWritable) { writeByte(i++) }
+    while (isWritable) {
+        writeByte(i++)
+    }
     return this
 }

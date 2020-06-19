@@ -39,8 +39,8 @@ import io.guthix.cache.js5.util.XTEA_ZERO_KEY
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.CompositeByteBuf
 import io.netty.buffer.Unpooled
-import kotlin.math.ceil
 import java.util.zip.CRC32
+import kotlin.math.ceil
 
 /**
  * A set of files in the cache. A [Js5Group] is the smallest amount of data that can be read from the cache and
@@ -76,18 +76,20 @@ public data class Js5Group(
     /**
      * The [Js5GroupData] of this [Js5Group].
      */
-    internal val groupData get() = Js5GroupData(
-        files.values.map { it.data }.toTypedArray(), chunkCount, xteaKey, compression
-    )
+    internal val groupData
+        get() = Js5GroupData(
+            files.values.map { it.data }.toTypedArray(), chunkCount, xteaKey, compression
+        )
 
     /**
      * The [Js5GroupSettings] of this [Js5Group].
      */
-    internal val groupSettings get() =
-        Js5GroupSettings(id, version, crc, files.mapValues { (fileId, file) ->
-            Js5FileSettings(fileId, file.nameHash)
-        }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
-    )
+    internal val groupSettings
+        get() =
+            Js5GroupSettings(id, version, crc, files.mapValues { (fileId, file) ->
+                Js5FileSettings(fileId, file.nameHash)
+            }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
+            )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -160,7 +162,7 @@ internal data class Js5GroupData(
     /**
      * Encodes the [Js5GroupData] into a [Js5Container].
      */
-    internal fun encode(version: Int? = null) = if(fileData.size == 1) {
+    internal fun encode(version: Int? = null) = if (fileData.size == 1) {
         Js5Container(fileData.first(), xteaKey, compression, version)
     } else {
         Js5Container(encodeMultipleFiles(fileData, chunkCount), xteaKey, compression, version)
@@ -174,16 +176,16 @@ internal data class Js5GroupData(
         val buf = Unpooled.compositeBuffer(
             chunks.size * chunks.sumBy { it.size } + 1
         )
-        for(group in chunks) {
-            for(fileGroup in group) { // don't use spread operator hear because of unnecessary array copying
+        for (group in chunks) {
+            for (fileGroup in group) { // don't use spread operator hear because of unnecessary array copying
                 buf.addComponent(true, fileGroup)
             }
         }
         val suffixBuf = Unpooled.buffer(chunkCount * data.size * Int.SIZE_BYTES + Byte.SIZE_BYTES)
-        for(group in chunks) {
+        for (group in chunks) {
             var lastWrittenSize = group[0].writerIndex()
             suffixBuf.writeInt(lastWrittenSize)
-            for(i in 1 until group.size) {
+            for (i in 1 until group.size) {
                 suffixBuf.writeInt(group[i].writerIndex() - lastWrittenSize) // write delta
                 lastWrittenSize = group[i].writerIndex()
             }
@@ -212,7 +214,7 @@ internal data class Js5GroupData(
      */
     private fun ByteBuf.splitOf(index: Int, length: Int): ByteBuf {
         val start = index * length
-        return slice(index * length, if(start + length > writerIndex()) writerIndex() - start else length)
+        return slice(index * length, if (start + length > writerIndex()) writerIndex() - start else length)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -237,7 +239,7 @@ internal data class Js5GroupData(
          * @param container The container to decode from.
          * @param fileCount The amount of files to decode.
          */
-        internal fun decode(container: Js5Container, fileCount: Int) = if(fileCount == 1) {
+        internal fun decode(container: Js5Container, fileCount: Int) = if (fileCount == 1) {
             Js5GroupData(arrayOf(container.data), 1, container.xteaKey, container.compression)
         } else {
             decodeMultipleFiles(container, fileCount)

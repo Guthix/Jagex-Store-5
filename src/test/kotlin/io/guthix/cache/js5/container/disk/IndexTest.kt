@@ -32,8 +32,8 @@
  */
 package io.guthix.cache.js5.container.disk
 
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 
 class IndexTest : StringSpec({
     val index = Index(3948, 1)

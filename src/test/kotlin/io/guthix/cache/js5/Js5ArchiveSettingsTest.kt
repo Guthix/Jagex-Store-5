@@ -34,8 +34,8 @@ package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.Js5Container
 import io.guthix.cache.js5.util.WHIRLPOOL_HASH_SIZE
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 
 class Js5ArchiveSettingsTest : StringSpec({
     val archiveSettings = Js5ArchiveSettings(

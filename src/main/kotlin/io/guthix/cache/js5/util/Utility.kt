@@ -31,6 +31,7 @@
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
 @file:Suppress("DuplicatedCode")
+
 package io.guthix.cache.js5.util
 
 import io.netty.buffer.ByteBuf
@@ -48,8 +49,8 @@ private val crc = CRC32()
  */
 public fun ByteBuf.crc(index: Int = readerIndex(), length: Int = readableBytes()): Int {
     crc.reset()
-    if(hasArray()) {
-        val start = if(this is CompositeByteBuf) component(0).readerIndex() else index
+    if (hasArray()) {
+        val start = if (this is CompositeByteBuf) component(0).readerIndex() else index
         crc.update(array(), start, length)
     } else {
         val copyArray = ByteArray(length)
@@ -77,8 +78,8 @@ private val wpDigest: MessageDigest by lazy {
  */
 public fun ByteBuf.whirlPoolHash(index: Int = readerIndex(), length: Int = readableBytes()): ByteArray {
     Security.addProvider(BouncyCastleProvider())
-    if(hasArray()) {
-        val start = if(this is CompositeByteBuf) component(0).readerIndex() else index
+    if (hasArray()) {
+        val start = if (this is CompositeByteBuf) component(0).readerIndex() else index
         wpDigest.update(array(), start, length)
     } else {
         val copyArray = ByteArray(length)

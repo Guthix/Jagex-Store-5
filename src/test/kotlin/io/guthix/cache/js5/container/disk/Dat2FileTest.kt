@@ -33,8 +33,9 @@
 package io.guthix.cache.js5.container.disk
 
 import io.guthix.cache.js5.iterationFill
-import io.kotlintest.shouldBe
-import io.kotlintest.specs.StringSpec
+import io.kotest.core.spec.autoClose
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 import io.netty.buffer.Unpooled
 import java.nio.file.Files
 import kotlin.math.ceil
@@ -43,7 +44,7 @@ class Dat2FileTest : StringSpec() {
     init {
         val dataFile = autoClose(Dat2File.open(Files.createTempFile("main_file_cache", "dat2")))
         val indexFile = 1
-        val containerId1= 0
+        val containerId1 = 0
         val dataSize1 = 583027
         val data1 = Unpooled.buffer(dataSize1).iterationFill()
         "After writing and reading the data should be the same as the original" {

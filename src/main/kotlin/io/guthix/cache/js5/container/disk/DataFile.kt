@@ -32,12 +32,12 @@
  */
 package io.guthix.cache.js5.container.disk
 
-import java.io.IOException
-import java.nio.channels.FileChannel
 import io.guthix.cache.js5.container.Js5Container
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
+import java.io.IOException
+import java.nio.channels.FileChannel
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.math.ceil

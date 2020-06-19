@@ -16,15 +16,15 @@ description = "A library for modifying Jagex Store 5 caches"
 
 val licenseHeader: File by extra(file("gradle/LICENSE_HEADER"))
 
-val jagexByteBufVersion: String by extra("8fa3fe2cbe")
-val kotlinLoggingVersion: String by extra("1.7.8")
+val jagexByteBufVersion: String by extra("77cc6fd2a3")
+val kotlinLoggingVersion: String by extra("1.7.10")
 val licensePluginVersion: String by extra("0.15.0")
 val logbackVersion: String by extra("1.2.3")
 val xzVersion: String by extra("1.8")
-val bouncyCastleVersion: String by extra("1.64")
-val apacheCompressVersion: String by extra("1.19")
-val progressBarVersion: String by extra("0.8.0")
-val kotlinTestVersion: String by extra("3.4.2")
+val bouncyCastleVersion: String by extra("1.65.01")
+val apacheCompressVersion: String by extra("1.20")
+val progressBarVersion: String by extra("0.8.1")
+val kotlinTestVersion: String by extra("4.1.0.RC2")
 val kotlinVersion: String by extra(project.getKotlinPluginVersion()!!)
 
 allprojects {
@@ -56,6 +56,7 @@ allprojects {
 
     license {
         header = licenseHeader
+        exclude("**/*.xml")
     }
 }
 
@@ -70,7 +71,8 @@ dependencies {
     implementation(group = "org.bouncycastle", name = "bcprov-jdk15on", version = bouncyCastleVersion)
     implementation(group = "org.apache.commons", name = "commons-compress", version = apacheCompressVersion)
     testImplementation(group = "ch.qos.logback", name = "logback-classic", version = logbackVersion)
-    testImplementation(group = "io.kotlintest", name = "kotlintest-runner-junit5", version = kotlinTestVersion)
+    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotlinTestVersion)
+    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotlinTestVersion)
 }
 
 tasks.dokka {

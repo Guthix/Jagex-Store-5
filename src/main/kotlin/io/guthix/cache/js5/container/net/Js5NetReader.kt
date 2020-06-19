@@ -32,11 +32,11 @@
  */
 package io.guthix.cache.js5.container.net
 
-import io.guthix.cache.js5.container.Js5Container
-import io.guthix.cache.js5.container.disk.Sector
-import io.guthix.cache.js5.container.Js5Compression
-import io.guthix.cache.js5.container.Js5ReadStore
 import io.guthix.cache.js5.Js5ArchiveSettings
+import io.guthix.cache.js5.container.Js5Compression
+import io.guthix.cache.js5.container.Js5Container
+import io.guthix.cache.js5.container.Js5ReadStore
+import io.guthix.cache.js5.container.disk.Sector
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
@@ -105,7 +105,7 @@ public class Js5NetReader private constructor(
      */
     public fun readFileResponse(): FileResponse {
         val headerBuffer = Unpooled.buffer(HEADER_RESPONSE_SIZE)
-        while(headerBuffer.isWritable) headerBuffer.writeBytes(socketChannel, headerBuffer.writableBytes())
+        while (headerBuffer.isWritable) headerBuffer.writeBytes(socketChannel, headerBuffer.writableBytes())
         headerBuffer.forEachByte { it xor xorKey; true }
         val indexFileId = headerBuffer.readUnsignedByte().toInt()
         val containerId = headerBuffer.readUnsignedShort()
@@ -121,9 +121,9 @@ public class Js5NetReader private constructor(
         )
         containerBuffer.writeByte(compression.opcode)
         containerBuffer.writeInt(compressedSize)
-        while(dataBuf.isWritable) dataBuf.writeBytes(socketChannel, dataBuf.writableBytes())
+        while (dataBuf.isWritable) dataBuf.writeBytes(socketChannel, dataBuf.writableBytes())
         dataBuf.forEachByte { it xor xorKey; true }
-        val headerDataSize = if(dataBuf.readableBytes() < BYTES_AFTER_HEADER) { // write all data after header
+        val headerDataSize = if (dataBuf.readableBytes() < BYTES_AFTER_HEADER) { // write all data after header
             dataBuf.readableBytes()
         } else {
             BYTES_AFTER_HEADER
@@ -131,11 +131,11 @@ public class Js5NetReader private constructor(
         containerBuffer.writeBytes(dataBuf.slice(0, headerDataSize))
         dataBuf.readerIndex(headerDataSize)
         var i = 0
-        while(dataBuf.isReadable) {  // write other data
+        while (dataBuf.isReadable) {  // write other data
             var start = BYTES_AFTER_HEADER + i * (Sector.DATA_SIZE)
             start += 1 //skip 255
             val bytesToRead = dataBuf.readableBytes() - 1
-            val blockDataSize = if(bytesToRead < BYTES_AFTER_BLOCK) {
+            val blockDataSize = if (bytesToRead < BYTES_AFTER_BLOCK) {
                 bytesToRead
             } else {
                 BYTES_AFTER_BLOCK
@@ -180,7 +180,7 @@ public class Js5NetReader private constructor(
     public fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
         logger.debug("Requesting index file $indexFileId container $containerId")
         val buf = Unpooled.buffer(REQUEST_PACKET_SIZE)
-        if(priority) {
+        if (priority) {
             buf.writeByte(Js5Request.PRIORITY_FILE_REQUEST.opcode)
         } else {
             buf.writeByte(Js5Request.NORMAL_FILE_REQUEST.opcode)
@@ -190,7 +190,9 @@ public class Js5NetReader private constructor(
         buf.readBytes(socketChannel, buf.readableBytes())
     }
 
-    override fun close() { socketChannel.close() }
+    override fun close() {
+        socketChannel.close()
+    }
 
     public companion object {
         /**
@@ -247,12 +249,12 @@ public class Js5NetReader private constructor(
             val statusCode = Unpooled.buffer(Byte.SIZE_BYTES).apply {
                 writeBytes(socketChannel, writableBytes())
             }.readUnsignedByte().toInt()
-            if(statusCode != 0) throw IOException(
+            if (statusCode != 0) throw IOException(
                 "Could not establish connection with JS5 Server status code: $statusCode."
             )
             logger.info("JS5 connection successfully established")
             val js5SocketReader = Js5NetReader(socketChannel, priorityMode)
-            if(xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
+            if (xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
             return js5SocketReader
         }
 

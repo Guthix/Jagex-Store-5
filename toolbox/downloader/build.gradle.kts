@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.util.parseSpaceSeparatedArgs
-
 /**
  * This file is part of Guthix Jagex-Store-5.
  *
@@ -41,5 +39,5 @@ tasks.run.get().args = listOf(
     "-a=oldschool1.runescape.com",
     "-r=$revision",
     "-p=43594",
-    if(includeVersions) "-v" else ""
+    if (includeVersions) "-v" else ""
 )
