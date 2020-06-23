@@ -145,6 +145,7 @@ public class Js5Cache(
 
     override fun close() {
         readStore.close()
+        writeStore?.close()
     }
 }
 

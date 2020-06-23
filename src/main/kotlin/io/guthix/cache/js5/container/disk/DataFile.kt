@@ -73,7 +73,6 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
                 dataToRead -= dataSector.data.writerIndex()
                 sectorsRead++
                 curSegByteStart = dataSector.nextSectorNumber * Sector.SIZE.toLong()
-
             } else {
                 totalData.addComponent(true, dataSector.data.slice(0, dataToRead))
                 dataToRead = 0
@@ -86,45 +85,37 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
      * Write data to the [Dat2File].
      */
     fun write(indexFileId: Int, containerId: Int, index: Index, data: ByteBuf) {
-        val sectorDataSize = if (Sector.isExtended(containerId)) Sector.EXTENDED_DATA_SIZE else Sector.DATA_SIZE
+        val sectorDataSize = if(Sector.isExtended(containerId))  Sector.EXTENDED_DATA_SIZE else Sector.DATA_SIZE
         var sectorsWritten = 0
         var dataToWrite = index.dataSize
-        var curSegByteStart = index.sectorNumber.toLong() * Sector.SIZE.toLong()
-        do {
-            val containsData = containsData(curSegByteStart)
+        var fileWriterIndex = index.sectorNumber.toLong() * Sector.SIZE.toLong()
+        var prevSector: Sector? = null
+        var prevWriterIndex: Long? = null
+        while(dataToWrite > 0) {
+            val containsData = containsData(fileWriterIndex)
             val sectorData = data.slice(
-                sectorsWritten * sectorDataSize, if (dataToWrite < sectorDataSize) dataToWrite else sectorDataSize
+                sectorsWritten * sectorDataSize, if(dataToWrite < sectorDataSize) dataToWrite else sectorDataSize
             )
-            val sector = if (containsData) {
-                val readSector = readSector(containerId, curSegByteStart)
-                if (readSector.containerId != containerId) { // file doesn't belong to this container so can't overwrite
-                    val prevSectorStart = curSegByteStart - Sector.SIZE
-                    val prevSector = readSector(containerId, prevSectorStart)
-                    val curSector = createEndOfFileSector(containerId, sectorsWritten, indexFileId, sectorData)
-                    writeSector(prevSector.copy(nextSectorNumber = curSector.nextSectorNumber - 1), prevSectorStart)
-                    curSegByteStart = (curSector.nextSectorNumber - 1) * Sector.SIZE.toLong()
-                    createEndOfFileSector(containerId, sectorsWritten, indexFileId, sectorData)
-                } else { // overwrite
-                    readSector.copy(data = sectorData)
+            val nextSector = Sector(containerId, sectorsWritten, 0, indexFileId, sectorData)
+            if(containsData) {
+                val curStoredSector = readSector(containerId, fileWriterIndex)
+                if(curStoredSector.containerId != containerId || curStoredSector.indexFileId != indexFileId) {
+                    fileWriterIndex = Sector.SIZE * ceil(size.toDouble() / Sector.SIZE).toLong()
                 }
-            } else {
-                createEndOfFileSector(containerId, sectorsWritten, indexFileId, sectorData)
             }
-            writeSector(sector, curSegByteStart)
-            dataToWrite -= sector.data.writerIndex()
+            prevSector?.let { pSector ->
+                pSector.nextSectorNumber = (fileWriterIndex / Sector.SIZE.toLong()).toInt()
+                writeSector(pSector, prevWriterIndex!!)
+            }
+            prevSector = nextSector
+            prevWriterIndex = fileWriterIndex
+            fileWriterIndex += Sector.SIZE.toLong()
             sectorsWritten++
-            curSegByteStart = sector.nextSectorNumber * Sector.SIZE.toLong()
-        } while (dataToWrite > 0)
-    }
-
-    private fun createEndOfFileSector(
-        containerId: Int,
-        sectorsWritten: Int,
-        indexFileId: Int,
-        sectorData: ByteBuf
-    ): Sector {
-        val nextSectorNumber = ceil(fileChannel.size().toDouble() / Sector.SIZE).toInt() + 1
-        return Sector(containerId, sectorsWritten, nextSectorNumber, indexFileId, sectorData)
+            dataToWrite -= nextSector.data.writerIndex()
+        }
+        if(prevSector != null && prevWriterIndex != null) {
+            writeSector(prevSector, prevWriterIndex)
+        }
     }
 
     /**
@@ -205,7 +196,7 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
 internal data class Sector(
     val containerId: Int,
     val position: Int,
-    val nextSectorNumber: Int,
+    var nextSectorNumber: Int,
     val indexFileId: Int,
     val data: ByteBuf
 ) : DefaultByteBufHolder(data) {
