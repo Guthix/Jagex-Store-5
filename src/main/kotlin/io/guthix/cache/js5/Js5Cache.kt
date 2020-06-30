@@ -30,8 +30,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("unused")
-
 package io.guthix.cache.js5
 
 import io.guthix.cache.js5.container.*
@@ -77,6 +75,15 @@ public class Js5Cache(
         val archiveSettings = Js5ArchiveSettings.decode(container)
         return Js5Archive.create(
             archiveId, archiveSettings, container.xteaKey, container.compression, readStore, writeStore
+        )
+    }
+
+    public fun writeArchive(archive: Js5Archive) {
+        writeStore ?: error("Can't write archive because there is no write store provided.")
+        writeStore.write(
+            Js5Store.MASTER_INDEX,
+            archive.id,
+            archive.archiveSettings.encode(archive.xteaKey, archive.compression).encode()
         )
     }
 

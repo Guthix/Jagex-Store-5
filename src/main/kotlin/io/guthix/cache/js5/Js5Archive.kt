@@ -49,8 +49,7 @@ private val logger = KotlinLogging.logger { }
 
 /**
  * An archive in the cache. The [Js5Archive] class can be used for reading, writing anr removing [Js5Group]s from the
- * cache. After working with the [Js5Archive] it is required to call the [Js5Archive.close] method to confirm all the
- * modifications.
+ * cache. After writing a group to the [Js5Archive] it is recommended to write the [Js5Archive] to the [Js5Cache].
  *
  * @property id The archive id of this archive.
  * @property version The version of the archive.
@@ -76,14 +75,13 @@ public data class Js5Archive internal constructor(
     val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
     private val readStore: Js5ReadStore,
     private val writeStore: Js5WriteStore?
-) : AutoCloseable {
+) {
     /**
      * The [Js5ArchiveSettings] belonging to this [Js5Archive].
      */
-    private val archiveSettings
-        get() = Js5ArchiveSettings(
-            version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, groupSettings
-        )
+    val archiveSettings: Js5ArchiveSettings get() = Js5ArchiveSettings(
+        version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, groupSettings
+    )
 
     /**
      * Reads a [Js5Group] from this [Js5Archive] by id.
@@ -169,11 +167,6 @@ public data class Js5Archive internal constructor(
         val compressedSize = data.readableBytes()
         writeStore.write(id, groupId, data)
         return compressedSize
-    }
-
-    override fun close() {
-        logger.debug { "Writing archive settings for archive $id" }
-        writeStore?.write(Js5Store.MASTER_INDEX, id, archiveSettings.encode(xteaKey, compression).encode())
     }
 
     override fun equals(other: Any?): Boolean {
