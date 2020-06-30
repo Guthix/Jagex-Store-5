@@ -10,10 +10,6 @@ contain all type of game information like client scripts, models,
 animations, sounds etc. This library allows reading and writing the 
 domain encoded file data from and to the cache.
 
-## Toolbox
-Besides an API for modifying the JS5 cache this repository also provides a toolset
-with useful tools for modifying, retrieving, optimizing and validating the cache.
-
 ## Cache Structure
 The internal cache structure is different than how it is organized on disk.
 A cache contains a set of archives which represent a single type of game asset.
@@ -59,31 +55,47 @@ higher level cache overview that handles all the encoding, encryption, compressi
 Below are some small examples for common cache operations. More advanced cache operations 
 using the `Js5lDiskStore` and the `Js5SocketReader` can be found in the toolbox.
 
-Opening a cache:
+##### Opening a cache:
 ```kotlin
 val ds = Js5DiskStore.open(Path.of("ROOT_CACHE_PATH"))
 val cache = Js5Cache(ds)
 ```
-Reading a group by id
+##### Reading a group by id
 ```kotlin
 val archive0 = cache.readArchive(0)
 val group0 = archive0.readGroup(0)
 ```
-Reading a group by name
+##### Reading a group by name
 ```kotlin
 val group0 = archive0.readGroup("GROUP_NAME")
 ```
-Writing a group
+
+##### Modifying files in a group
+To modify the content of `group0` we have to change the files inside the group.
+```kotlin
+group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), BYTEBUF_DATA)
+```
+
+##### Writing a group
 ```kotlin
 archive0.writeGroup(group0, appendVersion = true)
+cache.writeArchive(archive0)
 ```
-Removing a group
+##### Removing a group
 ```kotlin
 archive0.removeGroup(group0.id)
+cache.writeArchive(archive0)
 ```
+
+After updating the cache like doing a removal operation it is required to also write the archive back to the cache. This
+updates the meta-data attached to the group in the archive settings.
 
 ## Group and file names
 The names of groups and files are stored as hashes. This makes it so 
 they can't be retrieved from the cache. To retrieve a file by name you 
 therefore need to know its name. Names can by found by performing 
 dictionary attacks, rainbow table attacks to crack the hashes.
+
+## Toolbox
+Besides an API for modifying the JS5 cache this repository also provides a toolset
+with useful tools for modifying, retrieving, optimizing and validating the cache.
