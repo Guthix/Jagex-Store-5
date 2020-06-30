@@ -62,18 +62,18 @@ val cache = Js5Cache(ds)
 ```
 ##### Reading a group by id
 ```kotlin
-val archive0 = cache.readArchive(0)
-val group0 = archive0.readGroup(0)
+val archive0 = cache.readArchive(archiveId = 0)
+val group0 = archive0.readGroup(groupId = 0)
 ```
 ##### Reading a group by name
 ```kotlin
-val group0 = archive0.readGroup("GROUP_NAME")
+val group0 = archive0.readGroup(groupName = "GROUP_NAME")
 ```
 
 ##### Modifying files in a group
 To modify the content of `group0` we have to change the files inside the group.
 ```kotlin
-group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), BYTEBUF_DATA)
+group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), data = BYTEBUF_DATA)
 ```
 
 ##### Writing a group
