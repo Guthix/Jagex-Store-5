@@ -58,13 +58,15 @@ class Js5CacheTest : StringSpec() {
             unknownHash = 2390324
         )
         "After reading and writing the group should be the same as the original" {
-            cache.addArchive(0, containsWpHash = true, containsSizes = true, containsUnknownHash = true,
-                containsNameHash = true
-            ).use {
-                it.writeGroup(group, true)
-            }
+            val archive = cache.addArchive(version = 0, containsWpHash = true, containsSizes = true,
+                containsUnknownHash = true, containsNameHash = true
+            )
+            archive.writeGroup(group, true)
+            cache.writeArchive(archive)
             val readGroup = cache.readArchive(0).readGroup(group.id)
             readGroup shouldBe group
+            val readArchive = cache.readArchive(archive.id)
+            readArchive shouldBe archive
         }
     }
 }
