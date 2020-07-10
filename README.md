@@ -2,6 +2,7 @@
 [![Build Status](https://github.com/guthix/jagex-store-5/workflows/Build/badge.svg)](https://github.com/guthix/Jagex-Store-5/actions?workflow=Build)
 [![License](https://img.shields.io/github/license/guthix/Jagex-Store-5)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
 [![JDK](https://img.shields.io/badge/JDK-11%2B-blue)](https://openjdk.java.net/projects/jdk/11/)
+[![Discord](https://img.shields.io/discord/538667877180637184?color=%237289da&logo=discord)](https://discord.gg/AFyGxNp)
 
 A library for reading, writing and transferring Jagex Store 5 (JS5) game files. 
 Jagex Store 5 is a protocol used for storing game assets in the Runetek game engine made by the
