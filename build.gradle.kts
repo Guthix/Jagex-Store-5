@@ -1,20 +1,18 @@
 @file:Suppress("ConvertLambdaToReference")
 
 import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     idea
     `maven-publish`
     kotlin("jvm")
     id("org.jetbrains.dokka")
-    id("com.github.hierynomus.license")
 }
 
 group = "io.guthix"
 version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
-
-val licenseHeader: File by extra(file("gradle/LICENSE_HEADER"))
 
 val jagexByteBufVersion: String by extra("77cc6fd2a3")
 val kotlinLoggingVersion: String by extra("1.7.10")
@@ -29,7 +27,6 @@ val kotlinVersion: String by extra(project.getKotlinPluginVersion()!!)
 
 allprojects {
     apply(plugin = "kotlin")
-    apply(plugin = "com.github.hierynomus.license")
 
     repositories {
         mavenCentral()
@@ -53,11 +50,6 @@ allprojects {
             kotlinOptions.jvmTarget = "11"
         }
     }
-
-    license {
-        header = licenseHeader
-        exclude("**/*.xml")
-    }
 }
 
 kotlin { explicitApi() }
@@ -73,6 +65,7 @@ dependencies {
     testImplementation(group = "ch.qos.logback", name = "logback-classic", version = logbackVersion)
     testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotlinTestVersion)
     testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotlinTestVersion)
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.dokka {
@@ -117,4 +110,16 @@ publishing {
             }
         }
     }
+}
+repositories {
+    maven("https://dl.bintray.com/kotlin/kotlin-eap")
+    mavenCentral()
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    jvmTarget = "1.8"
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.kotlinOptions {
+    jvmTarget = "1.8"
 }
