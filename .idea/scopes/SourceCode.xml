@@ -1,3 +1,3 @@
 <component name="DependencyValidationManager">
-  <scope name="SourceCode" pattern="src[jagex-store-5.main]:*..*||src[jagex-store-5.toolbox.downloader.main]:io.guthix.cache.js5.downloader..*||src[jagex-store-5.toolbox.versionstripper.main]:io.guthix.cache.js5.versionstripper..*" />
+  <scope name="SourceCode" pattern="src[jagex-store-5.main]:*..*||src[jagex-store-5.toolbox.downloader.main]:io.guthix.cache.js5.downloader..*||src[jagex-store-5.toolbox.versionstripper.main]:io.guthix.cache.js5.versionstripper..*||test[jagex-store-5.test]:io.guthix.cache.js5..*" />
 </component>
