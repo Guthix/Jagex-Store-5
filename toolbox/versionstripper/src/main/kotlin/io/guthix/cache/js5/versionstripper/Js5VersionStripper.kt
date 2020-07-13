@@ -12,7 +12,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ * along with Guthix Jagex-Store-5. If not, see <https://www.gnu.org/licenses/>.
  */
 package io.guthix.cache.js5.versionstripper
 
