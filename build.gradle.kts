@@ -99,8 +99,8 @@ publishing {
                 url.set("https://github.com/guthix/Jagex-Store-5")
                 licenses {
                     license {
-                        name.set("GNU Lesser General Public License v3.0")
-                        url.set("https://www.gnu.org/licenses/lgpl-3.0.txt")
+                        name.set("APACHE LICENSE, VERSION 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
                     }
                 }
                 scm {
@@ -111,15 +111,20 @@ publishing {
         }
     }
 }
+
 repositories {
     maven("https://dl.bintray.com/kotlin/kotlin-eap")
     mavenCentral()
 }
+
 val compileKotlin: KotlinCompile by tasks
+
 compileKotlin.kotlinOptions {
     jvmTarget = "1.8"
 }
+
 val compileTestKotlin: KotlinCompile by tasks
+
 compileTestKotlin.kotlinOptions {
     jvmTarget = "1.8"
 }
