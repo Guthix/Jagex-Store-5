@@ -8,15 +8,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '11', '12' ]
+        java: [ '11' ]
     steps:
       - uses: actions/checkout@master
-      - name: Set up the JDK ${{ matrix.java }}
+      - name:  Set up the JDK ${{ matrix.java }}
         uses: actions/setup-java@master
         with:
           java-version: ${{ matrix.java }}
           architecture: x64
       - name: Building
-        run: ./gradlew assemble
-      - name: Testing
-        run: ./gradlew test
+        run: ./gradlew build --stacktrace
