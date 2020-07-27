@@ -14,15 +14,14 @@ group = "io.guthix"
 version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
 
-val jagexByteBufVersion: String by extra("77cc6fd2a3")
-val kotlinLoggingVersion: String by extra("1.7.10")
-val licensePluginVersion: String by extra("0.15.0")
+val jagexByteBufVersion: String by extra("027bcbbc2d")
+val kotlinLoggingVersion: String by extra("1.8.3")
 val logbackVersion: String by extra("1.2.3")
 val xzVersion: String by extra("1.8")
-val bouncyCastleVersion: String by extra("1.65.01")
+val bouncyCastleVersion: String by extra("1.66")
 val apacheCompressVersion: String by extra("1.20")
 val progressBarVersion: String by extra("0.8.1")
-val kotlinTestVersion: String by extra("4.1.0.RC2")
+val kotestVersion: String by extra("4.1.3")
 val kotlinVersion: String by extra(project.getKotlinPluginVersion()!!)
 
 allprojects {
@@ -37,7 +36,7 @@ allprojects {
 
     dependencies {
         implementation(kotlin("stdlib-jdk8"))
-        implementation(group = "com.github.guthix", name = "Jagex-ByteBuf", version = jagexByteBufVersion)
+        implementation(group = "com.github.guthix", name = "jagex-byteBuf", version = jagexByteBufVersion)
         implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     }
 
@@ -52,7 +51,7 @@ allprojects {
     }
 }
 
-kotlin { explicitApi() }
+// kotlin { explicitApi() }
 
 tasks.withType<Test> {
     useJUnitPlatform()
@@ -63,9 +62,8 @@ dependencies {
     implementation(group = "org.bouncycastle", name = "bcprov-jdk15on", version = bouncyCastleVersion)
     implementation(group = "org.apache.commons", name = "commons-compress", version = apacheCompressVersion)
     testImplementation(group = "ch.qos.logback", name = "logback-classic", version = logbackVersion)
-    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotlinTestVersion)
-    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotlinTestVersion)
-    implementation(kotlin("stdlib-jdk8"))
+    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotestVersion)
+    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotestVersion)
 }
 
 tasks.dokka {
