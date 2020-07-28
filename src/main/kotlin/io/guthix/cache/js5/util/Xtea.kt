@@ -21,12 +21,12 @@ import io.netty.buffer.Unpooled
 /**
  * The amount of [Int] keys in a XTEA key.
  */
-internal const val XTEA_KEY_SIZE = 4
+public const val XTEA_KEY_SIZE: Int = 4
 
 /**
  * A 0 XTEA key.
  */
-internal val XTEA_ZERO_KEY = IntArray(XTEA_KEY_SIZE)
+public val XTEA_ZERO_KEY: IntArray = IntArray(XTEA_KEY_SIZE)
 
 /**
  * The XTEA golden ratio.
@@ -44,7 +44,7 @@ private const val QUAD_ENCODED_SIZE = Int.SIZE_BYTES + Int.SIZE_BYTES
  * Encrypts a [ByteBuf] using XTEA encryption in place.
  */
 @Suppress("MagicNumber")
-internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
+public fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val numQuads = (end - start) / 8
     for (i in 0 until numQuads) {
@@ -67,7 +67,7 @@ internal fun ByteBuf.xteaEncrypt(key: IntArray, start: Int = readerIndex(), end:
  * Decrypts a [ByteBuf] using XTEA encryption and stores the result in a new buffer.
  */
 @Suppress("INTEGER_OVERFLOW")
-internal fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
+public fun ByteBuf.xteaDecrypt(key: IntArray, start: Int = readerIndex(), end: Int = writerIndex()): ByteBuf {
     require(key.size == XTEA_KEY_SIZE) { "The XTEA key should be 128 byte long." }
     val result = Unpooled.buffer(readableBytes())
     for (i in 0 until (end - start) / QUAD_ENCODED_SIZE) {
