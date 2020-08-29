@@ -14,14 +14,14 @@ group = "io.guthix"
 version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
 
-val jagexByteBufVersion: String by extra("027bcbbc2d")
-val kotlinLoggingVersion: String by extra("1.8.3")
+val jagexByteBufVersion: String by extra("9efb226d7a")
+val kotlinLoggingVersion: String by extra("1.7.10")
 val logbackVersion: String by extra("1.2.3")
 val xzVersion: String by extra("1.8")
-val bouncyCastleVersion: String by extra("1.66")
+val bouncyCastleVersion: String by extra("1.65.01")
 val apacheCompressVersion: String by extra("1.20")
 val progressBarVersion: String by extra("0.8.1")
-val kotestVersion: String by extra("4.1.3")
+val kotlinTestVersion: String by extra("4.2.2")
 val kotlinVersion: String by extra(project.getKotlinPluginVersion()!!)
 
 allprojects {
@@ -30,7 +30,6 @@ allprojects {
     repositories {
         mavenCentral()
         jcenter()
-        maven("https://dl.bintray.com/kotlin/kotlin-eap")
         maven("https://jitpack.io")
     }
 
@@ -51,7 +50,7 @@ allprojects {
     }
 }
 
-// kotlin { explicitApi() }
+kotlin { explicitApi() }
 
 tasks.withType<Test> {
     useJUnitPlatform()
@@ -62,20 +61,8 @@ dependencies {
     implementation(group = "org.bouncycastle", name = "bcprov-jdk15on", version = bouncyCastleVersion)
     implementation(group = "org.apache.commons", name = "commons-compress", version = apacheCompressVersion)
     testImplementation(group = "ch.qos.logback", name = "logback-classic", version = logbackVersion)
-    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotestVersion)
-    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotestVersion)
-}
-
-tasks.dokka {
-    outputFormat = "html"
-    outputDirectory = "$buildDir/javadoc"
-}
-
-val dokkaJar: Jar by tasks.creating(Jar::class) {
-    group = JavaBasePlugin.DOCUMENTATION_GROUP
-    description = "Assembles Kotlin docs with Dokka"
-    archiveClassifier.set("javadoc")
-    from(tasks.dokka)
+    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotlinTestVersion)
+    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotlinTestVersion)
 }
 
 publishing {
@@ -92,13 +79,12 @@ publishing {
     publications {
         create<MavenPublication>("Github") {
             from(components["java"])
-            artifact(dokkaJar)
             pom {
                 url.set("https://github.com/guthix/Jagex-Store-5")
                 licenses {
                     license {
-                        name.set("APACHE LICENSE, VERSION 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        name.set("GNU Lesser General Public License v3.0")
+                        url.set("https://www.gnu.org/licenses/lgpl-3.0.txt")
                     }
                 }
                 scm {
@@ -108,21 +94,4 @@ publishing {
             }
         }
     }
-}
-
-repositories {
-    maven("https://dl.bintray.com/kotlin/kotlin-eap")
-    mavenCentral()
-}
-
-val compileKotlin: KotlinCompile by tasks
-
-compileKotlin.kotlinOptions {
-    jvmTarget = "1.8"
-}
-
-val compileTestKotlin: KotlinCompile by tasks
-
-compileTestKotlin.kotlinOptions {
-    jvmTarget = "1.8"
 }

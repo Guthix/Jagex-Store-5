@@ -15,7 +15,6 @@
  */
 package io.guthix.cache.js5.container.disk
 
-import io.kotest.core.spec.autoClose
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import java.nio.file.Files
