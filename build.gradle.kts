@@ -32,8 +32,7 @@ allprojects {
     }
 
     dependencies {
-        implementation(kotlin("stdlib-jdk8"))
-        implementation(group = "com.github.guthix", name = "jagex-byteBuf", version = jagexByteBufVersion)
+        api(group = "com.github.guthix", name = "jagex-byteBuf", version = jagexByteBufVersion)
         implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     }
 
