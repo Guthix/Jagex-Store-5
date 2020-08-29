@@ -1,7 +1,6 @@
 @file:Suppress("ConvertLambdaToReference")
 
 import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     idea
@@ -15,10 +14,10 @@ version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
 
 val jagexByteBufVersion: String by extra("9efb226d7a")
-val kotlinLoggingVersion: String by extra("1.7.10")
+val kotlinLoggingVersion: String by extra("1.8.3")
 val logbackVersion: String by extra("1.2.3")
 val xzVersion: String by extra("1.8")
-val bouncyCastleVersion: String by extra("1.65.01")
+val bouncyCastleVersion: String by extra("1.66")
 val apacheCompressVersion: String by extra("1.20")
 val progressBarVersion: String by extra("0.8.1")
 val kotlinTestVersion: String by extra("4.2.2")
@@ -29,7 +28,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        jcenter()
         maven("https://jitpack.io")
     }
 

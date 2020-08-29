@@ -1,6 +1,6 @@
 plugins { application }
 
-val homePath = System.getProperty("user.home")
+val homePath: String = System.getProperty("user.home")
 
 val revision: Int = 190
 val logbackVersion: String by rootProject.extra
