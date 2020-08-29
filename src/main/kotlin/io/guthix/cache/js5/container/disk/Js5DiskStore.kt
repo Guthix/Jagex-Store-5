@@ -119,7 +119,7 @@ public class Js5DiskStore private constructor(
         /**
          * The default cache file name.
          */
-        private const val FILE_NAME = "main_file_cache"
+        public const val FILE_NAME: String = "main_file_cache"
 
         /**
          * Opens a [Js5DiskStore].

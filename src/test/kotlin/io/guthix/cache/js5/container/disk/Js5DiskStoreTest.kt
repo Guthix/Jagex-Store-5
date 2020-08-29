@@ -15,16 +15,15 @@
  */
 package io.guthix.cache.js5.container.disk
 
+import io.guthix.cache.js5.createEmptyCacheFolder
 import io.guthix.cache.js5.iterationFill
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.netty.buffer.Unpooled
-import java.nio.file.Files
 
 class Js5DiskStoreTest : StringSpec() {
     init {
-        val fsFolder = Files.createTempDirectory("js5")
-        val diskStore = autoClose(Js5DiskStore.open(fsFolder))
+        val diskStore = autoClose(Js5DiskStore.open(createEmptyCacheFolder()))
         val containerId1 = 0
         val data1 = Unpooled.buffer(34720).iterationFill()
         "Writing data" {

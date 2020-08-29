@@ -15,7 +15,10 @@
  */
 package io.guthix.cache.js5
 
+import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.netty.buffer.ByteBuf
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Fills a [ByteBuf] with increasing numbers starting from 0.
@@ -26,4 +29,11 @@ internal fun ByteBuf.iterationFill(): ByteBuf {
         writeByte(i++)
     }
     return this
+}
+
+fun createEmptyCacheFolder(): Path {
+    val fsFolder = Files.createTempDirectory("js5")
+    fsFolder.resolve(Js5DiskStore.FILE_NAME + ".dat2").toFile().createNewFile()
+    fsFolder.resolve(Js5DiskStore.FILE_NAME + ".idx255").toFile().createNewFile()
+    return fsFolder
 }

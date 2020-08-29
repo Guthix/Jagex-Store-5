@@ -19,13 +19,11 @@ import io.guthix.cache.js5.container.disk.Js5DiskStore
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.netty.buffer.Unpooled
-import java.nio.file.Files
 
 class Js5CacheTest : StringSpec() {
     init {
-        val fsFolder = Files.createTempDirectory("js5")
-        val diskStore = Js5DiskStore.open(fsFolder)
-        val cache = autoClose(Js5Cache(diskStore))
+        val diskStore = autoClose(Js5DiskStore.open(createEmptyCacheFolder()))
+        val cache = Js5Cache(diskStore)
         val files = mutableMapOf(
             0 to Js5File(0, 23482, Unpooled.buffer(390).iterationFill()),
             1 to Js5File(1, 5234, Unpooled.buffer(823).iterationFill()),
