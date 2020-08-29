@@ -74,19 +74,15 @@ public class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
         return opcode == other.opcode
     }
 
-    override fun hashCode(): Int {
-        return javaClass.hashCode()
-    }
+    override fun hashCode(): Int = javaClass.hashCode()
 }
 
 public class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufInputStream(input).use { inStream ->
             val bout = ByteBufOutputStream(Unpooled.buffer())
-            BZip2CompressorOutputStream(bout, BLOCK_SIZE).use { outStream ->
-                inStream.transferTo(outStream)
-            }
-            return bout.buffer().slice(headerSize, bout.writtenBytes() - headerSize)
+            BZip2CompressorOutputStream(bout, BLOCK_SIZE).use(inStream::transferTo)
+            return@compress bout.buffer().slice(headerSize, bout.writtenBytes() - headerSize)
         }
     }
 
@@ -104,9 +100,7 @@ public class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
         return opcode == other.opcode
     }
 
-    override fun hashCode(): Int {
-        return javaClass.hashCode()
-    }
+    override fun hashCode(): Int = javaClass.hashCode()
 
     private companion object {
         private const val BLOCK_SIZE = 1
@@ -119,10 +113,8 @@ public class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufInputStream(input).use { inStream ->
             val bout = ByteBufOutputStream(Unpooled.buffer())
-            GZIPOutputStream(bout).use { outStream ->
-                inStream.transferTo(outStream)
-            }
-            return bout.buffer()
+            GZIPOutputStream(bout).use(inStream::transferTo)
+            return@compress bout.buffer()
         }
     }
 
@@ -139,9 +131,7 @@ public class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
         return opcode == other.opcode
     }
 
-    override fun hashCode(): Int {
-        return javaClass.hashCode()
-    }
+    override fun hashCode(): Int = javaClass.hashCode()
 }
 
 public class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
@@ -151,11 +141,9 @@ public class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
         ByteBufOutputStream(Unpooled.buffer()).use { bout ->
             header.readBytes(bout, 5)
             ByteBufInputStream(input).use { inStream ->
-                LZMAOutputStream(bout, LZMA2Options(), true).use { outStream ->
-                    inStream.transferTo(outStream)
-                }
+                LZMAOutputStream(bout, LZMA2Options(), true).use(inStream::transferTo)
             }
-            return bout.buffer()
+            return@compress bout.buffer()
         }
     }
 
@@ -176,7 +164,5 @@ public class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {
         return opcode == other.opcode && header == other.header
     }
 
-    override fun hashCode(): Int {
-        return javaClass.hashCode()
-    }
+    override fun hashCode(): Int = javaClass.hashCode()
 }

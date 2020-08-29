@@ -19,11 +19,16 @@ import io.guthix.cache.js5.container.Js5Container
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
+import mu.KotlinLogging
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.channels.FileChannel
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.math.ceil
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * The [Dat2File] containing all cache data stored as [Sector]s. Dat2 files have the .dat2 file extension and are
@@ -159,6 +164,11 @@ internal class Dat2File private constructor(private val fileChannel: FileChannel
         const val EXTENSION = "dat2"
 
         fun open(path: Path): Dat2File {
+            if (Files.exists(path)) {
+                logger.debug { "Found .dat2 file" }
+            } else throw FileNotFoundException(
+                "Could not find .dat2 file at $path."
+            )
             return Dat2File(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE))
         }
     }
@@ -217,9 +227,7 @@ internal data class Sector(
         writeByte(indexFileId)
     }
 
-    override fun copy(): Sector {
-        return Sector(containerId, position, nextSectorNumber, indexFileId, data.copy())
-    }
+    override fun copy(): Sector = Sector(containerId, position, nextSectorNumber, indexFileId, data.copy())
 
     companion object {
         /**

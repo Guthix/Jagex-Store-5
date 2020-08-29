@@ -51,9 +51,8 @@ public class Js5DiskStore private constructor(
                 "Could not read index file ${indexFile.id} container $containerId because the index does not exist"
             }
             return Unpooled.EMPTY_BUFFER
-        } else {
-            logger.debug { "Reading index file ${indexFile.id} container $containerId" }
         }
+        logger.debug { "Reading index file ${indexFile.id} container $containerId" }
         return dat2File.read(indexFile.id, containerId, index)
     }
 
@@ -113,7 +112,7 @@ public class Js5DiskStore private constructor(
     override fun close() {
         logger.debug { "Closing Js5DiskStore at $root" }
         dat2File.close()
-        indexFiles.values.forEach { it.close() }
+        indexFiles.values.forEach(IdxFile::close)
     }
 
     public companion object {
@@ -129,24 +128,10 @@ public class Js5DiskStore private constructor(
          */
         public fun open(root: Path): Js5DiskStore {
             require(Files.isDirectory(root)) { "$root is not a directory or doesn't exist." }
-            val dataPath = root.resolve("$FILE_NAME.${Dat2File.EXTENSION}")
-            if (Files.exists(dataPath)) {
-                logger.debug { "Found .dat2 file" }
-            } else {
-                logger.debug { "Could not find .dat2 file\nCreated empty .dat2 file" }
-                Files.createFile(dataPath)
-                logger.debug { "Created empty .dat2 file\"" }
-            }
-            val dataFile = Dat2File.open(dataPath)
-            val masterIndexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}${Js5Store.MASTER_INDEX}")
-            if (Files.exists(masterIndexPath)) {
-                logger.debug { "Found .idx255 file" }
-            } else {
-                logger.debug { "Could not find .idx255 file" }
-                Files.createFile(masterIndexPath)
-                logger.debug { "Created empty .idx255 file" }
-            }
-            val masterIndexFile = IdxFile.open(Js5Store.MASTER_INDEX, masterIndexPath)
+            val dataFile = Dat2File.open(root.resolve("$FILE_NAME.${Dat2File.EXTENSION}"))
+            val masterIndexFile = IdxFile.open(
+                Js5Store.MASTER_INDEX, root.resolve("$FILE_NAME.${IdxFile.EXTENSION}${Js5Store.MASTER_INDEX}")
+            )
             var archiveCount = 0
             for (indexFileId in 0 until Js5Store.MASTER_INDEX) {
                 val indexPath = root.resolve("$FILE_NAME.${IdxFile.EXTENSION}$indexFileId")

@@ -60,9 +60,7 @@ public data class Js5Group(
      * The [Js5GroupData] of this [Js5Group].
      */
     internal val groupData
-        get() = Js5GroupData(
-            files.values.map { it.data }.toTypedArray(), chunkCount, xteaKey, compression
-        )
+        get() = Js5GroupData(files.values.map(Js5File::data).toTypedArray(), chunkCount, xteaKey, compression)
 
     /**
      * The [Js5GroupSettings] of this [Js5Group].
@@ -157,7 +155,7 @@ internal data class Js5GroupData(
     private fun encodeMultipleFiles(data: Array<ByteBuf>, chunkCount: Int): ByteBuf {
         val chunks = splitIntoChunks(data, chunkCount)
         val buf = Unpooled.compositeBuffer(
-            chunks.size * chunks.sumBy { it.size } + 1
+            chunks.size * chunks.sumBy(Array<ByteBuf>::size) + 1
         )
         for (group in chunks) {
             for (fileGroup in group) { // don't use spread operator hear because of unnecessary array copying

@@ -17,10 +17,14 @@ package io.guthix.cache.js5.container.disk
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import mu.KotlinLogging
 import java.io.FileNotFoundException
 import java.nio.channels.FileChannel
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * An [IdxFile] containing [Index]es of data in a [Dat2File]. The [IdxFile] contains a sequence of [Index]es.
@@ -86,6 +90,11 @@ internal class IdxFile private constructor(val id: Int, private val fileChannel:
          * Opens an [IdxFile].
          */
         fun open(id: Int, path: Path): IdxFile {
+            if (Files.exists(path)) {
+                logger.debug { "Found .idx$id file" }
+            } else throw FileNotFoundException(
+                "Could not find .idx$id file at $path."
+            )
             return IdxFile(id, FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE))
         }
     }

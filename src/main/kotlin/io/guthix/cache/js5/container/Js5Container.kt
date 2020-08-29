@@ -61,7 +61,7 @@ public data class Js5Container(
         buf.writeInt(compressedSize)
         if (compression !is Uncompressed) buf.writeInt(uncompressedSize)
         buf.writeBytes(compressedData)
-        version?.let { buf.writeShort(it) }
+        version?.let(buf::writeShort)
         return if (!xteaKey.isZeroKey) {
             buf.xteaEncrypt(xteaKey, start = ENC_HEADER_SIZE, end = totalHeaderSize + compressedSize)
         } else buf

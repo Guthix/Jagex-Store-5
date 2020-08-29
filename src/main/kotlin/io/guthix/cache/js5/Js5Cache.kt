@@ -170,15 +170,15 @@ public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValid
             else -> Unpooled.buffer(Js5ArchiveValidator.ENCODED_SIZE * archiveValidators.size)
         }
         if (containsWhirlpool) buf.writeByte(archiveValidators.size)
-        for (archiveChecksum in archiveValidators) {
-            buf.writeInt(archiveChecksum.crc)
-            buf.writeInt(archiveChecksum.version ?: 0)
+        for ((crc, version, whirlpoolDigest, fileCount, uncompressedSize) in archiveValidators) {
+            buf.writeInt(crc)
+            buf.writeInt(version ?: 0)
             if (containsWhirlpool) {
                 if (newFormat) {
-                    buf.writeInt(archiveChecksum.fileCount ?: 0)
-                    buf.writeInt(archiveChecksum.uncompressedSize ?: 0)
+                    buf.writeInt(fileCount ?: 0)
+                    buf.writeInt(uncompressedSize ?: 0)
                 }
-                buf.writeBytes(archiveChecksum.whirlpoolDigest)
+                buf.writeBytes(whirlpoolDigest)
             }
         }
         if (containsWhirlpool) {
@@ -197,9 +197,7 @@ public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValid
         return true
     }
 
-    override fun hashCode(): Int {
-        return archiveValidators.contentHashCode()
-    }
+    override fun hashCode(): Int = archiveValidators.contentHashCode()
 
     public companion object {
         /**
