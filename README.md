@@ -58,30 +58,38 @@ using the `Js5lDiskStore` and the `Js5SocketReader` can be found in the toolbox.
 
 ##### Opening a cache:
 ```kotlin
-val ds = Js5DiskStore.open(Path.of("ROOT_CACHE_PATH"))
-val cache = Js5Cache(ds)
+Js5DiskStore.open(Path.of("ROOT_CACHE_PATH")).use { ds ->
+    val cache = Js5Cache(ds)
+}
 ```
+
 ##### Reading a group by id
 ```kotlin
 val archive0 = cache.readArchive(archiveId = 0)
 val group0 = archive0.readGroup(groupId = 0)
 ```
+
 ##### Reading a group by name
 ```kotlin
 val group0 = archive0.readGroup(groupName = "GROUP_NAME")
 ```
 
 ##### Modifying files in a group
-To modify the content of `group0` we have to change the files inside the group.
 ```kotlin
-group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), data = BYTEBUF_DATA)
+group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), data = NEW_DATA)
 ```
 
 ##### Writing a group
+Before writing a group it is recommended to also increase the group version.
+```kotlin
+group.version++
+```
+If you don't update the group version a client won't know that a new version of your asset is available.
 ```kotlin
 archive0.writeGroup(group0, appendVersion = true)
 cache.writeArchive(archive0)
 ```
+
 ##### Removing a group
 ```kotlin
 archive0.removeGroup(group0.id)
