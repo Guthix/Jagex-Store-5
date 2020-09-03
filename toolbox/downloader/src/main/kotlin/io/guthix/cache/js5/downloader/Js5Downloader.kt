@@ -126,7 +126,7 @@ object Js5Downloader {
                     pb.extraMessage = "Downloading archive $archiveId"
                     archiveSettings.groupSettings.forEach { (_, groupSettings) ->
                         val response = sr.readFileResponse()
-                        if (response.data.crc() != groupSettings.crc) throw IOException(
+                        if (response.data.crc() != groupSettings.compressedCrc) throw IOException(
                             "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
                         )
                         val writeData = if (groupSettings.version != -1 && includeVersions) { // add version if exists

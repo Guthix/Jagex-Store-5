@@ -119,8 +119,8 @@ public data class Js5Group(
                 files[fileId] = Js5File(fileId, fileSettings.nameHash, data.fileData[i])
                 i++
             }
-            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.unknownHash,
-                files, data.xteaKey, data.compression, settings.crc, settings.whirlpoolHash, settings.sizes
+            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.uncompressedCrc,
+                files, data.xteaKey, data.compression, settings.compressedCrc, settings.whirlpoolHash, settings.sizes
             )
         }
     }
@@ -275,8 +275,8 @@ internal data class Js5GroupData(
  *
  * @property id The unique identifier in the archive of this group.
  * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
- * @property crc The [java.util.zip.CRC32] value of the encoded [Js5GroupData] data.
- * @property unknownHash (Optional) Its purpose and type is unknown as of yet.
+ * @property compressedCrc The [java.util.zip.CRC32] value of the encoded [Js5GroupData] data.
+ * @property uncompressedCrc (Optional) Its purpose and type is unknown as of yet.
  * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
  * @property sizes (Optional) The [Js5Container.Size] of this [Js5GroupData].
  * @property version The version of this group.
@@ -285,10 +285,10 @@ internal data class Js5GroupData(
 public data class Js5GroupSettings(
     var id: Int,
     var version: Int,
-    var crc: Int,
+    var compressedCrc: Int,
     val fileSettings: MutableMap<Int, Js5FileSettings>,
     var nameHash: Int? = null,
-    var unknownHash: Int? = null,
+    var uncompressedCrc: Int? = null,
     var whirlpoolHash: ByteArray? = null,
     var sizes: Js5Container.Size? = null
 ) {
@@ -298,10 +298,10 @@ public data class Js5GroupSettings(
         other as Js5GroupSettings
         if (id != other.id) return false
         if (version != other.version) return false
-        if (crc != other.crc) return false
+        if (compressedCrc != other.compressedCrc) return false
         if (fileSettings != other.fileSettings) return false
         if (nameHash != other.nameHash) return false
-        if (unknownHash != other.unknownHash) return false
+        if (uncompressedCrc != other.uncompressedCrc) return false
         if (whirlpoolHash != null) {
             if (other.whirlpoolHash == null) return false
             if (!whirlpoolHash!!.contentEquals(other.whirlpoolHash!!)) return false
@@ -314,10 +314,10 @@ public data class Js5GroupSettings(
     override fun hashCode(): Int {
         var result = id
         result = 31 * result + version
-        result = 31 * result + crc
+        result = 31 * result + compressedCrc
         result = 31 * result + fileSettings.hashCode()
         result = 31 * result + (nameHash ?: 0)
-        result = 31 * result + (unknownHash ?: 0)
+        result = 31 * result + (uncompressedCrc ?: 0)
         result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
         result = 31 * result + (sizes?.hashCode() ?: 0)
         return result
