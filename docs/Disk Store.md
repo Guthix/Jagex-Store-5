@@ -55,10 +55,10 @@ to be stored sequentially in the data file.
 
 A sector is encoded as follows:
 
-![Normal sector Encoding](images/Normalsector.svg)
+![Normal sector Encoding](images/NormalSector.svg)
 
 This sector encoding however can only store sectors with a container ids
 up until 65535 (maximum unsigned short). So container with higher ids are 
 stored with extended sectors which look as follows:
 
-![Extended sector Encoding](images/Extendedsector.svg)
+![Extended sector Encoding](images/ExtendedSector.svg)
