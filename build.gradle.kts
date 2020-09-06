@@ -1,6 +1,8 @@
 @file:Suppress("ConvertLambdaToReference")
 
 import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
+import org.jetbrains.dokka.gradle.DokkaTask
+import java.net.URL
 
 plugins {
     idea
@@ -9,7 +11,7 @@ plugins {
     id("org.jetbrains.dokka")
 }
 
-group = "io.guthix"
+group = "io.guthix.js5"
 version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
 
@@ -28,6 +30,7 @@ allprojects {
 
     repositories {
         mavenCentral()
+        jcenter()
         maven("https://jitpack.io")
     }
 
@@ -47,12 +50,6 @@ allprojects {
     }
 }
 
-kotlin { explicitApi() }
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
-
 dependencies {
     implementation(group = "org.tukaani", name = "xz", version = xzVersion)
     implementation(group = "org.bouncycastle", name = "bcprov-jdk15on", version = bouncyCastleVersion)
@@ -60,6 +57,32 @@ dependencies {
     testImplementation(group = "ch.qos.logback", name = "logback-classic", version = logbackVersion)
     testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotlinTestVersion)
     testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotlinTestVersion)
+}
+
+kotlin { explicitApi() }
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
+
+tasks.withType<DokkaTask> {
+    outputDirectory.set(buildDir.resolve("dokka"))
+
+    dokkaSourceSets {
+        configureEach {
+            moduleDisplayName.set("jagex-store-5")
+            displayName.set("JVM")
+            noStdlibLink.set(false)
+            noJdkLink.set(false)
+            platform.set(org.jetbrains.dokka.Platform.jvm)
+            jdkVersion.set(11)
+            sourceLink {
+                localDirectory.set(file("src/main/kotlin"))
+                remoteUrl.set(URL("https://github.com/guthix/Jagex-Store-5/tree/master/src/main/kotlin"))
+                remoteLineSuffix.set("#L")
+            }
+        }
+    }
 }
 
 publishing {
