@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "io.guthix"
-version = "0.3.8"
+version = "0.4.0"
 description = "A library for modifying Jagex Store 5 caches"
 
 val repoUrl: String = "https://github.com/guthix/Jagex-Store-5"
