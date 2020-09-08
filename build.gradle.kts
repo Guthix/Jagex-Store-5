@@ -15,7 +15,7 @@ group = "io.guthix.js5"
 version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
 
-val jagexByteBufVersion: String by extra("9efb226d7a")
+val jagexByteBufVersion: String by extra("0.1")
 val kotlinLoggingVersion: String by extra("1.8.3")
 val logbackVersion: String by extra("1.2.3")
 val xzVersion: String by extra("1.8")
@@ -31,11 +31,10 @@ allprojects {
     repositories {
         mavenCentral()
         jcenter()
-        maven("https://jitpack.io")
     }
 
     dependencies {
-        api(group = "com.github.guthix", name = "jagex-byteBuf", version = jagexByteBufVersion)
+        api(group = "io.guthix", name = "jagex-bytebuf", version = jagexByteBufVersion)
         implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     }
 
@@ -63,26 +62,6 @@ kotlin { explicitApi() }
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-tasks.withType<DokkaTask> {
-    outputDirectory.set(buildDir.resolve("dokka"))
-
-    dokkaSourceSets {
-        configureEach {
-            moduleDisplayName.set("jagex-store-5")
-            displayName.set("JVM")
-            noStdlibLink.set(false)
-            noJdkLink.set(false)
-            platform.set(org.jetbrains.dokka.Platform.jvm)
-            jdkVersion.set(11)
-            sourceLink {
-                localDirectory.set(file("src/main/kotlin"))
-                remoteUrl.set(URL("https://github.com/guthix/Jagex-Store-5/tree/master/src/main/kotlin"))
-                remoteLineSuffix.set("#L")
-            }
-        }
-    }
 }
 
 publishing {
