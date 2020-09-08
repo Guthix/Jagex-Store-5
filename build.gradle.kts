@@ -86,7 +86,7 @@ publishing {
         }
         maven {
             name = "GitHubPackages"
-            url = URI("https://maven.pkg.github.com/guthix/Jagex-ByteBuf")
+            url = URI("https://maven.pkg.github.com/guthix/Jagex-Store-5")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
