@@ -1,19 +1,22 @@
 @file:Suppress("ConvertLambdaToReference")
 
 import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
-import org.jetbrains.dokka.gradle.DokkaTask
-import java.net.URL
+import java.net.URI
 
 plugins {
     idea
     `maven-publish`
-    kotlin("jvm")
+    signing
     id("org.jetbrains.dokka")
+    kotlin("jvm")
 }
 
-group = "io.guthix.js5"
+group = "io.guthix"
 version = "0.3.8"
 description = "A library for modifying Jagex Store 5 caches"
+
+val repoUrl: String = "https://github.com/guthix/Jagex-Store-5"
+val gitSuffix: String = "github.com/guthix/Jagex-Store-5.git"
 
 val jagexByteBufVersion: String by extra("0.1")
 val kotlinLoggingVersion: String by extra("1.8.3")
@@ -27,6 +30,7 @@ val kotlinVersion: String by extra(project.getKotlinPluginVersion()!!)
 
 allprojects {
     apply(plugin = "kotlin")
+    apply(plugin = "org.jetbrains.dokka")
 
     repositories {
         mavenCentral()
@@ -36,6 +40,7 @@ allprojects {
     dependencies {
         api(group = "io.guthix", name = "jagex-bytebuf", version = jagexByteBufVersion)
         implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
+        dokkaHtmlPlugin(group = "org.jetbrains.dokka", name = "kotlin-as-java-plugin", version = kotlinVersion)
     }
 
     tasks {
@@ -64,33 +69,61 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 publishing {
     repositories {
         maven {
-            name = "Github"
-            url = uri("https://maven.pkg.github.com/guthix/Jagex-Store-5")
+            name = "MavenCentral"
+            url = URI("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
             credentials {
-                username = findProject("github.username") as String?
-                password = findProperty("github.token") as String?
+                username = System.getenv("OSSRH_USERNAME")
+                password = System.getenv("OSSRH_PASSWORD")
+            }
+        }
+        maven {
+            name = "GitHubPackages"
+            url = URI("https://maven.pkg.github.com/guthix/Jagex-ByteBuf")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
             }
         }
     }
     publications {
-        create<MavenPublication>("Github") {
+        create<MavenPublication>("default") {
             from(components["java"])
             pom {
-                url.set("https://github.com/guthix/Jagex-Store-5")
+                name.set("Jagex Store 5")
+                description.set(rootProject.description)
+                url.set(repoUrl)
                 licenses {
                     license {
-                        name.set("GNU Lesser General Public License v3.0")
-                        url.set("https://www.gnu.org/licenses/lgpl-3.0.txt")
+                        name.set("APACHE LICENSE, VERSION 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
                     }
                 }
                 scm {
-                    connection.set("scm:git:git://github.com/guthix/Jagex-Store-5.git")
-                    developerConnection.set("scm:git:ssh://github.com/guthix/Jagex-Store-5.git")
+                    connection.set("scm:git:git://$gitSuffix")
+                    developerConnection.set("scm:git:ssh://$gitSuffix")
+                    url.set(repoUrl
+                    )
+                }
+                developers {
+                    developer {
+                        id.set("bart")
+                        name.set("Bart van Helvert")
+                    }
                 }
             }
         }
     }
+}
+
+signing {
+    useInMemoryPgpKeys(System.getenv("SIGNING_KEY"), System.getenv("SIGNING_PASSWORD"))
+    sign(publishing.publications["default"])
 }
