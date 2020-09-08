@@ -52,6 +52,11 @@ provides the same raw data access but it can be used to read data from a JS5 ser
 The raw data is not really useful for most use cases. The `Js5Cache` provides a 
 higher level cache overview that handles all the encoding, encryption, compression.
 
+### Gradle
+```Kotlin
+implementation(group = "io.guthix", name = "jagex-store-5", version = "0.4.0")
+```
+
 ### Examples
 Below are some small examples for common cache operations. More advanced cache operations 
 using the `Js5lDiskStore` and the `Js5SocketReader` can be found in the toolbox.
