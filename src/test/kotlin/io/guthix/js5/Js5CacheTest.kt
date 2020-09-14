@@ -35,7 +35,7 @@ class Js5CacheTest : StringSpec() {
             chunkCount = 10,
             files = files,
             nameHash = 3489234,
-            unknownHash = 2390324
+            uncompressedCrc = 2390324
         )
         "After reading and writing the group should be the same as the original" {
             val archive = cache.addArchive(version = 0, containsWpHash = true, containsSizes = true,

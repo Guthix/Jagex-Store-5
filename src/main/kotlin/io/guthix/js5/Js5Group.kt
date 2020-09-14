@@ -35,11 +35,12 @@ import kotlin.math.ceil
  * @param version The version of the group.
  * @param chunkCount The chunk count used to encode the group (only used when the group contains multiple files).
  * @param nameHash (Optional) The [String.hashCode] of the name of the group.
- * @param unknownHash (Optional) An unknown value in the group.
+ * @param compressedCrc The [CRC32] of the compressed group data.
+ * @param uncompressedCrc (Optional) The [CRC32] of the uncompressed group data.
  * @param files The [Js5File]s belonging to this [Js5Group] indexed by their [Js5File.id].
  * @param xteaKey The XTEA key used to encrypt the [Js5Group].
  * @param compression The compression used to compress the [Js5Group].
- * @param crc The [CRC32] of the encoded group data.
+ * @param
  * @param whirlpoolHash The whirlpool hash of the encoded group data.
  * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
  */
@@ -48,13 +49,13 @@ public data class Js5Group(
     var version: Int,
     var chunkCount: Int,
     var nameHash: Int? = null,
-    var unknownHash: Int? = null,
+    internal var compressedCrc: Int = 0,
+    internal var uncompressedCrc: Int? = null,
+    internal var whirlpoolHash: ByteArray? = null,
+    internal var sizes: Js5Container.Size? = null,
     val files: MutableMap<Int, Js5File> = mutableMapOf(),
     var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed(),
-    internal var crc: Int = 0,
-    internal var whirlpoolHash: ByteArray? = null,
-    internal var sizes: Js5Container.Size? = null
+    var compression: Js5Compression = Uncompressed()
 ) {
     /**
      * The [Js5GroupData] of this [Js5Group].
@@ -67,9 +68,9 @@ public data class Js5Group(
      */
     internal val groupSettings
         get() =
-            Js5GroupSettings(id, version, crc, files.mapValues { (fileId, file) ->
+            Js5GroupSettings(id, version, compressedCrc, files.mapValues { (fileId, file) ->
                 Js5FileSettings(fileId, file.nameHash)
-            }.toMutableMap(), nameHash, unknownHash, whirlpoolHash, sizes
+            }.toMutableMap(), nameHash, uncompressedCrc, whirlpoolHash, sizes
             )
 
     override fun equals(other: Any?): Boolean {
@@ -78,10 +79,10 @@ public data class Js5Group(
         other as Js5Group
         if (id != other.id) return false
         if (version != other.version) return false
-        if (crc != other.crc) return false
+        if (compressedCrc != other.compressedCrc) return false
         if (chunkCount != other.chunkCount) return false
         if (nameHash != other.nameHash) return false
-        if (unknownHash != other.unknownHash) return false
+        if (uncompressedCrc != other.uncompressedCrc) return false
         if (whirlpoolHash != null) {
             if (other.whirlpoolHash == null) return false
             if (!whirlpoolHash!!.contentEquals(other.whirlpoolHash!!)) return false
@@ -96,10 +97,10 @@ public data class Js5Group(
     override fun hashCode(): Int {
         var result = id
         result = 31 * result + version
-        result = 31 * result + crc
+        result = 31 * result + compressedCrc
         result = 31 * result + chunkCount
         result = 31 * result + (nameHash ?: 0)
-        result = 31 * result + (unknownHash ?: 0)
+        result = 31 * result + (uncompressedCrc ?: 0)
         result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
         result = 31 * result + (sizes?.hashCode() ?: 0)
         result = 31 * result + files.hashCode()
@@ -119,8 +120,8 @@ public data class Js5Group(
                 files[fileId] = Js5File(fileId, fileSettings.nameHash, data.fileData[i])
                 i++
             }
-            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.uncompressedCrc,
-                files, data.xteaKey, data.compression, settings.compressedCrc, settings.whirlpoolHash, settings.sizes
+            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.compressedCrc,
+                settings.uncompressedCrc, settings.whirlpoolHash, settings.sizes, files, data.xteaKey, data.compression,
             )
         }
     }
