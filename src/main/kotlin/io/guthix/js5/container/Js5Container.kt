@@ -17,6 +17,7 @@
 
 package io.guthix.js5.container
 
+import io.guthix.js5.util.DecryptionFailedException
 import io.guthix.js5.util.XTEA_ZERO_KEY
 import io.guthix.js5.util.xteaDecrypt
 import io.guthix.js5.util.xteaEncrypt
@@ -59,7 +60,7 @@ public data class Js5Container(
         )
         buf.writeByte(compression.opcode)
         buf.writeInt(compressedSize)
-        if (compression !is Uncompressed) buf.writeInt(uncompressedSize)
+        if (compression != Uncompressed) buf.writeInt(uncompressedSize)
         buf.writeBytes(compressedData)
         version?.let(buf::writeShort)
         return if (!xteaKey.isZeroKey) {
@@ -114,9 +115,15 @@ public data class Js5Container(
             val decBuf = if (!xteaKey.isZeroKey) {
                 buf.xteaDecrypt(xteaKey, end = buf.readerIndex() + encComprSize)
             } else buf.slice(buf.readerIndex(), buf.readableBytes())
-            val decompBuf = if (compression !is Uncompressed) {
+            val decompBuf = if (compression != Uncompressed) {
                 val uncompressedSize = decBuf.readInt()
-                val uncompressed = compression.decompress(decBuf, uncompressedSize)
+                val uncompressed = try {
+                    compression.decompress(decBuf, uncompressedSize)
+                } catch (e: Exception) {
+                    throw DecryptionFailedException(
+                        "Failed to decrypt container using XTEA key ${xteaKey.contentToString()}."
+                    )
+                }
                 if (uncompressed.writerIndex() != uncompressedSize) throw IOException(
                     "Decompressed size was ${uncompressed.writerIndex()} but expected $uncompressedSize."
                 )
@@ -146,7 +153,7 @@ public data class Js5Container(
         public fun decodeSize(buf: ByteBuf, xteaKey: IntArray = XTEA_ZERO_KEY): Size {
             val compression = Js5Compression.getByOpcode(buf.readUnsignedByte().toInt())
             val compressedSize = buf.readInt()
-            if (compression is Uncompressed) return Size(compressedSize, compressedSize)
+            if (compression == Uncompressed) return Size(compressedSize, compressedSize)
             val encComprSize = compression.headerSize + compressedSize
             val decBuf = if (!xteaKey.isZeroKey) {
                 buf.xteaDecrypt(xteaKey, end = buf.readerIndex() + encComprSize)
