@@ -55,9 +55,9 @@ public sealed class Js5Compression(public val opcode: Int, public val headerSize
          * Creates a new [Js5Compression] instance based on the [Js5Compression.opcode].
          */
         public fun getByOpcode(opcode: Int): Js5Compression = when (opcode) {
-            0 -> Uncompressed()
-            1 -> BZIP2()
-            2 -> GZIP()
+            0 -> Uncompressed
+            1 -> BZIP2
+            2 -> GZIP
             3 -> LZMA()
             else -> throw IOException("Unsupported compression type $opcode")
         }
@@ -65,19 +65,16 @@ public sealed class Js5Compression(public val opcode: Int, public val headerSize
 }
 
 
-public class Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
+public object Uncompressed : Js5Compression(opcode = 0, headerSize = 0) {
     override fun compress(input: ByteBuf): ByteBuf = input
     override fun decompress(input: ByteBuf, length: Int): ByteBuf = input.slice(input.readerIndex(), length)
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is Uncompressed) return false
-        return opcode == other.opcode
-    }
-
-    override fun hashCode(): Int = javaClass.hashCode()
 }
 
-public class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
+public object BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
+    private const val BLOCK_SIZE = 1
+
+    private val HEADER = "BZh$BLOCK_SIZE".toByteArray(StandardCharsets.US_ASCII)
+
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufInputStream(input).use { inStream ->
             val bout = ByteBufOutputStream(Unpooled.buffer())
@@ -94,22 +91,9 @@ public class BZIP2 : Js5Compression(opcode = 1, headerSize = Int.SIZE_BYTES) {
         }
         return decompressed
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is BZIP2) return false
-        return opcode == other.opcode
-    }
-
-    override fun hashCode(): Int = javaClass.hashCode()
-
-    private companion object {
-        private const val BLOCK_SIZE = 1
-
-        private val HEADER = "BZh$BLOCK_SIZE".toByteArray(StandardCharsets.US_ASCII)
-    }
 }
 
-public class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
+public object GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
     override fun compress(input: ByteBuf): ByteBuf {
         ByteBufInputStream(input).use { inStream ->
             val bout = ByteBufOutputStream(Unpooled.buffer())
@@ -125,13 +109,6 @@ public class GZIP : Js5Compression(opcode = 2, headerSize = Int.SIZE_BYTES) {
         }
         return decompressed
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is GZIP) return false
-        return opcode == other.opcode
-    }
-
-    override fun hashCode(): Int = javaClass.hashCode()
 }
 
 public class LZMA : Js5Compression(opcode = 3, headerSize = Int.SIZE_BYTES) {

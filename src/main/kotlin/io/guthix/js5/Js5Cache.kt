@@ -97,7 +97,7 @@ public class Js5Cache(
         containsSizes: Boolean = false,
         containsUnknownHash: Boolean = false,
         xteaKey: IntArray = XTEA_ZERO_KEY,
-        compression: Js5Compression = Uncompressed()
+        compression: Js5Compression = Uncompressed
     ): Js5Archive {
         writeStore ?: error("Can't add archive because there is no write store provided.")
         return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes,

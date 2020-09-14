@@ -23,15 +23,15 @@ import io.netty.buffer.Unpooled
 class Js5ContainerTest : StringSpec({
     val data = Unpooled.buffer(5871).iterationFill()
     "After encoding and decoding an uncompressed container it should be the same as the original" {
-        Js5Container.decode(Js5Container(data.copy(), compression = Uncompressed()).encode()).data shouldBe data
+        Js5Container.decode(Js5Container(data.copy(), compression = Uncompressed).encode()).data shouldBe data
     }
 
     "After encoding and decoding a BZIP2 compressed container it should be the same as the original" {
-        Js5Container.decode(Js5Container(data.copy(), compression = BZIP2()).encode()).data shouldBe data
+        Js5Container.decode(Js5Container(data.copy(), compression = BZIP2).encode()).data shouldBe data
     }
 
     "After encoding and decoding a GZIP compressed container it should be the same as the original" {
-        Js5Container.decode(Js5Container(data.copy(), compression = GZIP()).encode()).data shouldBe data
+        Js5Container.decode(Js5Container(data.copy(), compression = GZIP).encode()).data shouldBe data
     }
 
     "After encoding and decoding a LZMA compressed container it should be the same as the original" {

@@ -37,12 +37,11 @@ import kotlin.math.ceil
  * @param nameHash (Optional) The [String.hashCode] of the name of the group.
  * @param compressedCrc The [CRC32] of the compressed group data.
  * @param uncompressedCrc (Optional) The [CRC32] of the uncompressed group data.
+ * @param whirlpoolHash The whirlpool hash of the encoded group data.
+ * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
  * @param files The [Js5File]s belonging to this [Js5Group] indexed by their [Js5File.id].
  * @param xteaKey The XTEA key used to encrypt the [Js5Group].
  * @param compression The compression used to compress the [Js5Group].
- * @param
- * @param whirlpoolHash The whirlpool hash of the encoded group data.
- * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
  */
 public data class Js5Group(
     var id: Int,
@@ -55,7 +54,7 @@ public data class Js5Group(
     internal var sizes: Js5Container.Size? = null,
     val files: MutableMap<Int, Js5File> = mutableMapOf(),
     var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed()
+    var compression: Js5Compression = Uncompressed
 ) {
     /**
      * The [Js5GroupData] of this [Js5Group].
@@ -139,7 +138,7 @@ internal data class Js5GroupData(
     val fileData: Array<ByteBuf>,
     var chunkCount: Int = 1,
     var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed()
+    var compression: Js5Compression = Uncompressed
 ) {
     /**
      * Encodes the [Js5GroupData] into a [Js5Container].

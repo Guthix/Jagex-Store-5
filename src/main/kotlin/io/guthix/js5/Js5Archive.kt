@@ -58,7 +58,7 @@ public data class Js5Archive internal constructor(
     val containsSizes: Boolean = false,
     val containsUnknownHash: Boolean = false,
     var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed(),
+    var compression: Js5Compression = Uncompressed,
     val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
     private val readStore: Js5ReadStore,
     private val writeStore: Js5WriteStore?
@@ -226,7 +226,7 @@ public data class Js5ArchiveSettings(
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
-    public fun encode(xteaKey: IntArray = XTEA_ZERO_KEY, compression: Js5Compression = Uncompressed()): Js5Container {
+    public fun encode(xteaKey: IntArray = XTEA_ZERO_KEY, compression: Js5Compression = Uncompressed): Js5Container {
         val buf = Unpooled.buffer()
         val format = if (version == -1) {
             Format.UNVERSIONED

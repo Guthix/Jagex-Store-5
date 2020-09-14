@@ -38,7 +38,7 @@ import java.io.IOException
 public data class Js5Container(
     var data: ByteBuf,
     var xteaKey: IntArray = XTEA_ZERO_KEY,
-    var compression: Js5Compression = Uncompressed(),
+    var compression: Js5Compression = Uncompressed,
     var version: Int? = null
 ) : DefaultByteBufHolder(data) {
     /**
