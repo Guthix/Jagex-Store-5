@@ -92,7 +92,7 @@ public class Js5NetReader private constructor(
         headerBuffer.forEachByte { it xor xorKey; true }
         val indexFileId = headerBuffer.readUnsignedByte().toInt()
         val containerId = headerBuffer.readUnsignedShort()
-        logger.debug("Reading index file $indexFileId container $containerId")
+        logger.trace { "Reading index file $indexFileId container $containerId" }
         val compression = Js5Compression.getByOpcode(headerBuffer.readUnsignedByte().toInt())
         val compressedSize = headerBuffer.readInt()
         val containerSize = compression.headerSize + compressedSize
@@ -161,7 +161,7 @@ public class Js5NetReader private constructor(
      * @param priority Whether to send a priority request.
      */
     public fun sendFileRequest(indexFileId: Int, containerId: Int, priority: Boolean = priorityMode) {
-        logger.debug("Requesting index file $indexFileId container $containerId")
+        logger.debug { "Requesting index file $indexFileId container $containerId" }
         val buf = Unpooled.buffer(REQUEST_PACKET_SIZE)
         if (priority) {
             buf.writeByte(Js5Request.PRIORITY_FILE_REQUEST.opcode)

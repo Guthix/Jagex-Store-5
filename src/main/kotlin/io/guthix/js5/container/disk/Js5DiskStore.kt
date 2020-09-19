@@ -52,7 +52,7 @@ public class Js5DiskStore private constructor(
             }
             return Unpooled.EMPTY_BUFFER
         }
-        logger.debug { "Reading index file ${indexFile.id} container $containerId" }
+        logger.trace { "Reading index file ${indexFile.id} container $containerId" }
         return dat2File.read(indexFile.id, containerId, index)
     }
 
@@ -60,7 +60,7 @@ public class Js5DiskStore private constructor(
         require(indexId in 0..archiveCount || indexId == Js5Store.MASTER_INDEX) {
             "Can't write data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist and can't be created."
         }
-        logger.debug { "Writing index file $indexId container $containerId" }
+        logger.trace { "Writing index file $indexId container $containerId" }
         val indexFile = if (indexId == archiveCount) {
             createNewArchive()
         } else {
@@ -86,7 +86,7 @@ public class Js5DiskStore private constructor(
             "Can't remove data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist."
         }
         val indexFile = indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
-        logger.debug { "Removing index file ${indexFile.id} container $containerId" }
+        logger.trace { "Removing index file ${indexFile.id} container $containerId" }
         indexFile.remove(containerId)
     }
 
@@ -140,7 +140,7 @@ public class Js5DiskStore private constructor(
                     break
                 }
             }
-            logger.debug { "Created disk store with archive count $archiveCount" }
+            logger.debug { "Opened disk store with archive count $archiveCount" }
             return Js5DiskStore(root, dataFile, mutableMapOf(Js5Store.MASTER_INDEX to masterIndexFile), archiveCount)
         }
     }
