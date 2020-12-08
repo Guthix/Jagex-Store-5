@@ -1,5 +1,5 @@
 pluginManagement {
-    val kotlinVersion by extra("1.4.0")
+    val kotlinVersion by extra("1.4.20")
     val dokkaVersion by extra(kotlinVersion)
 
     plugins {

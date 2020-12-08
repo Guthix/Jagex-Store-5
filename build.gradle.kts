@@ -19,13 +19,13 @@ val repoUrl: String = "https://github.com/guthix/Jagex-Store-5"
 val gitSuffix: String = "github.com/guthix/Jagex-Store-5.git"
 
 val jagexByteBufVersion: String by extra("0.1")
-val kotlinLoggingVersion: String by extra("1.8.3")
+val kotlinLoggingVersion: String by extra("2.0.3")
 val logbackVersion: String by extra("1.2.3")
 val xzVersion: String by extra("1.8")
-val bouncyCastleVersion: String by extra("1.66")
+val bouncyCastleVersion: String by extra("1.67")
 val apacheCompressVersion: String by extra("1.20")
-val progressBarVersion: String by extra("0.8.1")
-val kotlinTestVersion: String by extra("4.2.2")
+val progressBarVersion: String by extra("0.9.0")
+val koTestVersion: String by extra("4.3.1")
 val kotlinVersion: String by extra(project.getKotlinPluginVersion()!!)
 
 allprojects {
@@ -39,7 +39,7 @@ allprojects {
 
     dependencies {
         api(group = "io.guthix", name = "jagex-bytebuf", version = jagexByteBufVersion)
-        implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
+        implementation(group = "io.github.microutils", name = "kotlin-logging-jvm", version = kotlinLoggingVersion)
         dokkaHtmlPlugin(group = "org.jetbrains.dokka", name = "kotlin-as-java-plugin", version = kotlinVersion)
     }
 
@@ -59,8 +59,8 @@ dependencies {
     implementation(group = "org.bouncycastle", name = "bcprov-jdk15on", version = bouncyCastleVersion)
     implementation(group = "org.apache.commons", name = "commons-compress", version = apacheCompressVersion)
     testImplementation(group = "ch.qos.logback", name = "logback-classic", version = logbackVersion)
-    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = kotlinTestVersion)
-    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = kotlinTestVersion)
+    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = koTestVersion)
+    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = koTestVersion)
 }
 
 kotlin { explicitApi() }
