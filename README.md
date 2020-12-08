@@ -85,13 +85,8 @@ group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), data = NEW_D
 ```
 
 ##### Writing a group
-Before writing a group it is recommended to also increase the group version.
 ```kotlin
-group.version++
-```
-If you don't update the group version a client won't know that a new version of your asset is available.
-```kotlin
-archive0.writeGroup(group0, appendVersion = true)
+archive0.writeGroup(group0)
 cache.writeArchive(archive0)
 ```
 

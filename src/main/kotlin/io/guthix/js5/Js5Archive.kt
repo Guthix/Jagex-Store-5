@@ -123,7 +123,8 @@ public data class Js5Archive internal constructor(
      * @param group The [Js5Group] to write.
      * @param appendVersion Whether to append the version to the [Js5Container].
      */
-    public fun writeGroup(group: Js5Group, appendVersion: Boolean) {
+    public fun writeGroup(group: Js5Group, autoVersion: Boolean = true, appendVersion: Boolean = true) {
+        if(autoVersion) group.version++
         val container = group.groupData.encode(if (appendVersion) group.version else null)
         val uncompressedSize = container.data.writerIndex()
         val data = container.encode()
