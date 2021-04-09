@@ -2,7 +2,7 @@ plugins { application }
 
 val homePath: String = System.getProperty("user.home")
 
-val revision: Int = 190 // change this to latest revision before running
+val revision: Int = 194 // change this to latest revision before running
 val includeVersions: Boolean = true // whether to append versions to every group
 
 val logbackVersion: String by rootProject.extra
@@ -15,7 +15,7 @@ dependencies {
 }
 
 application {
-    mainClassName = "io.guthix.cache.js5.downloader.Js5Downloader"
+    mainClassName = "io.guthix.js5.downloader.Js5Downloader"
 }
 
 tasks.run.get().args = listOf(
