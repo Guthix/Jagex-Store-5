@@ -16,13 +16,13 @@
 package io.guthix.js5
 
 object Version {
-    const val jagexByteBufVersion: String = "0.1"
-    const val kLoggingVersion: String = "2.0.3"
+    const val jagexByteBufVersion: String = "0.1.3"
+    const val kLoggingVersion: String = "2.0.6"
     const val logbackVersion: String = "1.2.3"
     const val xzVersion: String = "1.8"
-    const val bouncyCastleVersion: String = "1.67"
+    const val bouncyCastleVersion: String = "1.68"
     const val apacheCompressVersion: String = "1.20"
-    const val progressBarVersion: String = "0.9.0"
-    const val koTestVersion: String = "4.3.1"
+    const val progressBarVersion: String = "0.9.1"
+    const val koTestVersion: String = "4.4.3"
     const val kotlinVersion: String = "1.4.30"
 }

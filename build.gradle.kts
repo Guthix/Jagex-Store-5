@@ -1,4 +1,4 @@
-@file:Suppress("ConvertLambdaToReference")
+@file:Suppress("ConvertLambdaToReference", "UnstableApiUsage")
 
 import io.guthix.js5.registerPublication
 import io.guthix.js5.Version
@@ -54,6 +54,11 @@ kotlin { explicitApi() }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 registerPublication(
