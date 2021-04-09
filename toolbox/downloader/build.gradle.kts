@@ -15,7 +15,7 @@ dependencies {
 }
 
 application {
-    mainClassName = "io.guthix.cache.js5.downloader.Js5Downloader"
+    mainClassName = "io.guthix.js5.downloader.Js5Downloader"
 }
 
 tasks.run.get().args = listOf(
