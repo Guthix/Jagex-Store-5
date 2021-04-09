@@ -131,9 +131,9 @@ public class Js5Cache(
                 val uncompressedSize = settings.groupSettings.values.sumBy {
                     it.sizes?.uncompressed ?: 0
                 }
-                Pair(settings.groupSettings.size, uncompressedSize)
+                settings.groupSettings.size to uncompressedSize
             } else {
-                Pair(null, null)
+                null to null
             }
             archiveChecksums.add(Js5ArchiveValidator(
                 data.crc(), settings.version ?: 0, whirlPool, groupCount, uncompressedSize)

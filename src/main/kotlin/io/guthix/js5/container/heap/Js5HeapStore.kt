@@ -35,7 +35,7 @@ public class Js5HeapStore private constructor(
         ?: throw FileNotFoundException("Can't read data because index $indexId container $containerId does not exist.")
 
     override fun write(indexId: Int, containerId: Int, data: ByteBuf) {
-        containerData.getOrPut(indexId, { mutableMapOf() })[containerId] = data
+        containerData.getOrPut(indexId, ::mutableMapOf)[containerId] = data
     }
 
     override fun remove(indexId: Int, containerId: Int) {
@@ -54,7 +54,7 @@ public class Js5HeapStore private constructor(
             val data = mutableMapOf<Int, MutableMap<Int, ByteBuf>>()
             val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>()
 
-            val archiveSettingsData = data.getOrPut(Js5Store.MASTER_INDEX, { mutableMapOf() })
+            val archiveSettingsData = data.getOrPut(Js5Store.MASTER_INDEX, ::mutableMapOf)
             for (archiveId in 0 until store.archiveCount) {
                 val rawSettings = store.read(Js5Store.MASTER_INDEX, archiveId)
                 archiveSettingsData[archiveId] = rawSettings.copy()
@@ -63,7 +63,7 @@ public class Js5HeapStore private constructor(
             }
 
             archiveSettings.forEach { (archiveId, archiveSettings) ->
-                val archiveData = data.getOrPut(archiveId, { mutableMapOf() })
+                val archiveData = data.getOrPut(archiveId, ::mutableMapOf)
                 archiveSettings.groupSettings.forEach { (groupId, _) ->
                     val rawGroup = store.read(archiveId, groupId)
                     if (Js5Container.decodeVersion(rawGroup.duplicate()) == null || appendVersions) {
