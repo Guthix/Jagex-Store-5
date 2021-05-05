@@ -34,6 +34,7 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -58,7 +59,7 @@ object Js5Downloader {
         var includeVersions = false
         for (arg in args) {
             when {
-                arg.startsWith("-o=") -> outputDir = Path.of(arg.substring(3))
+                arg.startsWith("-o=") -> outputDir = Path(arg.substring(3))
                 arg.startsWith("-a=") -> address = arg.substring(3)
                 arg.startsWith("-r=") -> revision = arg.substring(3).toInt()
                 arg.startsWith("-p=") -> port = arg.substring(3).toInt()
@@ -103,7 +104,7 @@ object Js5Downloader {
         settingsData.mapIndexed { archiveId, data ->
             ds.write(Js5Store.MASTER_INDEX, archiveId, data)
         }
-        val amountOfDownloads = archiveSettings.sumBy { it.groupSettings.keys.size }
+        val amountOfDownloads = archiveSettings.sumOf { it.groupSettings.keys.size }
         logger.info { "Downloading archives" }
         val readThread = Thread { // start thread that sends requests
             archiveSettings.forEachIndexed { archiveId, archiveSettings ->
@@ -162,7 +163,7 @@ object Js5Downloader {
             archiveSettings.add(settings)
             val whirlpoolHash = if (containsWhirlool) data.whirlPoolHash() else null
             val fileCount = if (newFormat) settings.groupSettings.size else null
-            val uncompressedSize = if (newFormat) settings.groupSettings.values.sumBy {
+            val uncompressedSize = if (newFormat) settings.groupSettings.values.sumOf {
                 it.sizes?.uncompressed ?: 0
             } else null
             data.readerIndex(0)

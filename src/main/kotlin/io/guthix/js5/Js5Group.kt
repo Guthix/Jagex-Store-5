@@ -156,7 +156,7 @@ internal data class Js5GroupData(
     private fun encodeMultipleFiles(data: Array<ByteBuf>, chunkCount: Int): ByteBuf {
         val chunks = splitIntoChunks(data, chunkCount)
         val buf = Unpooled.compositeBuffer(
-            chunks.size * chunks.sumBy { it.size } + 1
+            chunks.size * chunks.sumOf { it.size } + 1
         )
         for (group in chunks) {
             for (fileGroup in group) { // don't use spread operator hear because of unnecessary array copying

@@ -128,7 +128,7 @@ public class Js5Cache(
             )
             val whirlPool = if (includeWhirlpool) data.whirlPoolHash() else null
             val (groupCount, uncompressedSize) = if (includeSizes) {
-                val uncompressedSize = settings.groupSettings.values.sumBy {
+                val uncompressedSize = settings.groupSettings.values.sumOf {
                     it.sizes?.uncompressed ?: 0
                 }
                 settings.groupSettings.size to uncompressedSize

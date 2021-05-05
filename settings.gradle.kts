@@ -3,8 +3,8 @@
 enableFeaturePreview("VERSION_CATALOGS")
 
 pluginManagement {
-    val kotlinVersion by extra("1.4.30")
-    val dokkaVersion by extra(kotlinVersion)
+    val kotlinVersion by extra("1.5.0")
+    val dokkaVersion by extra("1.4.32")
 
     plugins {
         id("org.jetbrains.kotlin.jvm") version kotlinVersion

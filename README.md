@@ -63,7 +63,7 @@ using the `Js5lDiskStore` and the `Js5SocketReader` can be found in the toolbox.
 
 ##### Opening a cache:
 ```kotlin
-Js5DiskStore.open(Path.of("ROOT_CACHE_PATH")).use { ds ->
+Js5DiskStore.open(Path("ROOT_CACHE_PATH")).use { ds ->
     val cache = Js5Cache(ds)
 }
 ```

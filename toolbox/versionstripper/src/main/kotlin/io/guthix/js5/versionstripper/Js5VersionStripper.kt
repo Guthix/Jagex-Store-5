@@ -24,6 +24,7 @@ import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
 import mu.KotlinLogging
 import java.nio.file.Path
+import kotlin.io.path.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -33,7 +34,7 @@ object Js5VersionStripper {
         var cacheDir: Path? = null
         for (arg in args) {
             when {
-                arg.startsWith("-i=") -> cacheDir = Path.of(arg.substring(3))
+                arg.startsWith("-i=") -> cacheDir = Path(arg.substring(3))
             }
         }
         require(cacheDir != null) { "No cache directory specified to read the cache. Pass -i=DIR as an argument." }
@@ -43,7 +44,7 @@ object Js5VersionStripper {
             val archiveSettingsData = store.read(Js5Store.MASTER_INDEX, archiveId)
             archiveSettings[archiveId] = Js5ArchiveSettings.decode(Js5Container.decode(archiveSettingsData))
         }
-        val grouupCount = archiveSettings.values.sumBy { it.groupSettings.keys.size }
+        val grouupCount = archiveSettings.values.sumOf { it.groupSettings.keys.size }
         val progressBar = ProgressBarBuilder()
             .setInitialMax(grouupCount.toLong())
             .setTaskName("Remover")

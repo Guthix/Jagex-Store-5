@@ -44,7 +44,7 @@ public class Js5DiskStore private constructor(
         require(indexId in 0 until archiveCount || indexId == Js5Store.MASTER_INDEX) {
             "Can't read data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist."
         }
-        val indexFile = indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
+        val indexFile = indexFiles.getOrPut(indexId) { openIndexFile(indexId) }
         val index = indexFile.read(containerId)
         if (index.dataSize == 0) {
             logger.warn {
@@ -64,7 +64,7 @@ public class Js5DiskStore private constructor(
         val indexFile = if (indexId == archiveCount) {
             createNewArchive()
         } else {
-            indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
+            indexFiles.getOrPut(indexId) { openIndexFile(indexId) }
         }
         val overWriteIndex = indexFile.containsIndex(containerId)
         val firstSegNumber = if (overWriteIndex) {
@@ -85,7 +85,7 @@ public class Js5DiskStore private constructor(
         require(indexId in 0 until archiveCount || indexId == Js5Store.MASTER_INDEX) {
             "Can't remove data because $FILE_NAME.${IdxFile.EXTENSION}${indexId} does not exist."
         }
-        val indexFile = indexFiles.getOrPut(indexId, { openIndexFile(indexId) })
+        val indexFile = indexFiles.getOrPut(indexId) { openIndexFile(indexId) }
         logger.trace { "Removing index file ${indexFile.id} container $containerId" }
         indexFile.remove(containerId)
     }
