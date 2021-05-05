@@ -1,19 +1,17 @@
-import io.guthix.js5.Version
-
 plugins { application }
 
 val homePath: String = System.getProperty("user.home")
 
-val revision: Int = 194
+val revision: Int = 195
 
 dependencies {
     implementation(rootProject)
-    implementation(group = "ch.qos.logback", name = "logback-classic", version = Version.logbackVersion)
-    implementation(group = "me.tongfei", name = "progressbar", version = Version.progressBarVersion)
+    implementation(libs.logback)
+    implementation(libs.tongfei.progressbar)
 }
 
 application {
-    mainClassName = "io.guthix.js5.versionstripper.Js5VersionStripper"
+    mainClass.set("io.guthix.js5.versionstripper.Js5VersionStripper")
 }
 
 tasks.run.get().args = listOf("-i=$homePath\\OldScape\\$revision")

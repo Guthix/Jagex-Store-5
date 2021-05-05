@@ -1,7 +1,6 @@
 @file:Suppress("ConvertLambdaToReference", "UnstableApiUsage")
 
 import io.guthix.js5.registerPublication
-import io.guthix.js5.Version
 
 plugins {
     idea
@@ -21,13 +20,12 @@ allprojects {
 
     repositories {
         mavenCentral()
-        jcenter()
     }
 
     dependencies {
-        api(group = "io.guthix", name = "jagex-bytebuf", version = Version.jagexByteBufVersion)
-        implementation(group = "io.github.microutils", name = "kotlin-logging-jvm", version = Version.kLoggingVersion)
-        dokkaHtmlPlugin(group = "org.jetbrains.dokka", name = "kotlin-as-java-plugin", version = Version.kotlinVersion)
+        api(rootProject.libs.jagex.bytebuf)
+        implementation(rootProject.libs.kotlin.logging)
+        dokkaHtmlPlugin(rootProject.libs.dokka)
     }
 
     tasks {
@@ -42,12 +40,12 @@ allprojects {
 }
 
 dependencies {
-    implementation(group = "org.tukaani", name = "xz", version = Version.xzVersion)
-    implementation(group = "org.bouncycastle", name = "bcprov-jdk15on", version = Version.bouncyCastleVersion)
-    implementation(group = "org.apache.commons", name = "commons-compress", version = Version.apacheCompressVersion)
-    testImplementation(group = "ch.qos.logback", name = "logback-classic", version = Version.logbackVersion)
-    testImplementation(group = "io.kotest", name = "kotest-runner-junit5-jvm", version = Version.koTestVersion)
-    testImplementation(group = "io.kotest", name = "kotest-assertions-core-jvm", version = Version.koTestVersion)
+    implementation(libs.bouncycastle)
+    implementation(libs.tukaani.xz)
+    implementation(libs.apache.compress)
+    testImplementation(libs.logback)
+    testImplementation(libs.kotest.junit)
+    testImplementation(libs.kotest.assert)
 }
 
 kotlin { explicitApi() }

@@ -1,20 +1,18 @@
-import io.guthix.js5.Version
-
 plugins { application }
 
 val homePath: String = System.getProperty("user.home")
 
-val revision: Int = 194 // change this to latest revision before running
+val revision: Int = 195 // change this to latest revision before running
 val includeVersions: Boolean = true // whether to append versions to every group
 
 dependencies {
     implementation(rootProject)
-    implementation(group = "ch.qos.logback", name = "logback-classic", version = Version.logbackVersion)
-    implementation(group = "me.tongfei", name = "progressbar", version = Version.progressBarVersion)
+    implementation(libs.logback)
+    implementation(libs.tongfei.progressbar)
 }
 
 application {
-    mainClassName = "io.guthix.js5.downloader.Js5Downloader"
+    mainClass.set("io.guthix.js5.downloader.Js5Downloader")
 }
 
 tasks.run.get().args = listOf(
