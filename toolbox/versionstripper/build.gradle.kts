@@ -6,7 +6,6 @@ val revision: Int = 195
 
 dependencies {
     implementation(rootProject)
-    implementation(libs.logback)
     implementation(libs.tongfei.progressbar)
 }
 

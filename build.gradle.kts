@@ -26,6 +26,9 @@ allprojects {
         api(rootProject.libs.jagex.bytebuf)
         implementation(rootProject.libs.kotlin.logging)
         dokkaHtmlPlugin(rootProject.libs.dokka)
+        testImplementation(rootProject.libs.logback)
+        testImplementation(rootProject.libs.kotest.junit)
+        testImplementation(rootProject.libs.kotest.assert)
     }
 
     tasks {
@@ -36,6 +39,15 @@ allprojects {
         compileTestKotlin {
             kotlinOptions.jvmTarget = "11"
         }
+
+        withType<Test> {
+            useJUnitPlatform()
+        }
+    }
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
     }
 }
 
@@ -43,21 +55,9 @@ dependencies {
     implementation(libs.bouncycastle)
     implementation(libs.tukaani.xz)
     implementation(libs.apache.compress)
-    testImplementation(libs.logback)
-    testImplementation(libs.kotest.junit)
-    testImplementation(libs.kotest.assert)
 }
 
 kotlin { explicitApi() }
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
 
 registerPublication(
     publicationName = "jagexStore5",
