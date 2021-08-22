@@ -23,10 +23,10 @@ import io.netty.buffer.DefaultByteBufHolder
  * always part of a [Js5Group].
  *
  * @property id The unique identifier in the group of this [Js5File].
- * @property nameHash (Optional) The unique string identifier stored as a [String.hashCode].
+ * @property nameHash The unique [String] identifier stored as a [String.hashCode].
  * @property data The domain data of the file.
  */
-public data class Js5File(var id: Int, var nameHash: Int?, var data: ByteBuf) : DefaultByteBufHolder(data)
+public data class Js5File(val id: Int, val nameHash: Int?, val data: ByteBuf) : DefaultByteBufHolder(data)
 
 /**
  * The settings for a [Js5File].
