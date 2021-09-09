@@ -8,6 +8,16 @@ plugins {
     kotlin("jvm")
 }
 
+dependencies {
+    implementation(libs.bouncycastle)
+    implementation(libs.tukaani.xz)
+    implementation(libs.apache.compress)
+}
+
+kotlin { explicitApi() }
+
+registerPublication(name = "jagex-store-5", description = "A library for modifying Jagex Store 5 caches")
+
 allprojects {
     apply(plugin = "kotlin")
     apply(plugin = "org.jetbrains.dokka")
@@ -28,16 +38,14 @@ allprojects {
     }
 
     tasks {
-        compileKotlin {
-            kotlinOptions.jvmTarget = "11"
-        }
-
-        compileTestKotlin {
-            kotlinOptions.jvmTarget = "11"
-        }
-
         withType<Test> {
             useJUnitPlatform()
+        }
+    }
+
+    kotlin {
+        jvmToolchain {
+            (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of("11"))
         }
     }
 
@@ -46,13 +54,3 @@ allprojects {
         withSourcesJar()
     }
 }
-
-dependencies {
-    implementation(libs.bouncycastle)
-    implementation(libs.tukaani.xz)
-    implementation(libs.apache.compress)
-}
-
-kotlin { explicitApi() }
-
-registerPublication(name = "jagex-store-5", description = "A library for modifying Jagex Store 5 caches")

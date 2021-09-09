@@ -1,5 +1,5 @@
 [versions]
-kotlin = "1.5.21"
+kotlin = "1.5.30"
 
 [libraries]
 jagex-bytebuf = { group = "io.guthix", name = "jagex-bytebuf", version = "0.1.4" }
