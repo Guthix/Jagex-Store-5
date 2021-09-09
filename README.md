@@ -66,7 +66,13 @@ higher level cache overview that handles all the encoding, encryption, compressi
 
 ### Gradle
 ```Kotlin
-implementation(group = "io.guthix", name = "jagex-store-5", version = "0.4.0")
+implementation(group = "io.guthix", name = "jagex-store-5", version = VERSION)
+```
+Snapshot repository:
+```Kotlin
+repositories {
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+}
 ```
 
 ### Examples
