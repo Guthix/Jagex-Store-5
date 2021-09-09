@@ -25,7 +25,7 @@ which are stored as hashes in the settings.
 
 ![JS5 cache content](docs/images/HighLevelOverview.svg)
 
-### Disk Structure
+## Disk Structure
 A JS5 cache is made out of multiple files on disk. Each cache at least
 1 data file (.dat2 extension), 1 master index (.idx255 extension) and multiple
 archive index files (.idx0 until .idx254 extension). The index files contain
@@ -44,6 +44,17 @@ data is what we call a container. The container can than be decoded into a group
 archive settings. Containers can optionally have versions stored with them. This is
 used to check whether a container needs to be updated when updating the cache to a 
 newer version.
+
+## Implementations
+The Jagex Store 5 library can only read and write raw binary file data from and to the cache. From this binary data, 
+domain specific assets can be decoded. The domain encoding differs per game and can even change between game revisions.
+The table below shows a list of known open source implementations. If you are writing your own game specific 
+implementation, feel free to submit a PR and add it to the list.
+
+
+| Game                    | Revision    | Project     |
+| :---------------------: | :---------: | :---------: |
+| [OldSchool Runescape](https://oldschool.runescape.com/) | Latest | [OldScape](https://github.com/guthix/OldScape/tree/master/cache) |
 
 ## Usage
 The Guthix JS5 library provides an API for reading and writing to the cache in an
