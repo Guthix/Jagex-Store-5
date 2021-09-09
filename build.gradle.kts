@@ -1,5 +1,3 @@
-@file:Suppress("ConvertLambdaToReference", "UnstableApiUsage")
-
 import io.guthix.js5.registerPublication
 
 plugins {
