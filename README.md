@@ -1,5 +1,6 @@
 # Jagex Store 5
-[![Build Status](https://github.com/guthix/jagex-store-5/workflows/Build/badge.svg)](https://github.com/guthix/Jagex-Store-5/actions?workflow=Build)
+[![Release](https://img.shields.io/maven-central/v/io.guthix/jagex-store-5)](https://search.maven.org/search?q=jagex-store-5)
+[![Snapshot](https://img.shields.io/nexus/s/io.guthix/jagex-store-5?server=https%3A%2F%2Foss.sonatype.org)](https://oss.sonatype.org/content/repositories/snapshots/io/guthix/jagex-store-5)
 [![License](https://img.shields.io/github/license/guthix/Jagex-Store-5)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
 [![JDK](https://img.shields.io/badge/JDK-11%2B-blue)](https://openjdk.java.net/projects/jdk/11/)
 [![Discord](https://img.shields.io/discord/538667877180637184?color=%237289da&logo=discord)](https://discord.gg/AFyGxNp)

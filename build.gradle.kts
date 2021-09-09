@@ -10,13 +10,11 @@ plugins {
     kotlin("jvm")
 }
 
-group = "io.guthix"
-version = "0.4.0"
-description = "A library for modifying Jagex Store 5 caches"
-
 allprojects {
     apply(plugin = "kotlin")
     apply(plugin = "org.jetbrains.dokka")
+
+    group = "io.guthix"
 
     repositories {
         mavenCentral()
@@ -59,7 +57,4 @@ dependencies {
 
 kotlin { explicitApi() }
 
-registerPublication(
-    publicationName = "jagexStore5",
-    pomName = "jagex-store-5"
-)
+registerPublication(name = "jagex-store-5", description = "A library for modifying Jagex Store 5 caches")
