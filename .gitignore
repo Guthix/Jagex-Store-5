@@ -6,6 +6,10 @@
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
+.idea/**/kotlinScripting.xml
+.idea/**/misc.xml
+.idea/**/vcs.xml
+.idea/**/.name
 
 # Generated files
 .idea/**/contentModel.xml
