@@ -65,7 +65,7 @@ public class Js5Cache(
         writeStore.write(
             Js5Store.MASTER_INDEX,
             archive.id,
-            archive.archiveSettings.encode(archive.compression).encode(xteaKey)
+            Js5ArchiveSettings.from(archive).encode(archive.compression).encode(xteaKey)
         )
     }
 

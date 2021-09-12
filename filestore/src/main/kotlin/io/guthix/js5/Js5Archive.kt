@@ -54,13 +54,6 @@ public data class Js5Archive internal constructor(
     private val writeStore: Js5WriteStore?
 ) {
     /**
-     * The [Js5ArchiveSettings] belonging to this [Js5Archive].
-     */
-    val archiveSettings: Js5ArchiveSettings get() = Js5ArchiveSettings(
-        version, containsNameHash, containsWpHash, containsSizes, containsUnknownHash, groupSettings
-    )
-
-    /**
      * Reads a [Js5Group] from this [Js5Archive] by id.
      *
      * @param groupId The group id to read.
@@ -81,9 +74,7 @@ public data class Js5Archive internal constructor(
      * @param xteaKey The XTEA encryption key used to encrypt this group.
      */
     public fun readGroup(groupName: String, xteaKey: IntArray = XTEA_ZERO_KEY): Js5Group {
-        check(containsNameHash) {
-            "Unable to read group by name because the archive does not contain name hashes."
-        }
+        check(containsNameHash) { "Unable to read group by name because the archive does not contain name hashes." }
         val nameHash = groupName.hashCode()
         val settings = groupSettings.values.firstOrNull { it.nameHash == nameHash }
             ?: throw IllegalArgumentException("Unable to read group `$groupName` because it does not exist.")
@@ -121,7 +112,7 @@ public data class Js5Archive internal constructor(
         autoVersion: Boolean = true,
         appendVersion: Boolean = true
     ) {
-        if(autoVersion) group.version++
+        if (autoVersion) group.version++
         val container = Js5GroupData.from(group).encode(if (appendVersion) group.version else null)
         val uncompressedSize = container.data.writerIndex()
         val data = container.encode(xteaKey)
@@ -189,7 +180,8 @@ public data class Js5Archive internal constructor(
             compression: Js5Compression,
             readStore: Js5ReadStore,
             writeStore: Js5WriteStore?
-        ) = Js5Archive(id, settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
+        ) = Js5Archive(
+            id, settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
             settings.containsUncompressedCrc, compression, settings.groupSettings, readStore, writeStore
         )
     }
@@ -308,6 +300,15 @@ public data class Js5ArchiveSettings(
         private const val MASK_SIZES = 0x04
         private const val MASK_UNC_CRC = 0x08
 
+        public fun from(archive: Js5Archive): Js5ArchiveSettings = Js5ArchiveSettings(
+            archive.version,
+            archive.containsNameHash,
+            archive.containsWpHash,
+            archive.containsSizes,
+            archive.containsUnknownHash,
+            archive.groupSettings
+        )
+
         /**
          * Decodes the [Js5Container] into a [Js5ArchiveSettings].
          */
@@ -329,7 +330,9 @@ public data class Js5ArchiveSettings(
             val groupIds = IntArray(groupCount)
             var groupAccumulator = 0
             for (archiveIndex in groupIds.indices) {
-                val delta = if (format == Format.VERSIONED_LARGE) buf.readUnsignedIntSmart() else buf.readUnsignedShort()
+                val delta = if (format == Format.VERSIONED_LARGE) {
+                    buf.readUnsignedIntSmart()
+                } else buf.readUnsignedShort()
                 groupAccumulator += delta
                 groupIds[archiveIndex] = groupAccumulator
             }
