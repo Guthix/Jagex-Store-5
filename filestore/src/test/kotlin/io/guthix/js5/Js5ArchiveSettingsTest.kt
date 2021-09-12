@@ -22,12 +22,12 @@ import io.kotest.matchers.shouldBe
 class Js5ArchiveSettingsTest : StringSpec({
     val archiveSettings = Js5ArchiveSettings(
         version = 13,
-        groupSettings = mutableMapOf(
+        groupSettings = sortedMapOf(
             0 to Js5GroupSettings(
                 id = 0,
                 version = 2,
                 compressedCrc = 284576,
-                fileSettings = mutableMapOf(
+                fileSettings = sortedMapOf(
                     0 to Js5FileSettings(id = 0, nameHash = 349435435),
                     1 to Js5FileSettings(id = 1, nameHash = 856381673),
                     3 to Js5FileSettings(id = 3, nameHash = 725662303)
@@ -41,7 +41,7 @@ class Js5ArchiveSettingsTest : StringSpec({
                 id = 1,
                 version = 8,
                 compressedCrc = 46739,
-                fileSettings = mutableMapOf(
+                fileSettings = sortedMapOf(
                     0 to Js5FileSettings(id = 0, nameHash = 4345435),
                     1 to Js5FileSettings(id = 1, nameHash = 8342373),
                     2 to Js5FileSettings(id = 2, nameHash = 6544235)
@@ -55,7 +55,7 @@ class Js5ArchiveSettingsTest : StringSpec({
                 id = 3,
                 version = 1,
                 compressedCrc = 32312,
-                fileSettings = mutableMapOf(
+                fileSettings = sortedMapOf(
                     0 to Js5FileSettings(id = 0, nameHash = 2140124),
                     1 to Js5FileSettings(id = 1, nameHash = 6741242),
                     2 to Js5FileSettings(id = 2, nameHash = 3252517)

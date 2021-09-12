@@ -44,7 +44,7 @@ object Js5VersionStripper {
             val archiveSettingsData = store.read(Js5Store.MASTER_INDEX, archiveId)
             archiveSettings[archiveId] = Js5ArchiveSettings.decode(Js5Container.decode(archiveSettingsData))
         }
-        val grouupCount = archiveSettings.values.sumOf { it.groupSettings.keys.size }
+        val grouupCount = archiveSettings.values.sumOf { it.keys.size }
         val progressBar = ProgressBarBuilder()
             .setInitialMax(grouupCount.toLong())
             .setTaskName("Remover")
@@ -54,7 +54,7 @@ object Js5VersionStripper {
         progressBar.use { pb ->
             archiveSettings.forEach { (archiveId, archiveSettings) ->
                 pb.extraMessage = "Removing from archive $archiveId"
-                archiveSettings.groupSettings.forEach { (groupId, _) ->
+                archiveSettings.forEach { (groupId, _) ->
                     val data = store.read(archiveId, groupId)
                     Js5Container.decodeVersion(data.duplicate())?.let {
                         store.write(archiveId, groupId, data.slice(0, data.readableBytes() - Short.SIZE_BYTES))

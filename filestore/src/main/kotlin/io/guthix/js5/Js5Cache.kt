@@ -89,7 +89,7 @@ public class Js5Cache(
     ): Js5Archive {
         writeStore ?: error("Can't add archive because there is no write store provided.")
         return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes,
-            containsUnknownHash, compression, mutableMapOf(), readStore, writeStore
+            containsUnknownHash, compression, sortedMapOf(), readStore, writeStore
         )
     }
 

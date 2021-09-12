@@ -23,7 +23,7 @@ import io.netty.buffer.Unpooled
 class Js5CacheTest : StringSpec({
     val diskStore = autoClose(Js5DiskStore.open(createEmptyCacheFolder()))
     val cache = Js5Cache(diskStore)
-    val files = mutableMapOf(
+    val files = sortedMapOf(
         0 to Js5File(0, 23482, Unpooled.buffer(390).iterationFill()),
         1 to Js5File(1, 5234, Unpooled.buffer(823).iterationFill()),
         2 to Js5File(2, 6536, Unpooled.buffer(123).iterationFill())

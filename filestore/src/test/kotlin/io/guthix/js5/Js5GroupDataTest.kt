@@ -19,12 +19,12 @@ import io.kotest.core.spec.style.StringSpec
 import io.netty.buffer.Unpooled
 
 class Js5GroupDataTest : StringSpec({
-    val groupDataSing = Js5GroupData(arrayOf(Unpooled.buffer(5893).iterationFill()))
+    val groupDataSing = Js5GroupData(listOf(Unpooled.buffer(5893).iterationFill()))
     "After encoding and decoding the group data with a single file it should be the same as the original" {
         Js5GroupData.decode(groupDataSing.encode(), groupDataSing.fileData.size)
     }
 
-    val groupDataMult = Js5GroupData(arrayOf(
+    val groupDataMult = Js5GroupData(listOf(
         Unpooled.buffer(231).iterationFill(),
         Unpooled.buffer(231).iterationFill(),
         Unpooled.buffer(123).iterationFill()

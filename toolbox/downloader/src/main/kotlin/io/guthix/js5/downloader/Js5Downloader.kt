@@ -100,11 +100,11 @@ object Js5Downloader {
         settingsData.mapIndexed { archiveId, data ->
             ds.write(Js5Store.MASTER_INDEX, archiveId, data)
         }
-        val amountOfDownloads = archiveSettings.sumOf { it.groupSettings.keys.size }
+        val amountOfDownloads = archiveSettings.sumOf { it.keys.size }
         logger.info { "Downloading archives" }
         val readThread = Thread { // start thread that sends requests
             archiveSettings.forEachIndexed { archiveId, archiveSettings ->
-                archiveSettings.groupSettings.forEach { (groupId, _) ->
+                archiveSettings.forEach { (groupId, _) ->
                     sr.sendFileRequest(archiveId, groupId)
                     Thread.sleep(20) // requesting to fast makes the server close the connection
                 }
@@ -121,7 +121,7 @@ object Js5Downloader {
             progressBarGroups.use { pb ->
                 archiveSettings.forEachIndexed { archiveId, archiveSettings ->
                     pb.extraMessage = "Downloading archive $archiveId"
-                    archiveSettings.groupSettings.forEach { (_, groupSettings) ->
+                    archiveSettings.forEach { (_, groupSettings) ->
                         val response = sr.readFileResponse()
                         if (response.data.crc() != groupSettings.compressedCrc) throw IOException(
                             "Response index file ${response.indexFileId} container ${response.containerId} corrupted."
@@ -158,8 +158,8 @@ object Js5Downloader {
             )
             archiveSettings.add(settings)
             val whirlpoolHash = if (containsWhirlool) data.whirlPoolHash() else null
-            val fileCount = if (newFormat) settings.groupSettings.size else null
-            val uncompressedSize = if (newFormat) settings.groupSettings.values.sumOf {
+            val fileCount = if (newFormat) settings.size else null
+            val uncompressedSize = if (newFormat) settings.values.sumOf {
                 it.sizes?.uncompressed ?: 0
             } else null
             data.readerIndex(0)

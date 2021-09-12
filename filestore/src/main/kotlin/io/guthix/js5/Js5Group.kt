@@ -21,6 +21,7 @@ import io.guthix.js5.container.Uncompressed
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.CompositeByteBuf
 import io.netty.buffer.Unpooled
+import java.util.*
 import java.util.zip.CRC32
 import kotlin.math.ceil
 
@@ -34,25 +35,25 @@ import kotlin.math.ceil
  * @param version The version of the group.
  * @param chunkCount The chunk count used to encode the group (only used when the group contains multiple files).
  * @param nameHash (Optional) The [String.hashCode] of the name of the group.
+ * @param compression The compression used to compress the [Js5Group].
  * @param compressedCrc The [CRC32] of the compressed group data.
  * @param uncompressedCrc (Optional) The [CRC32] of the uncompressed group data.
  * @param whirlpoolHash The whirlpool hash of the encoded group data.
  * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
  * @param files The [Js5File]s belonging to this [Js5Group] indexed by their [Js5File.id].
- * @param compression The compression used to compress the [Js5Group].
  */
 public data class Js5Group(
     var id: Int,
     var version: Int,
     var chunkCount: Int,
     var nameHash: Int? = null,
+    var compression: Js5Compression = Uncompressed,
     internal var compressedCrc: Int = 0,
     internal var uncompressedCrc: Int? = null,
     internal var whirlpoolHash: ByteArray? = null,
     internal var sizes: Js5Container.Size? = null,
-    val files: MutableMap<Int, Js5File> = mutableMapOf(),
-    var compression: Js5Compression = Uncompressed
-) {
+    private val files: SortedMap<Int, Js5File> = sortedMapOf(),
+): SortedMap<Int, Js5File> by files {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -90,13 +91,13 @@ public data class Js5Group(
     internal companion object {
         internal fun create(data: Js5GroupData, settings: Js5GroupSettings): Js5Group {
             var i = 0
-            val files = mutableMapOf<Int, Js5File>()
+            val files = sortedMapOf<Int, Js5File>()
             settings.fileSettings.forEach { (fileId, fileSettings) ->
                 files[fileId] = Js5File(fileId, fileSettings.nameHash, data.fileData[i])
                 i++
             }
-            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.compressedCrc,
-                settings.uncompressedCrc, settings.whirlpoolHash, settings.sizes, files, data.compression,
+            return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, data.compression,
+                settings.compressedCrc, settings.uncompressedCrc, settings.whirlpoolHash, settings.sizes, files
             )
         }
     }
@@ -110,7 +111,7 @@ public data class Js5Group(
  * @param compression The compression used to compress the [Js5GroupData].
  */
 internal data class Js5GroupData(
-    val fileData: Array<ByteBuf>,
+    val fileData: List<ByteBuf>,
     var chunkCount: Int = 1,
     var compression: Js5Compression = Uncompressed
 ) {
@@ -123,16 +124,12 @@ internal data class Js5GroupData(
 
     /** Encodes the [Js5GroupData] when the group contains multiple files. */
     @Suppress("ConvertLambdaToReference")
-    private fun encodeMultipleFiles(data: Array<ByteBuf>, chunkCount: Int): ByteBuf {
+    private fun encodeMultipleFiles(data: List<ByteBuf>, chunkCount: Int): ByteBuf {
         val chunks = splitIntoChunks(data, chunkCount)
         val buf = Unpooled.compositeBuffer(
             chunks.size * chunks.sumOf { it.size } + 1
         )
-        for (group in chunks) {
-            for (fileGroup in group) { // don't use spread operator hear because of unnecessary array copying
-                buf.addComponent(true, fileGroup)
-            }
-        }
+        chunks.flatten().forEach { buf.addComponent(true, it) }
         val suffixBuf = Unpooled.buffer(chunkCount * data.size * Int.SIZE_BYTES + Byte.SIZE_BYTES)
         for (group in chunks) {
             var lastWrittenSize = group[0].writerIndex()
@@ -148,12 +145,12 @@ internal data class Js5GroupData(
     }
 
     /** Divides the file data into multiple chunks and split it evenly. */
-    private fun splitIntoChunks(fileData: Array<ByteBuf>, chunkCount: Int): Array<Array<ByteBuf>> {
+    private fun splitIntoChunks(fileData: List<ByteBuf>, chunkCount: Int): List<List<ByteBuf>> {
         val chunkSize = fileData.map {
             ceil(it.writerIndex().toDouble() / chunkCount).toInt()
         }.toTypedArray()
-        return Array(chunkCount) { group ->
-            Array(fileData.size) { file ->
+        return List(chunkCount) { group ->
+            List(fileData.size) { file ->
                 fileData[file].splitOf(group, chunkSize[file])
             }
         }
@@ -165,24 +162,10 @@ internal data class Js5GroupData(
         return slice(index * length, if (start + length > writerIndex()) writerIndex() - start else length)
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as Js5GroupData
-        if (!fileData.contentEquals(other.fileData)) return false
-        if (chunkCount != other.chunkCount) return false
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = fileData.contentHashCode()
-        result = 31 * result + chunkCount
-        return result
-    }
 
     internal companion object {
         internal fun from(group: Js5Group) = Js5GroupData(
-            group.files.values.map(Js5File::data).toTypedArray(),
+            group.values.map(Js5File::data),
             group.chunkCount,
             group.compression
         )
@@ -194,7 +177,7 @@ internal data class Js5GroupData(
          * @param fileCount The amount of files to decode.
          */
         internal fun decode(container: Js5Container, fileCount: Int) = if (fileCount == 1) {
-            Js5GroupData(arrayOf(container.data), 1, container.compression)
+            Js5GroupData(listOf(container.data), 1, container.compression)
         } else {
             decodeMultipleFiles(container, fileCount)
         }
@@ -233,7 +216,7 @@ internal data class Js5GroupData(
                 }
             }
             return Js5GroupData(
-                fileData.map { it.asReadOnly() }.toTypedArray(),
+                fileData.map { it.asReadOnly() },
                 chunkCount,
                 container.compression
             )
@@ -258,12 +241,12 @@ public data class Js5GroupSettings(
     var id: Int,
     var version: Int,
     var compressedCrc: Int,
-    val fileSettings: MutableMap<Int, Js5FileSettings>,
     var nameHash: Int? = null,
     var uncompressedCrc: Int? = null,
     var whirlpoolHash: ByteArray? = null,
-    var sizes: Js5Container.Size? = null
-) {
+    var sizes: Js5Container.Size? = null,
+    val fileSettings: SortedMap<Int, Js5FileSettings>,
+): SortedMap<Int, Js5FileSettings> by fileSettings {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -300,11 +283,11 @@ public data class Js5GroupSettings(
             group.id,
             group.version,
             group.compressedCrc,
-            group.files.mapValues { (fileId, file) -> Js5FileSettings(fileId, file.nameHash) }.toMutableMap(),
             group.nameHash,
             group.uncompressedCrc,
             group.whirlpoolHash,
-            group.sizes
+            group.sizes,
+            group.mapValues { (fileId, file) -> Js5FileSettings(fileId, file.nameHash) }.toSortedMap(),
         )
     }
 }

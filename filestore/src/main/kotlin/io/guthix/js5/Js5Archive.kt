@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import mu.KotlinLogging
 import java.io.IOException
+import java.util.*
 import kotlin.math.abs
 
 private val logger = KotlinLogging.logger { }
@@ -49,10 +50,10 @@ public data class Js5Archive internal constructor(
     val containsSizes: Boolean = false,
     val containsUnknownHash: Boolean = false,
     var compression: Js5Compression = Uncompressed,
-    val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
+    internal val groupSettings: SortedMap<Int, Js5GroupSettings> = sortedMapOf(),
     private val readStore: Js5ReadStore,
     private val writeStore: Js5WriteStore?
-) {
+): Map<Int, Js5GroupSettings> by groupSettings {
     /**
      * Reads a [Js5Group] from this [Js5Archive] by id.
      *
@@ -204,8 +205,8 @@ public data class Js5ArchiveSettings(
     val containsWpHash: Boolean,
     val containsSizes: Boolean,
     val containsUncompressedCrc: Boolean,
-    val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf()
-) {
+    internal val groupSettings: SortedMap<Int, Js5GroupSettings> = sortedMapOf()
+): Map<Int, Js5GroupSettings> by groupSettings {
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
@@ -372,9 +373,9 @@ public data class Js5ArchiveSettings(
                 }
             } else null
 
-            val groupSettings = mutableMapOf<Int, Js5GroupSettings>()
+            val groupSettings = sortedMapOf<Int, Js5GroupSettings>()
             for (groupIndex in groupIds.indices) {
-                val fileSettings = mutableMapOf<Int, Js5FileSettings>()
+                val fileSettings = sortedMapOf<Int, Js5FileSettings>()
                 for (fileIndex in fileIds[groupIndex].indices) {
                     fileSettings[fileIds[groupIndex][fileIndex]] = Js5FileSettings(
                         fileIds[groupIndex][fileIndex],
@@ -385,12 +386,11 @@ public data class Js5ArchiveSettings(
                     groupIds[groupIndex],
                     versions[groupIndex],
                     compressedCrcs[groupIndex],
-                    fileSettings,
                     nameHashes?.get(groupIndex),
                     uncompressedCrcs?.get(groupIndex),
                     whirlpoolHashes?.get(groupIndex),
-                    sizes?.get(groupIndex)
-
+                    sizes?.get(groupIndex),
+                    fileSettings
                 )
             }
             return Js5ArchiveSettings(
