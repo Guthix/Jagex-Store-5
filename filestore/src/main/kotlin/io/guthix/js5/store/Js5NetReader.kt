@@ -72,6 +72,10 @@ public class Js5NetReader private constructor(
      */
     private var xorKey: Byte = 0
 
+    override val archiveCount: Int get() = throw UnsupportedOperationException(
+        "Can't retrieve archive size from remote repository."
+    )
+
     /**
      * Requests container data and blocks until the response arrives.
      *

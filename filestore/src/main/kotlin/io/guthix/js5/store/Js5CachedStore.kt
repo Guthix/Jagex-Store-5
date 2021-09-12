@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("unused")
-
 package io.guthix.js5.store
 
 import io.guthix.js5.Js5ArchiveSettings
@@ -24,10 +22,8 @@ import io.guthix.js5.container.disk.Js5DiskStore
 import io.netty.buffer.ByteBuf
 import java.io.FileNotFoundException
 
-/**
- * A [Js5Store] that holds all data into heap memory.
- */
-public class Js5HeapStore private constructor(
+/** A [Js5Store] that reads all container data via [create] and keeps it in memory. */
+public class Js5CachedStore private constructor(
     private val containerData: MutableMap<Int, MutableMap<Int, ByteBuf>>,
     override var archiveCount: Int
 ) : Js5Store {
@@ -46,11 +42,11 @@ public class Js5HeapStore private constructor(
 
     public companion object {
         /**
-         * Opens a [Js5HeapStore] by reading the data from a [Js5DiskStore].
+         * Opens a [Js5CachedStore] by reading the data from a [Js5DiskStore].
          *
-         * @param appendVersions Whether to append versions to the buffers in the [Js5HeapStore].
+         * @param appendVersions Whether to append versions to the buffers in the [Js5CachedStore].
          */
-        public fun open(store: Js5DiskStore, appendVersions: Boolean = false): Js5HeapStore {
+        public fun create(store: Js5DiskStore, appendVersions: Boolean = false): Js5CachedStore {
             val data = mutableMapOf<Int, MutableMap<Int, ByteBuf>>()
             val archiveSettings = mutableMapOf<Int, Js5ArchiveSettings>()
 
@@ -73,7 +69,7 @@ public class Js5HeapStore private constructor(
                     }
                 }
             }
-            return Js5HeapStore(data, archiveSettings.size)
+            return Js5CachedStore(data, archiveSettings.size)
         }
     }
 }

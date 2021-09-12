@@ -35,12 +35,9 @@ public class Js5Cache(
     public constructor(store: Js5Store) : this(store, store)
 
     /**
-     * The amount of archive in this [Js5Cache].
+     * The amount of archives in this [Js5Cache], taken from the [Js5ReadStore].
      */
-    public val archiveCount: Int
-        get() = writeStore?.archiveCount ?: error( // TODO change to read store
-            "No write store provided, archive count unknown."
-        )
+    public val archiveCount: Int get() = readStore.archiveCount
 
     /**
      * Reads an archive from the [Js5Cache].
@@ -105,8 +102,6 @@ public class Js5Cache(
         includeSizes: Boolean,
         xteaKeys: Map<Int, IntArray> = emptyMap()
     ): Js5CacheValidator {
-        // TODO change to readstore
-        val archiveCount = writeStore?.archiveCount ?: error("No write store provided, archive count unknown.")
         val archiveChecksums = mutableListOf<Js5ArchiveValidator>()
         for (archiveIndex in 0 until archiveCount) {
             val data = readStore.read(Js5Store.MASTER_INDEX, archiveIndex)
