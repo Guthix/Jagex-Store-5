@@ -63,7 +63,7 @@ public data class FileResponse(
  * @property socketChannel The [SocketChannel] to read and write the data.
  * @property priorityMode Whether to make priority file requests.
  */
-public class Js5NetReader private constructor(
+public class Js5NetReadStore private constructor(
     private val socketChannel: SocketChannel,
     public var priorityMode: Boolean = false
 ) : Js5ReadStore {
@@ -208,19 +208,19 @@ public class Js5NetReader private constructor(
         private const val BYTES_AFTER_BLOCK = Sector.DATA_SIZE - 1
 
         /**
-         * Opens a [Js5NetReader] and initializes the JS5 connection.
+         * Opens a [Js5NetReadStore] and initializes the JS5 connection.
          *
          * @param sockAddr The address to connect to.
          * @param revision The current game revision to connect to.
          * @param xorKey The encryption key to use.
-         * @param priorityMode Whether to use [Js5NetReader.priorityMode]
+         * @param priorityMode Whether to use [Js5NetReadStore.priorityMode]
          */
         public fun open(
             sockAddr: InetSocketAddress,
             revision: Int,
             xorKey: Byte = 0,
             priorityMode: Boolean = false
-        ): Js5NetReader {
+        ): Js5NetReadStore {
             logger.info("Initializing JS5 connection to ${sockAddr.address}")
             val socketChannel = SocketChannel.open(sockAddr).apply {
                 setOption(StandardSocketOptions.TCP_NODELAY, true)
@@ -240,7 +240,7 @@ public class Js5NetReader private constructor(
                 "Could not establish connection with JS5 Server status code: $statusCode."
             )
             logger.info("JS5 connection successfully established")
-            val js5SocketReader = Js5NetReader(socketChannel, priorityMode)
+            val js5SocketReader = Js5NetReadStore(socketChannel, priorityMode)
             if (xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
             return js5SocketReader
         }

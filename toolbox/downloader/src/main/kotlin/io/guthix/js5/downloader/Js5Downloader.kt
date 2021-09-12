@@ -19,7 +19,7 @@ import io.guthix.js5.*
 import io.guthix.js5.container.Js5Container
 import io.guthix.js5.container.Js5Store
 import io.guthix.js5.container.disk.Js5DiskStore
-import io.guthix.js5.container.net.Js5NetReader
+import io.guthix.js5.container.net.Js5NetReadStore
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import me.tongfei.progressbar.DelegatingProgressBarConsumer
@@ -71,7 +71,7 @@ object Js5Downloader {
         logger.info { "Downloading cache to $outputDir" }
         if (!Files.isDirectory(outputDir)) outputDir.toFile().mkdirs()
         val ds = Js5DiskStore.open(outputDir)
-        val sr = Js5NetReader.open(
+        val sr = Js5NetReadStore.open(
             sockAddr = InetSocketAddress(address, port),
             revision = revision,
             priorityMode = false
