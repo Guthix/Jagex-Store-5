@@ -27,7 +27,7 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.plugins.signing.SigningExtension
 import java.net.URI
 
-private const val SNAPSHOT_BASE_VERSION = "0.5.0"
+private const val SNAPSHOT_BASE_VERSION = "0.6.0"
 
 fun Project.registerPublication(name: String, description: String) {
     this.description = description
