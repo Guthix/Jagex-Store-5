@@ -6,7 +6,7 @@ val revision: Int = 195 // change this to latest revision before running
 val includeVersions: Boolean = true // whether to append versions to every group
 
 dependencies {
-    implementation(rootProject)
+    implementation(project(":filestore"))
     implementation(libs.tongfei.progressbar)
 }
 

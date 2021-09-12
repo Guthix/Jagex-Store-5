@@ -5,7 +5,7 @@ val homePath: String = System.getProperty("user.home")
 val revision: Int = 195
 
 dependencies {
-    implementation(rootProject)
+    implementation(project(":filestore"))
     implementation(libs.tongfei.progressbar)
 }
 

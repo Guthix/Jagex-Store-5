@@ -15,15 +15,11 @@
  */
 package io.guthix.js5.downloader
 
-import io.guthix.js5.Js5ArchiveSettings
-import io.guthix.js5.Js5ArchiveValidator
-import io.guthix.js5.Js5CacheValidator
+import io.guthix.js5.*
 import io.guthix.js5.container.Js5Container
 import io.guthix.js5.container.Js5Store
 import io.guthix.js5.container.disk.Js5DiskStore
 import io.guthix.js5.container.net.Js5NetReader
-import io.guthix.js5.util.crc
-import io.guthix.js5.util.whirlPoolHash
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import me.tongfei.progressbar.DelegatingProgressBarConsumer
