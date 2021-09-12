@@ -18,7 +18,6 @@ package io.guthix.js5
 import io.guthix.js5.container.Js5Compression
 import io.guthix.js5.container.Js5Container
 import io.guthix.js5.container.Uncompressed
-import io.guthix.js5.util.XTEA_ZERO_KEY
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.CompositeByteBuf
 import io.netty.buffer.Unpooled
@@ -40,7 +39,6 @@ import kotlin.math.ceil
  * @param whirlpoolHash The whirlpool hash of the encoded group data.
  * @param sizes The [Js5Container.Size] of this group as stored in the [Js5GroupSettings].
  * @param files The [Js5File]s belonging to this [Js5Group] indexed by their [Js5File.id].
- * @param xteaKey The XTEA key used to encrypt the [Js5Group].
  * @param compression The compression used to compress the [Js5Group].
  */
 public data class Js5Group(
@@ -53,14 +51,13 @@ public data class Js5Group(
     internal var whirlpoolHash: ByteArray? = null,
     internal var sizes: Js5Container.Size? = null,
     val files: MutableMap<Int, Js5File> = mutableMapOf(),
-    var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed
 ) {
     /**
      * The [Js5GroupData] of this [Js5Group].
      */
     internal val groupData
-        get() = Js5GroupData(files.values.map(Js5File::data).toTypedArray(), chunkCount, xteaKey, compression)
+        get() = Js5GroupData(files.values.map(Js5File::data).toTypedArray(), chunkCount, compression)
 
     /**
      * The [Js5GroupSettings] of this [Js5Group].
@@ -88,7 +85,6 @@ public data class Js5Group(
         } else if (other.whirlpoolHash != null) return false
         if (sizes != other.sizes) return false
         if (files != other.files) return false
-        if (!xteaKey.contentEquals(other.xteaKey)) return false
         if (compression != other.compression) return false
         return true
     }
@@ -103,7 +99,6 @@ public data class Js5Group(
         result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
         result = 31 * result + (sizes?.hashCode() ?: 0)
         result = 31 * result + files.hashCode()
-        result = 31 * result + xteaKey.contentHashCode()
         result = 31 * result + compression.hashCode()
         return result
     }
@@ -120,7 +115,7 @@ public data class Js5Group(
                 i++
             }
             return Js5Group(settings.id, settings.version, data.chunkCount, settings.nameHash, settings.compressedCrc,
-                settings.uncompressedCrc, settings.whirlpoolHash, settings.sizes, files, data.xteaKey, data.compression,
+                settings.uncompressedCrc, settings.whirlpoolHash, settings.sizes, files, data.compression,
             )
         }
     }
@@ -131,22 +126,20 @@ public data class Js5Group(
  *
  * @param fileData The domain data for the [Js5File]s.
  * @param chunkCount The chunk count used to encode the group (only used when the group contains multiple files).
- * @param xteaKey The XTEA key used to encrypt the [Js5Container].
  * @param compression The compression used to compress the [Js5GroupData].
  */
 internal data class Js5GroupData(
     val fileData: Array<ByteBuf>,
     var chunkCount: Int = 1,
-    var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed
 ) {
     /**
      * Encodes the [Js5GroupData] into a [Js5Container].
      */
     internal fun encode(version: Int? = null) = if (fileData.size == 1) {
-        Js5Container(fileData.first(), xteaKey, compression, version)
+        Js5Container(fileData.first(), compression, version)
     } else {
-        Js5Container(encodeMultipleFiles(fileData, chunkCount), xteaKey, compression, version)
+        Js5Container(encodeMultipleFiles(fileData, chunkCount), compression, version)
     }
 
     /**
@@ -222,7 +215,7 @@ internal data class Js5GroupData(
          * @param fileCount The amount of files to decode.
          */
         internal fun decode(container: Js5Container, fileCount: Int) = if (fileCount == 1) {
-            Js5GroupData(arrayOf(container.data), 1, container.xteaKey, container.compression)
+            Js5GroupData(arrayOf(container.data), 1, container.compression)
         } else {
             decodeMultipleFiles(container, fileCount)
         }
@@ -263,7 +256,6 @@ internal data class Js5GroupData(
             return Js5GroupData(
                 fileData.map { it }.toTypedArray(),
                 chunkCount,
-                container.xteaKey,
                 container.compression
             )
         }

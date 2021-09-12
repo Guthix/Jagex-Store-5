@@ -48,13 +48,13 @@ class Js5ContainerTest : StringSpec({
     }
     val xteaKey = intArrayOf(3028, 927, 0, 658)
     "After encoding and decoding a XTEA encrypted container it should be the same as the original" {
-        Js5Container.decode(Js5Container(data.copy(), xteaKey = xteaKey).encode(), xteaKey = xteaKey).data shouldBe data
+        Js5Container.decode(Js5Container(data.copy()).encode(xteaKey), xteaKey = xteaKey).data shouldBe data
     }
 
     "After encoding and decoding a XTEA encrypted container the version should be the same as the original" {
         val version = 309
         Js5Container.decode(
-            Js5Container(data.copy(), xteaKey = xteaKey, version = version).encode()
+            Js5Container(data.copy(), version = version).encode(xteaKey)
         ).version shouldBe version
     }
 })

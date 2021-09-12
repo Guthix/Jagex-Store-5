@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("unused", "DuplicatedCode")
-
 package io.guthix.js5.container
 
 import io.guthix.js5.util.DecryptionFailedException
@@ -32,13 +30,11 @@ import java.io.IOException
  * container is up to date.
  *
  * @property data The raw data of this [Js5Container].
- * @property xteaKey The XTEA key used to encrypt or decrypt this [Js5Container].
  * @property compression The compression used to compress or decompress this [Js5Container].
  * @property version (Optional) The version of this [Js5Container].
  */
 public data class Js5Container(
     var data: ByteBuf,
-    var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed,
     var version: Int? = null
 ) : DefaultByteBufHolder(data) {
@@ -50,7 +46,7 @@ public data class Js5Container(
     /**
      * Encodes the container into data that can be stored on the cache.
      */
-    public fun encode(): ByteBuf {
+    public fun encode(xteaKey: IntArray = XTEA_ZERO_KEY): ByteBuf {
         val uncompressedSize = data.readableBytes()
         val compressedData = compression.compress(data)
         val compressedSize = compressedData.writerIndex()
@@ -75,7 +71,6 @@ public data class Js5Container(
         other as Js5Container
         if (data != other.data) return false
         if (compression != other.compression) return false
-        if (!xteaKey.contentEquals(other.xteaKey)) return false
         if (version != other.version) return false
         return true
     }
@@ -84,7 +79,6 @@ public data class Js5Container(
         var result = super.hashCode()
         result = 31 * result + data.hashCode()
         result = 31 * result + compression.hashCode()
-        result = 31 * result + xteaKey.contentHashCode()
         result = 31 * result + (version ?: 0)
         return result
     }
@@ -131,7 +125,7 @@ public data class Js5Container(
             } else decBuf.slice(0, compressedSize)
             decBuf.readerIndex(encComprSize)
             val version = if (decBuf.readableBytes() >= 2) decBuf.readShort().toInt() else null
-            return Js5Container(decompBuf, xteaKey, compression, version)
+            return Js5Container(decompBuf, compression, version)
         }
 
         /**

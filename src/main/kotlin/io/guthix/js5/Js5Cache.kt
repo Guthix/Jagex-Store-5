@@ -66,16 +66,16 @@ public class Js5Cache(
         val container = Js5Container.decode(data, xteaKey)
         val archiveSettings = Js5ArchiveSettings.decode(container)
         return Js5Archive.create(
-            archiveId, archiveSettings, container.xteaKey, container.compression, readStore, writeStore
+            archiveId, archiveSettings, container.compression, readStore, writeStore
         )
     }
 
-    public fun writeArchive(archive: Js5Archive) {
+    public fun writeArchive(archive: Js5Archive, xteaKey: IntArray = XTEA_ZERO_KEY) {
         writeStore ?: error("Can't write archive because there is no write store provided.")
         writeStore.write(
             Js5Store.MASTER_INDEX,
             archive.id,
-            archive.archiveSettings.encode(archive.xteaKey, archive.compression).encode()
+            archive.archiveSettings.encode(archive.compression).encode(xteaKey)
         )
     }
 
@@ -87,7 +87,6 @@ public class Js5Cache(
      * @param containsWpHash Whether this archive contains whirlpool hashes.
      * @param containsSizes Whether this archive contains the [Js5Container.Size] in the [Js5ArchiveSettings].
      * @param containsUnknownHash Whether this archive contains an yet unknown hash.
-     * @param xteaKey The XTEA key to decrypt the [Js5ArchiveSettings].
      * @param compression The [Js5Compression] used to store the [Js5ArchiveSettings].
      */
     public fun addArchive(
@@ -96,12 +95,11 @@ public class Js5Cache(
         containsWpHash: Boolean = false,
         containsSizes: Boolean = false,
         containsUnknownHash: Boolean = false,
-        xteaKey: IntArray = XTEA_ZERO_KEY,
         compression: Js5Compression = Uncompressed
     ): Js5Archive {
         writeStore ?: error("Can't add archive because there is no write store provided.")
         return Js5Archive(writeStore.archiveCount, version, containsNameHash, containsWpHash, containsSizes,
-            containsUnknownHash, xteaKey, compression, mutableMapOf(), readStore, writeStore
+            containsUnknownHash, compression, mutableMapOf(), readStore, writeStore
         )
     }
 

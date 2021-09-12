@@ -20,33 +20,31 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.netty.buffer.Unpooled
 
-class Js5CacheTest : StringSpec() {
-    init {
-        val diskStore = autoClose(Js5DiskStore.open(createEmptyCacheFolder()))
-        val cache = Js5Cache(diskStore)
-        val files = mutableMapOf(
-            0 to Js5File(0, 23482, Unpooled.buffer(390).iterationFill()),
-            1 to Js5File(1, 5234, Unpooled.buffer(823).iterationFill()),
-            2 to Js5File(2, 6536, Unpooled.buffer(123).iterationFill())
+class Js5CacheTest : StringSpec({
+    val diskStore = autoClose(Js5DiskStore.open(createEmptyCacheFolder()))
+    val cache = Js5Cache(diskStore)
+    val files = mutableMapOf(
+        0 to Js5File(0, 23482, Unpooled.buffer(390).iterationFill()),
+        1 to Js5File(1, 5234, Unpooled.buffer(823).iterationFill()),
+        2 to Js5File(2, 6536, Unpooled.buffer(123).iterationFill())
+    )
+    val group = Js5Group(
+        id = 0,
+        version = 23,
+        chunkCount = 10,
+        files = files,
+        nameHash = 3489234,
+        uncompressedCrc = 2390324
+    )
+    "After reading and writing the group should be the same as the original" {
+        val archive = cache.addArchive(version = 0, containsWpHash = true, containsSizes = true,
+            containsUnknownHash = true, containsNameHash = true
         )
-        val group = Js5Group(
-            id = 0,
-            version = 23,
-            chunkCount = 10,
-            files = files,
-            nameHash = 3489234,
-            uncompressedCrc = 2390324
-        )
-        "After reading and writing the group should be the same as the original" {
-            val archive = cache.addArchive(version = 0, containsWpHash = true, containsSizes = true,
-                containsUnknownHash = true, containsNameHash = true
-            )
-            archive.writeGroup(group, true)
-            cache.writeArchive(archive)
-            val readGroup = cache.readArchive(0).readGroup(group.id)
-            readGroup shouldBe group
-            val readArchive = cache.readArchive(archive.id)
-            readArchive shouldBe archive
-        }
+        archive.writeGroup(group, autoVersion = true)
+        cache.writeArchive(archive)
+        val readGroup = cache.readArchive(0).readGroup(group.id)
+        readGroup shouldBe group
+        val readArchive = cache.readArchive(archive.id)
+        readArchive shouldBe archive
     }
-}
+})

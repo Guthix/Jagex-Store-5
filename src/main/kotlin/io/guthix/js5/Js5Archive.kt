@@ -44,7 +44,6 @@ private val logger = KotlinLogging.logger { }
  * @property containsWpHash Whether this archive contains whirlpool hashes.
  * @property containsSizes Whether this archive contains the [Js5Container.Size] in the [Js5ArchiveSettings].
  * @property containsUnknownHash Whether this archive contains an yet unknown hash.
- * @property xteaKey The XTEA key to decrypt the [Js5ArchiveSettings].
  * @property compression The [Js5Compression] used to store the [Js5ArchiveSettings].
  * @property groupSettings The [Js5GroupSettings] which contains settings for all the [Js5Group]s.
  * @property readStore The [Js5ReadStore] where all read operations are done.
@@ -57,7 +56,6 @@ public data class Js5Archive internal constructor(
     val containsWpHash: Boolean = false,
     val containsSizes: Boolean = false,
     val containsUnknownHash: Boolean = false,
-    var xteaKey: IntArray = XTEA_ZERO_KEY,
     var compression: Js5Compression = Uncompressed,
     val groupSettings: MutableMap<Int, Js5GroupSettings> = mutableMapOf(),
     private val readStore: Js5ReadStore,
@@ -121,13 +119,20 @@ public data class Js5Archive internal constructor(
      * Writes a [Js5Group] to this [Js5Archive].
      *
      * @param group The [Js5Group] to write.
+     * @param xteaKey The encryption key to use.
+     * @param autoVersion Whether to auto increment the version number.
      * @param appendVersion Whether to append the version to the [Js5Container].
      */
-    public fun writeGroup(group: Js5Group, autoVersion: Boolean = true, appendVersion: Boolean = true) {
+    public fun writeGroup(
+        group: Js5Group,
+        xteaKey: IntArray = XTEA_ZERO_KEY,
+        autoVersion: Boolean = true,
+        appendVersion: Boolean = true
+    ) {
         if(autoVersion) group.version++
         val container = group.groupData.encode(if (appendVersion) group.version else null)
         val uncompressedSize = container.data.writerIndex()
-        val data = container.encode()
+        val data = container.encode(xteaKey)
         val compressedSize = if (appendVersion) data.writerIndex() - 2 else data.writerIndex()
         group.compressedCrc = data.crc(length = compressedSize)
         if (containsWpHash) group.whirlpoolHash = data.whirlPoolHash(length = compressedSize)
@@ -136,25 +141,21 @@ public data class Js5Archive internal constructor(
         groupSettings[group.id] = group.groupSettings
     }
 
-    /**
-     * Removes a [Js5Group] from this [Js5Archive].
-     */
+    /** Writes the group [Js5Container] data to the [writeStore]. */
+    private fun writeGroupData(groupId: Int, data: ByteBuf): Int {
+        writeStore ?: error("No Js5WriteStore provided.")
+        val compressedSize = data.readableBytes()
+        writeStore.write(id, groupId, data)
+        return compressedSize
+    }
+
+    /** Removes a [Js5Group] from this [Js5Archive]. */
     public fun removeGroup(groupId: Int) {
         writeStore ?: error("No Js5WriteStore provided.")
         groupSettings.remove(groupId) ?: throw IllegalArgumentException(
             "Unable to remove group $groupId from archive $id because the group does not exist."
         )
         writeStore.remove(id, groupId)
-    }
-
-    /**
-     * Writes the group [Js5Container] data to the [writeStore].
-     */
-    private fun writeGroupData(groupId: Int, data: ByteBuf): Int {
-        writeStore ?: error("No Js5WriteStore provided.")
-        val compressedSize = data.readableBytes()
-        writeStore.write(id, groupId, data)
-        return compressedSize
     }
 
     override fun equals(other: Any?): Boolean {
@@ -167,7 +168,6 @@ public data class Js5Archive internal constructor(
         if (containsWpHash != other.containsWpHash) return false
         if (containsSizes != other.containsSizes) return false
         if (containsUnknownHash != other.containsUnknownHash) return false
-        if (!xteaKey.contentEquals(other.xteaKey)) return false
         if (compression != other.compression) return false
         if (groupSettings != other.groupSettings) return false
         if (readStore != other.readStore) return false
@@ -183,7 +183,6 @@ public data class Js5Archive internal constructor(
         result = 31 * result + containsWpHash.hashCode()
         result = 31 * result + containsSizes.hashCode()
         result = 31 * result + containsUnknownHash.hashCode()
-        result = 31 * result + xteaKey.contentHashCode()
         result = 31 * result + compression.hashCode()
         result = 31 * result + groupSettings.hashCode()
         result = 31 * result + readStore.hashCode()
@@ -195,12 +194,11 @@ public data class Js5Archive internal constructor(
         internal fun create(
             id: Int,
             settings: Js5ArchiveSettings,
-            xteaKey: IntArray,
             compression: Js5Compression,
             readStore: Js5ReadStore,
             writeStore: Js5WriteStore?
         ) = Js5Archive(id, settings.version, settings.containsNameHash, settings.containsWpHash, settings.containsSizes,
-            settings.containsUncompressedCrc, xteaKey, compression, settings.groupSettings, readStore, writeStore
+            settings.containsUncompressedCrc, compression, settings.groupSettings, readStore, writeStore
         )
     }
 }
@@ -227,7 +225,7 @@ public data class Js5ArchiveSettings(
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
-    public fun encode(xteaKey: IntArray = XTEA_ZERO_KEY, compression: Js5Compression = Uncompressed): Js5Container {
+    public fun encode(compression: Js5Compression = Uncompressed): Js5Container {
         val buf = Unpooled.buffer()
         val format = if (version == -1) {
             Format.UNVERSIONED
@@ -300,7 +298,7 @@ public data class Js5ArchiveSettings(
         if (containsNameHash) {
             groupSettings.values.flatMap { it.fileSettings.values }.forEach { buf.writeInt(it.nameHash ?: 0) }
         }
-        return Js5Container(buf, xteaKey, compression, null) // settings containers don't have versions
+        return Js5Container(buf, compression, null) // settings containers don't have versions
     }
 
     /**
