@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.tukaani.xz)
-    implementation(libs.apache.compress)
+    implementation(deps.tukaani.xz)
+    implementation(deps.apache.compress)
 }
 
 kotlin { explicitApi() }

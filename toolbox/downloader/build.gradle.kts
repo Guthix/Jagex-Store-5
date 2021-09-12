@@ -7,7 +7,7 @@ val includeVersions: Boolean = true // whether to append versions to every group
 
 dependencies {
     implementation(project(":filestore"))
-    implementation(libs.tongfei.progressbar)
+    implementation(deps.tongfei.progressbar)
 }
 
 application {

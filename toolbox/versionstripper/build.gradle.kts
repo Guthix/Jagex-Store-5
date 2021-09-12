@@ -6,7 +6,7 @@ val revision: Int = 195
 
 dependencies {
     implementation(project(":filestore"))
-    implementation(libs.tongfei.progressbar)
+    implementation(deps.tongfei.progressbar)
 }
 
 application {

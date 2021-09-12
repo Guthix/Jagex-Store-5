@@ -15,8 +15,8 @@
  */
 package io.guthix.js5
 
-import io.guthix.buffer.readLargeSmart
-import io.guthix.buffer.writeLargeSmart
+import io.guthix.buffer.readUnsignedIntSmart
+import io.guthix.buffer.writeUnsignedIntSmart
 import io.guthix.js5.container.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -196,7 +196,7 @@ public data class Js5Archive internal constructor(
 }
 
 /**
- * The settings for a [Js5Archive]. The [Js5ArchiveSettings] contain meta data about [Js5Archive]s and the [Js5Group]s
+ * The settings for a [Js5Archive]. The [Js5ArchiveSettings] contain meta-data about [Js5Archive]s and the [Js5Group]s
  * belonging to those archives.
  *
  * @property version (Optional) The version of the archive settings.
@@ -237,14 +237,14 @@ public data class Js5ArchiveSettings(
         if (containsSizes) flags = flags or MASK_SIZES
         buf.writeByte(flags)
         if (format == Format.VERSIONED_LARGE) {
-            buf.writeLargeSmart(groupSettings.size)
+            buf.writeUnsignedIntSmart(groupSettings.size)
         } else {
             buf.writeShort(groupSettings.size)
         }
         var prevArchiveId = 0
         for (id in groupSettings.keys) {
             val delta = abs(prevArchiveId - id)
-            if (format == Format.VERSIONED_LARGE) buf.writeLargeSmart(delta) else buf.writeShort(delta)
+            if (format == Format.VERSIONED_LARGE) buf.writeUnsignedIntSmart(delta) else buf.writeShort(delta)
             prevArchiveId = id
         }
         if (containsNameHash) {
@@ -270,7 +270,7 @@ public data class Js5ArchiveSettings(
         }
         for (attr in groupSettings.values) {
             if (format == Format.VERSIONED_LARGE) {
-                buf.writeLargeSmart(attr.fileSettings.size)
+                buf.writeUnsignedIntSmart(attr.fileSettings.size)
             } else {
                 buf.writeShort(attr.fileSettings.size)
             }
@@ -280,7 +280,7 @@ public data class Js5ArchiveSettings(
             for (id in attr.fileSettings.keys) {
                 val delta = abs(prevFileId - id)
                 if (format == Format.VERSIONED_LARGE) {
-                    buf.writeLargeSmart(delta)
+                    buf.writeUnsignedIntSmart(delta)
                 } else {
                     buf.writeShort(delta)
                 }
@@ -324,12 +324,12 @@ public data class Js5ArchiveSettings(
             val containsSizes = flags and MASK_SIZES != 0
             val containsUnknownHash = flags and MASK_UNC_CRC != 0
             val groupCount = if (format == Format.VERSIONED_LARGE) {
-                buf.readLargeSmart()
+                buf.readUnsignedIntSmart()
             } else buf.readUnsignedShort()
             val groupIds = IntArray(groupCount)
             var groupAccumulator = 0
             for (archiveIndex in groupIds.indices) {
-                val delta = if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort()
+                val delta = if (format == Format.VERSIONED_LARGE) buf.readUnsignedIntSmart() else buf.readUnsignedShort()
                 groupAccumulator += delta
                 groupIds[archiveIndex] = groupAccumulator
             }
@@ -348,14 +348,14 @@ public data class Js5ArchiveSettings(
             } else null
             val versions = Array(groupCount) { buf.readInt() }
             val fileIds = Array(groupCount) {
-                IntArray(if (format == Format.VERSIONED_LARGE) buf.readLargeSmart() else buf.readUnsignedShort())
+                IntArray(if (format == Format.VERSIONED_LARGE) buf.readUnsignedIntSmart() else buf.readUnsignedShort())
             }
             for (group in fileIds) {
                 var fileIdAccumulator = 0
                 for (fileIndex in group.indices) {
                     // difference with previous id
                     val delta = if (format == Format.VERSIONED_LARGE) {
-                        buf.readLargeSmart()
+                        buf.readUnsignedIntSmart()
                     } else buf.readUnsignedShort()
                     fileIdAccumulator += delta
                     group[fileIndex] = fileIdAccumulator
@@ -401,7 +401,7 @@ public data class Js5ArchiveSettings(
  * The validator that can be used to check whether an archive is not corrupted or outdated.
  *
  * @property crc The [java.util.zip.CRC32] value of the [Js5ArchiveSettings] as an encoded [Js5Container].
- * @property version (Optional) he version of the [Js5ArchiveSettings].
+ * @property version (Optional) The version of the [Js5ArchiveSettings].
  * @property fileCount (Optional) The amount of [Js5File]s in the archive.
  * @property uncompressedSize (Optional) The size of the sum of all [Js5GroupData] data uncompressed.
  * @property whirlpoolDigest (Optional) The whirlpool digest of this archive.

@@ -1,9 +1,7 @@
 import io.guthix.js5.registerPublication
 
-//import io.guthix.js5.registerPublication
-
 dependencies {
-    implementation(libs.bouncycastle)
+    implementation(deps.bouncycastle)
     api(project(":container"))
     testImplementation(testFixtures(project(":container")))
 }

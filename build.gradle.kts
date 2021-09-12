@@ -1,8 +1,8 @@
 plugins {
+    kotlin("jvm") version "1.5.30"
+    id("org.jetbrains.dokka") version "1.5.0"
     `maven-publish`
     signing
-    id("org.jetbrains.dokka")
-    kotlin("jvm")
 }
 
 allprojects {
@@ -18,12 +18,13 @@ allprojects {
     }
 
     dependencies {
-        api(rootProject.libs.jagex.bytebuf)
-        implementation(rootProject.libs.kotlin.logging)
-        dokkaHtmlPlugin(rootProject.libs.dokka)
-        testImplementation(rootProject.libs.logback)
-        testImplementation(rootProject.libs.kotest.junit)
-        testImplementation(rootProject.libs.kotest.assert)
+        api(rootProject.deps.jagex.bytebuf.ext)
+        implementation(rootProject.deps.kotlin.logging)
+        dokkaHtmlPlugin(rootProject.deps.dokka.java)
+        testImplementation(rootProject.deps.logback.classic)
+        testImplementation(rootProject.deps.kotest.junit)
+        testImplementation(rootProject.deps.kotest.assert)
+        testImplementation(rootProject.deps.kotest.property)
     }
 
     tasks {
@@ -34,7 +35,7 @@ allprojects {
 
     kotlin {
         jvmToolchain {
-            (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of("11"))
+            (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(rootProject.deps.versions.jdk.get()))
         }
     }
 
