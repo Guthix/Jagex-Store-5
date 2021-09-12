@@ -254,7 +254,7 @@ internal data class Js5GroupData(
                 }
             }
             return Js5GroupData(
-                fileData.map { it }.toTypedArray(),
+                fileData.map { it.asReadOnly() }.toTypedArray(),
                 chunkCount,
                 container.compression
             )
