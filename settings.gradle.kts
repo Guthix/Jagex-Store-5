@@ -18,6 +18,8 @@ pluginManagement {
 
 rootProject.name = "jagex-store-5"
 
+include("container")
+include("filestore")
 include("toolbox")
 include("toolbox:downloader")
 include("toolbox:versionstripper")

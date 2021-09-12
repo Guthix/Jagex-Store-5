@@ -1,26 +1,15 @@
-import io.guthix.js5.registerPublication
-
 plugins {
-    idea
     `maven-publish`
     signing
     id("org.jetbrains.dokka")
     kotlin("jvm")
 }
 
-dependencies {
-    implementation(libs.bouncycastle)
-    implementation(libs.tukaani.xz)
-    implementation(libs.apache.compress)
-}
-
-kotlin { explicitApi() }
-
-registerPublication(name = "jagex-store-5", description = "A library for modifying Jagex Store 5 caches")
-
 allprojects {
-    apply(plugin = "kotlin")
+    apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.dokka")
+    apply(plugin = "maven-publish")
+    apply(plugin = "signing")
 
     group = "io.guthix"
 
