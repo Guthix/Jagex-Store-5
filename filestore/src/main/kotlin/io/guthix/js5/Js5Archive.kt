@@ -122,7 +122,7 @@ public data class Js5Archive internal constructor(
         appendVersion: Boolean = true
     ) {
         if(autoVersion) group.version++
-        val container = group.groupData.encode(if (appendVersion) group.version else null)
+        val container = Js5GroupData.from(group).encode(if (appendVersion) group.version else null)
         val uncompressedSize = container.data.writerIndex()
         val data = container.encode(xteaKey)
         val compressedSize = if (appendVersion) data.writerIndex() - 2 else data.writerIndex()
@@ -130,7 +130,7 @@ public data class Js5Archive internal constructor(
         if (containsWpHash) group.whirlpoolHash = data.whirlPoolHash(length = compressedSize)
         writeGroupData(group.id, data)
         if (containsSizes) group.sizes = Js5Container.Size(compressedSize, uncompressedSize)
-        groupSettings[group.id] = group.groupSettings
+        groupSettings[group.id] = Js5GroupSettings.from(group)
     }
 
     /** Writes the group [Js5Container] data to the [writeStore]. */

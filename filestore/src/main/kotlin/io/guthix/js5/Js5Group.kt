@@ -53,22 +53,6 @@ public data class Js5Group(
     val files: MutableMap<Int, Js5File> = mutableMapOf(),
     var compression: Js5Compression = Uncompressed
 ) {
-    /**
-     * The [Js5GroupData] of this [Js5Group].
-     */
-    internal val groupData
-        get() = Js5GroupData(files.values.map(Js5File::data).toTypedArray(), chunkCount, compression)
-
-    /**
-     * The [Js5GroupSettings] of this [Js5Group].
-     */
-    internal val groupSettings
-        get() =
-            Js5GroupSettings(id, version, compressedCrc, files.mapValues { (fileId, file) ->
-                Js5FileSettings(fileId, file.nameHash)
-            }.toMutableMap(), nameHash, uncompressedCrc, whirlpoolHash, sizes
-            )
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -104,9 +88,6 @@ public data class Js5Group(
     }
 
     internal companion object {
-        /**
-         * Creates a [Js5Group] from the [Js5GroupData] and the [Js5GroupSettings].
-         */
         internal fun create(data: Js5GroupData, settings: Js5GroupSettings): Js5Group {
             var i = 0
             val files = mutableMapOf<Int, Js5File>()
@@ -133,18 +114,14 @@ internal data class Js5GroupData(
     var chunkCount: Int = 1,
     var compression: Js5Compression = Uncompressed
 ) {
-    /**
-     * Encodes the [Js5GroupData] into a [Js5Container].
-     */
+    /** Encodes the [Js5GroupData] into a [Js5Container]. */
     internal fun encode(version: Int? = null) = if (fileData.size == 1) {
         Js5Container(fileData.first(), compression, version)
     } else {
         Js5Container(encodeMultipleFiles(fileData, chunkCount), compression, version)
     }
 
-    /**
-     * Encodes the [Js5GroupData] when the group contains multiple files.
-     */
+    /** Encodes the [Js5GroupData] when the group contains multiple files. */
     @Suppress("ConvertLambdaToReference")
     private fun encodeMultipleFiles(data: Array<ByteBuf>, chunkCount: Int): ByteBuf {
         val chunks = splitIntoChunks(data, chunkCount)
@@ -170,9 +147,7 @@ internal data class Js5GroupData(
         return buf
     }
 
-    /**
-     * Divides the file data into multiple chunks and split it evenly.
-     */
+    /** Divides the file data into multiple chunks and split it evenly. */
     private fun splitIntoChunks(fileData: Array<ByteBuf>, chunkCount: Int): Array<Array<ByteBuf>> {
         val chunkSize = fileData.map {
             ceil(it.writerIndex().toDouble() / chunkCount).toInt()
@@ -184,9 +159,7 @@ internal data class Js5GroupData(
         }
     }
 
-    /**
-     * Takes a split of a [ByteBuf] at index [index] with splits of size [length]
-     */
+    /** Takes a split of a [ByteBuf] at index [index] with splits of size [length]. */
     private fun ByteBuf.splitOf(index: Int, length: Int): ByteBuf {
         val start = index * length
         return slice(index * length, if (start + length > writerIndex()) writerIndex() - start else length)
@@ -208,6 +181,12 @@ internal data class Js5GroupData(
     }
 
     internal companion object {
+        internal fun from(group: Js5Group) = Js5GroupData(
+            group.files.values.map(Js5File::data).toTypedArray(),
+            group.chunkCount,
+            group.compression
+        )
+
         /**
          * Decodes a [Js5Container] into a [Js5GroupData].
          *
@@ -314,5 +293,18 @@ public data class Js5GroupSettings(
         result = 31 * result + (whirlpoolHash?.contentHashCode() ?: 0)
         result = 31 * result + (sizes?.hashCode() ?: 0)
         return result
+    }
+
+    public companion object {
+        internal fun from(group: Js5Group) = Js5GroupSettings(
+            group.id,
+            group.version,
+            group.compressedCrc,
+            group.files.mapValues { (fileId, file) -> Js5FileSettings(fileId, file.nameHash) }.toMutableMap(),
+            group.nameHash,
+            group.uncompressedCrc,
+            group.whirlpoolHash,
+            group.sizes
+        )
     }
 }
