@@ -1,6 +1,6 @@
 # Jagex Store 5
-[![Release](https://img.shields.io/maven-central/v/io.guthix/jagex-store-5)](https://search.maven.org/search?q=jagex-store-5)
-[![Snapshot](https://img.shields.io/nexus/s/io.guthix/jagex-store-5?server=https%3A%2F%2Foss.sonatype.org)](https://oss.sonatype.org/content/repositories/snapshots/io/guthix/jagex-store-5/)
+[![Release](https://img.shields.io/maven-central/v/io.guthix/js5-filestore)](https://search.maven.org/search?q=js5-filestore)
+[![Snapshot](https://img.shields.io/nexus/s/io.guthix/js5-filestore?server=https%3A%2F%2Foss.sonatype.org)](https://oss.sonatype.org/content/repositories/snapshots/io/guthix/js5-filestore/)
 [![License](https://img.shields.io/github/license/guthix/Jagex-Store-5)](https://github.com/guthix/Jagex-Store-5/blob/master/LICENSE)
 [![JDK](https://img.shields.io/badge/JDK-11%2B-blue)](https://openjdk.java.net/projects/jdk/11/)
 [![Discord](https://img.shields.io/discord/538667877180637184?color=%237289da&logo=discord)](https://discord.gg/AFyGxNp)
@@ -66,7 +66,15 @@ higher level cache overview that handles all the encoding, encryption, compressi
 
 ### Gradle
 ```Kotlin
-implementation(group = "io.guthix", name = "jagex-store-5", version = VERSION)
+dependencies {
+    implementation(group = "io.guthix", name = "js5-filestore", version = VERSION)
+}
+```
+Or containers only:
+```Kotlin
+dependencies { 
+    implementation(group = "io.guthix", name = "js5-container", version = VERSION)
+}
 ```
 Snapshot repository:
 ```Kotlin
@@ -99,7 +107,7 @@ val group0 = archive0.readGroup(groupName = "GROUP_NAME")
 
 ##### Modifying files in a group
 ```kotlin
-group.files[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), data = NEW_DATA)
+group[0] = Js5File(id = 0, nameHash = "FILE_NAME".hashCode(), data = NEW_DATA)
 ```
 
 ##### Writing a group
