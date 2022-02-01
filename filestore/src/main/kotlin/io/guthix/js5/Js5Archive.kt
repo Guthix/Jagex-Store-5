@@ -95,7 +95,7 @@ public data class Js5Archive internal constructor(
             groupSettings.fileSettings.size
         )
         val group = Js5Group.create(groupData, groupSettings)
-        logger.info("Reading group ${groupSettings.id} from archive $archiveId")
+        logger.debug("Reading group ${groupSettings.id} from archive $archiveId")
         return group
     }
 
