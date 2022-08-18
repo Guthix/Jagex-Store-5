@@ -12,7 +12,7 @@ dependencyResolutionManagement {
             version("dokka", "1.7.10")
             version("jagex-bytebuf-extensions", "0.2.0")
             version("logback-classic", "1.2.6")
-            version("kotest", "5.0.0.M1")
+            version("kotest", "5.4.2")
             version("tongfei-progressbar", "0.9.2")
             version("kotlin-logging", "2.0.11")
             version("tukaani-xz", "1.8")
