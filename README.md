@@ -23,7 +23,16 @@ an unique id in their own scope. So every group belonging to a single archive ha
 an unique id and every file in a single group has an unique id. Groups can also have names
 which are stored as hashes in the settings.
 
-![JS5 cache content](docs/images/HighLevelOverview.svg)
+```mermaid
+graph TB 
+    C[Cache] --> A0[Archive 0]
+    C --> AN[Archive N]
+    A0 --> G0[Group 0]
+    A0 --> GM[Group M]
+    G0 --> F0[File 0]
+    G0 --> FK[File K]
+```
+
 
 ## Disk Structure
 A JS5 cache is made out of multiple files on disk. Each cache at least

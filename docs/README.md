@@ -20,7 +20,15 @@ stored in the data file.
 The actually content of the cache looks very different from its file representation. A cache can have multiple 
 archives which map to an archive file.
 
-![Cache content](images/HighLevelOverview.svg)
+```mermaid
+graph TB 
+    C[Cache] --> A0[Archive 0]
+    C --> AN[Archive N]
+    A0 --> G0[Group 0]
+    A0 --> GM[Group M]
+    G0 --> F0[File 0]
+    G0 --> FK[File K]
+```
 
 Archives however can have multiple groups inside them and every group can contain multiple files. Retrieving and
 storing data in and to the cache is always done on an group basis. When storing for example a file to the cache the

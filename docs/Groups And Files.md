@@ -7,7 +7,15 @@ has an unique identifier. These identifiers don't have to be sequential.
 Groups are retrieved by reading a container from the cache and decode 
 the data from the container into an Group.
 
-![Cache content](images/HighLevelOverview.svg)
+```mermaid
+graph TB 
+    C[Cache] --> A0[Archive 0]
+    C --> AN[Archive N]
+    A0 --> G0[Group 0]
+    A0 --> GM[Group M]
+    G0 --> F0[File 0]
+    G0 --> FK[File K]
+```
 
 Groups can optionally also have a name. Files in an Group can also
 have names. When the Group has a name all files inside of that Group
