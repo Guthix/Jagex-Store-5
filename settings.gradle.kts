@@ -8,8 +8,8 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("deps") {
             version("jdk", "11")
-            version("kotlin", "1.6.0")
-            version("dokka", "1.5.0")
+            version("kotlin", "1.7.10")
+            version("dokka", "1.7.10")
             version("jagex-bytebuf-extensions", "0.2.0")
             version("logback-classic", "1.2.6")
             version("kotest", "5.0.0.M1")
