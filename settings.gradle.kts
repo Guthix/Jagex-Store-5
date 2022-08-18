@@ -7,7 +7,7 @@ rootProject.name = "jagex-store-5"
 dependencyResolutionManagement {
     versionCatalogs {
         create("deps") {
-            version("jdk", "11")
+            version("jdk", "17")
             version("kotlin", "1.7.10")
             version("dokka", "1.7.10")
             version("jagex-bytebuf-extensions", "0.2.0")
