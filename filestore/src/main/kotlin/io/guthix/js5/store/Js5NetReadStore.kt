@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.guthix.js5.container.net
+package io.guthix.js5.store
 
 import io.guthix.js5.Js5ArchiveSettings
 import io.guthix.js5.container.Js5Compression
