@@ -15,7 +15,7 @@
  */
 package io.guthix.js5
 
-import io.guthix.js5.container.disk.Js5DiskStore
+import io.guthix.js5.container.Js5DiskStore
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.netty.buffer.Unpooled

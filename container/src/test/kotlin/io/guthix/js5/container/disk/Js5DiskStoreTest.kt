@@ -15,6 +15,7 @@
  */
 package io.guthix.js5.container.disk
 
+import io.guthix.js5.container.Js5DiskStore
 import io.guthix.js5.createEmptyCacheFolder
 import io.guthix.js5.iterationFill
 import io.kotest.core.spec.style.StringSpec

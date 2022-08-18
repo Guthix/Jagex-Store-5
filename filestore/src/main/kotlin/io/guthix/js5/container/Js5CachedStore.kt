@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.guthix.js5.store
+package io.guthix.js5.container
 
 import io.guthix.js5.Js5ArchiveSettings
-import io.guthix.js5.container.Js5Container
-import io.guthix.js5.container.Js5Store
-import io.guthix.js5.container.disk.Js5DiskStore
 import io.netty.buffer.ByteBuf
 import java.io.FileNotFoundException
 

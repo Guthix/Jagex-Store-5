@@ -15,7 +15,7 @@
  */
 package io.guthix.js5
 
-import io.guthix.js5.container.disk.Js5DiskStore
+import io.guthix.js5.container.Js5DiskStore
 import io.netty.buffer.ByteBuf
 import java.nio.file.Files
 import java.nio.file.Path

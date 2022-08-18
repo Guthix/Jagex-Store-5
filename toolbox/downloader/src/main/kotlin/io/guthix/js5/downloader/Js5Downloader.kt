@@ -18,8 +18,8 @@ package io.guthix.js5.downloader
 import io.guthix.js5.*
 import io.guthix.js5.container.Js5Container
 import io.guthix.js5.container.Js5Store
-import io.guthix.js5.container.disk.Js5DiskStore
-import io.guthix.js5.container.net.Js5NetReadStore
+import io.guthix.js5.container.Js5DiskStore
+import io.guthix.js5.container.Js5NetReadStore
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import me.tongfei.progressbar.DelegatingProgressBarConsumer

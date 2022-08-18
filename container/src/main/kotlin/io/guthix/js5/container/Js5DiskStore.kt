@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.guthix.js5.container.disk
+package io.guthix.js5.container
 
-import io.guthix.js5.container.Js5Container
-import io.guthix.js5.container.Js5Store
+import io.guthix.js5.container.disk.Dat2File
+import io.guthix.js5.container.disk.IdxFile
+import io.guthix.js5.container.disk.Index
+import io.guthix.js5.container.disk.Sector
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import mu.KotlinLogging
