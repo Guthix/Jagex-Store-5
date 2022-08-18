@@ -52,8 +52,8 @@ public data class Js5Group(
     internal var uncompressedCrc: Int? = null,
     internal var whirlpoolHash: ByteArray? = null,
     internal var sizes: Js5Container.Size? = null,
-    private val files: SortedMap<Int, Js5File> = sortedMapOf(),
-): SortedMap<Int, Js5File> by files {
+    val files: SortedMap<Int, Js5File> = sortedMapOf(),
+) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -165,7 +165,7 @@ internal data class Js5GroupData(
 
     internal companion object {
         internal fun from(group: Js5Group) = Js5GroupData(
-            group.values.map(Js5File::data),
+            group.files.map { it.value.data },
             group.chunkCount,
             group.compression
         )
@@ -287,7 +287,7 @@ public data class Js5GroupSettings(
             group.uncompressedCrc,
             group.whirlpoolHash,
             group.sizes,
-            group.mapValues { (fileId, file) -> Js5FileSettings(fileId, file.nameHash) }.toSortedMap(),
+            group.files.map { (fileId, file) -> fileId to Js5FileSettings(fileId, file.nameHash) }.toMap().toSortedMap()
         )
     }
 }

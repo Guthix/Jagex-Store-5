@@ -53,7 +53,7 @@ public data class Js5Archive internal constructor(
     internal val groupSettings: SortedMap<Int, Js5GroupSettings> = sortedMapOf(),
     private val readStore: Js5ReadStore,
     private val writeStore: Js5WriteStore?
-): Map<Int, Js5GroupSettings> by groupSettings {
+) {
     /**
      * Reads a [Js5Group] from this [Js5Archive] by id.
      *
@@ -205,8 +205,8 @@ public data class Js5ArchiveSettings(
     val containsWpHash: Boolean,
     val containsSizes: Boolean,
     val containsUncompressedCrc: Boolean,
-    internal val groupSettings: SortedMap<Int, Js5GroupSettings> = sortedMapOf()
-): Map<Int, Js5GroupSettings> by groupSettings {
+    val groupSettings: SortedMap<Int, Js5GroupSettings> = sortedMapOf()
+) {
     /**
      * Encodes the [Js5ArchiveSettings] into a [Js5Container].
      */
