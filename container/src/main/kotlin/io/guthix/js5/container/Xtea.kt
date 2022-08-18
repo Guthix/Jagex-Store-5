@@ -19,7 +19,11 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import java.lang.Exception
 
-internal class DecryptionFailedException(message: String) : Exception(message)
+internal class DecryptionFailedException(message: String) : Exception(message) {
+    companion object {
+        private const val serialVersionUID = 0L
+    }
+}
 
 /** The amount of [Int] keys in a XTEA key. */
 public const val XTEA_KEY_SIZE: Int = 4
