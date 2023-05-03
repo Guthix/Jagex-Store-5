@@ -2,7 +2,7 @@
 
 enableFeaturePreview("VERSION_CATALOGS")
 
-rootProject.name = "jagex-store-5"
+rootProject.name = "Jagex-Store-5"
 
 dependencyResolutionManagement {
     versionCatalogs {
