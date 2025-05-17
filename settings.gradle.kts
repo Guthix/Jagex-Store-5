@@ -10,7 +10,7 @@ dependencyResolutionManagement {
             version("jagex-bytebuf-extensions", "0.2.0")
             version("logback-classic", "1.5.18")
             version("kotest", "6.0.0.M4")
-            version("tongfei-progressbar", "0.9.2")
+            version("tongfei-progressbar", "0.10.1")
             version("kotlin-logging", "2.0.11")
             version("tukaani-xz", "1.8")
             version("bouncycastle", "1.69")
