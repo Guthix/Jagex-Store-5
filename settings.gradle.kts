@@ -14,7 +14,7 @@ dependencyResolutionManagement {
             version("kotlin-logging", "7.0.7")
             version("tukaani-xz", "1.10")
             version("bouncycastle", "1.80")
-            version("apache-compress", "1.21")
+            version("apache-compress", "1.27.1")
 
             library("jagex-bytebuf-ext", "io.guthix", "jagex-bytebuf-extensions").versionRef("jagex-bytebuf-extensions")
             library("kotlin-logging", "io.github.oshai", "kotlin-logging-jvm").versionRef("kotlin-logging")
