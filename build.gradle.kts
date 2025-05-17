@@ -1,13 +1,11 @@
 plugins {
-    kotlin("jvm") version "1.7.10"
-    id("org.jetbrains.dokka") version "1.7.10"
+    kotlin("jvm") version "2.1.21"
     `maven-publish`
     signing
 }
 
 allprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "org.jetbrains.dokka")
     apply(plugin = "maven-publish")
     apply(plugin = "signing")
 
@@ -20,7 +18,6 @@ allprojects {
     dependencies {
         api(rootProject.deps.jagex.bytebuf.ext)
         implementation(rootProject.deps.kotlin.logging)
-        dokkaHtmlPlugin(rootProject.deps.dokka.java)
         testImplementation(rootProject.deps.logback.classic)
         testImplementation(rootProject.deps.kotest.junit)
         testImplementation(rootProject.deps.kotest.assert)
