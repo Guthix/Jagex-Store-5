@@ -8,7 +8,7 @@ dependencyResolutionManagement {
             version("jdk", "17")
             version("kotlin", "2.1.21")
             version("jagex-bytebuf-extensions", "0.2.0")
-            version("logback-classic", "1.2.6")
+            version("logback-classic", "1.5.18")
             version("kotest", "6.0.0.M4")
             version("tongfei-progressbar", "0.9.2")
             version("kotlin-logging", "2.0.11")
