@@ -42,6 +42,7 @@ private val logger = KotlinLogging.logger { }
  * @property readStore The [Js5ReadStore] where all read operations are done.
  * @property writeStore The [Js5WriteStore] where all the write operations are done.
  */
+@ConsistentCopyVisibility
 public data class Js5Archive internal constructor(
     val id: Int,
     var version: Int? = null,
@@ -95,7 +96,7 @@ public data class Js5Archive internal constructor(
             groupSettings.fileSettings.size
         )
         val group = Js5Group.create(groupData, groupSettings)
-        logger.debug("Reading group ${groupSettings.id} from archive $archiveId")
+        logger.debug { "Reading group ${groupSettings.id} from archive $archiveId" }
         return group
     }
 
@@ -316,7 +317,7 @@ public data class Js5ArchiveSettings(
         public fun decode(container: Js5Container): Js5ArchiveSettings {
             val buf = container.data
             val formatOpcode = buf.readUnsignedByte().toInt()
-            val format = Format.values().firstOrNull { it.opcode == formatOpcode } ?: throw IOException(
+            val format = Format.entries.firstOrNull { it.opcode == formatOpcode } ?: throw IOException(
                 "Archive Settings format $formatOpcode not supported."
             )
             val version = if (format == Format.UNVERSIONED) null else buf.readInt()

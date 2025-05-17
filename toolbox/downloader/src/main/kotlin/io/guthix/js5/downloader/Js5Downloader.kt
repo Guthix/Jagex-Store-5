@@ -109,7 +109,7 @@ object Js5Downloader {
                     Thread.sleep(20) // requesting to fast makes the server close the connection
                 }
             }
-            logger.info("Done sending requests")
+            logger.info { "Done sending requests" }
         }
         val writeThread = Thread { // start thread that reads requests
             val progressBarGroups = ProgressBarBuilder()
@@ -135,7 +135,7 @@ object Js5Downloader {
                     }
                 }
             }
-            logger.info("Done writing responses")
+            logger.info { "Done writing responses" }
         }
         readThread.start()
         writeThread.start()

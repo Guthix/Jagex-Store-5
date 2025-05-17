@@ -185,8 +185,7 @@ public data class Js5CacheValidator(val archiveValidators: Array<Js5ArchiveValid
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
         other as Js5CacheValidator
-        if (!archiveValidators.contentEquals(other.archiveValidators)) return false
-        return true
+        return archiveValidators.contentEquals(other.archiveValidators)
     }
 
     override fun hashCode(): Int = archiveValidators.contentHashCode()

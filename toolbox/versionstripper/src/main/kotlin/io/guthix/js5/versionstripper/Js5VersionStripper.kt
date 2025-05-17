@@ -44,9 +44,9 @@ object Js5VersionStripper {
             val archiveSettingsData = store.read(Js5Store.MASTER_INDEX, archiveId)
             archiveSettings[archiveId] = Js5ArchiveSettings.decode(Js5Container.decode(archiveSettingsData))
         }
-        val grouupCount = archiveSettings.values.sumOf { it.groupSettings.keys.size }
+        val groupCount = archiveSettings.values.sumOf { it.groupSettings.keys.size }
         val progressBar = ProgressBarBuilder()
-            .setInitialMax(grouupCount.toLong())
+            .setInitialMax(groupCount.toLong())
             .setTaskName("Remover")
             .setStyle(ProgressBarStyle.ASCII)
             .setConsumer(DelegatingProgressBarConsumer(logger::info))

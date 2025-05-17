@@ -231,7 +231,7 @@ internal data class Js5GroupData(
  * @property id The unique identifier in the archive of this group.
  * @property nameHash (Optional) The unique string identifier in the archive stored as a [java.lang.String.hashCode].
  * @property compressedCrc The [java.util.zip.CRC32] value of the encoded [Js5GroupData] data.
- * @property uncompressedCrc (Optional) Its purpose and type is unknown as of yet.
+ * @property uncompressedCrc (Optional) Its purpose and type is unknown yet.
  * @property whirlpoolHash (Optional) A whirlpool hash with its purpose unknown.
  * @property sizes (Optional) The [Js5Container.Size] of this [Js5GroupData].
  * @property version The version of this group.

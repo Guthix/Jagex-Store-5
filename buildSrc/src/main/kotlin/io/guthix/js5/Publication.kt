@@ -26,6 +26,7 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.register
 import org.gradle.plugins.signing.SigningExtension
 import java.net.URI
+import java.util.Locale
 
 private const val SNAPSHOT_BASE_VERSION = "0.6.0"
 
@@ -37,7 +38,9 @@ fun Project.registerPublication(name: String, description: String) {
             sonarSnapshotRepository()
         }
         publications {
-            val taskName = name.split("-").joinToString("") { it.capitalize() }
+            val taskName = name.split("-").joinToString("") { taskName -> taskName.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            }
             val publicationProvider = register<MavenPublication>(taskName) {
                 configurePom(name, description, components.getByName("java"))
             }
@@ -96,7 +99,6 @@ private fun MavenPublication.configurePom(projectName: String, desc: String?, co
     }
 }
 
-@Suppress("UnstableApiUsage")
 private fun Project.signPublication(publicationProvider: Provider<MavenPublication>) {
     val signingKey = System.getenv("SIGNING_KEY")
     val signingKeyPassphrase = System.getenv("SIGNING_PASSWORD")

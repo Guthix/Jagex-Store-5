@@ -218,13 +218,13 @@ public class Js5NetReadStore private constructor(
             xorKey: Byte = 0,
             priorityMode: Boolean = false
         ): Js5NetReadStore {
-            logger.info("Initializing JS5 connection to ${sockAddr.address}")
+            logger.info { "Initializing JS5 connection to ${sockAddr.address}" }
             val socketChannel = SocketChannel.open(sockAddr).apply {
                 setOption(StandardSocketOptions.TCP_NODELAY, true)
                 setOption(StandardSocketOptions.SO_KEEPALIVE, true)
             }
-            logger.info("Successfully connected to ${sockAddr.address}")
-            logger.info("Sending version handshake for revision $revision")
+            logger.info { "Successfully connected to ${sockAddr.address}" }
+            logger.info { "Sending version handshake for revision $revision" }
             val hsBuf = Unpooled.buffer(HANSHAKE_PACKET_SIZE).apply {
                 writeByte(JS5_CONNECTION_TYPE)
                 writeInt(revision)
@@ -236,7 +236,7 @@ public class Js5NetReadStore private constructor(
             if (statusCode != 0) throw IOException(
                 "Could not establish connection with JS5 Server status code: $statusCode."
             )
-            logger.info("JS5 connection successfully established")
+            logger.info { "JS5 connection successfully established" }
             val js5SocketReader = Js5NetReadStore(socketChannel, priorityMode)
             if (xorKey.toInt() != 0) js5SocketReader.updateEncryptionKey(xorKey)
             return js5SocketReader
