@@ -15,11 +15,11 @@
  */
 package io.guthix.js5.container.disk
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.guthix.js5.container.Js5Container
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
-import mu.KotlinLogging
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.channels.FileChannel

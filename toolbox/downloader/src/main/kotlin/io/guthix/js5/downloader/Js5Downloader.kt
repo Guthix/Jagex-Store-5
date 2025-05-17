@@ -15,6 +15,7 @@
  */
 package io.guthix.js5.downloader
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.guthix.js5.*
 import io.guthix.js5.container.Js5Container
 import io.guthix.js5.container.Js5Store
@@ -25,7 +26,6 @@ import io.netty.buffer.Unpooled
 import me.tongfei.progressbar.DelegatingProgressBarConsumer
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
-import mu.KotlinLogging
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.file.Files

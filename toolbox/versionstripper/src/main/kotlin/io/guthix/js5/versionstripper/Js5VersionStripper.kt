@@ -15,6 +15,7 @@
  */
 package io.guthix.js5.versionstripper
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.guthix.js5.Js5ArchiveSettings
 import io.guthix.js5.container.Js5Container
 import io.guthix.js5.container.Js5Store
@@ -22,7 +23,6 @@ import io.guthix.js5.container.Js5DiskStore
 import me.tongfei.progressbar.DelegatingProgressBarConsumer
 import me.tongfei.progressbar.ProgressBarBuilder
 import me.tongfei.progressbar.ProgressBarStyle
-import mu.KotlinLogging
 import java.nio.file.Path
 import kotlin.io.path.Path
 

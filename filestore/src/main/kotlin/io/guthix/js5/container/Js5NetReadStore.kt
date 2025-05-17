@@ -15,12 +15,12 @@
  */
 package io.guthix.js5.container
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.guthix.js5.Js5ArchiveSettings
 import io.guthix.js5.container.disk.Sector
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.DefaultByteBufHolder
 import io.netty.buffer.Unpooled
-import mu.KotlinLogging
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.StandardSocketOptions

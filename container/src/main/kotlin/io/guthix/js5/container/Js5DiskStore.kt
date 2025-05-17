@@ -15,13 +15,13 @@
  */
 package io.guthix.js5.container
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.guthix.js5.container.disk.Dat2File
 import io.guthix.js5.container.disk.IdxFile
 import io.guthix.js5.container.disk.Index
 import io.guthix.js5.container.disk.Sector
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import mu.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.math.ceil

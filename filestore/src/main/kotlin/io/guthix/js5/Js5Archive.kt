@@ -15,12 +15,12 @@
  */
 package io.guthix.js5
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.guthix.buffer.readUnsignedIntSmart
 import io.guthix.buffer.writeUnsignedIntSmart
 import io.guthix.js5.container.*
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import mu.KotlinLogging
 import java.io.IOException
 import java.util.*
 import kotlin.math.abs
